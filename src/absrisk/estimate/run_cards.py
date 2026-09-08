@@ -22,22 +22,38 @@ from ..shape import TIERS, default_shapes, load_level, predict_chargeoff, tiers_
 from . import cards as cards_est
 
 
+SCORE_MIN, SCORE_MAX = 300, 850
+
+
 def mix_by_trust(composition: pd.DataFrame) -> pd.DataFrame:
-    """Tier shares per (trust, as_of) from the FICO table. Uses receivables shares, else accounts."""
+    """Tier shares per (trust, as_of) from the FICO table. Uses receivables shares, else accounts.
+
+    Bucket edges outside the FICO range are clamped into it and the clamp is recorded: Citi's table opens a
+    bucket at 1 rather than at the bottom of the scale, and open-ended top buckets vary. Clamping only moves
+    an edge onto the scale; it never moves a boundary between two tiers.
+    """
     rows = []
     fico = composition[composition["table"] == "fico"]
     for (trust, as_of), g in fico.groupby(["trust", "as_of"]):
         share_col = "share_receivables" if g["share_receivables"].notna().any() else "share_accounts"
         g = g.dropna(subset=[share_col])
-        buckets = [(None if pd.isna(r["bucket_lo"]) else int(r["bucket_lo"]),
-                    None if pd.isna(r["bucket_hi"]) else int(r["bucket_hi"]),
-                    float(r[share_col])) for _, r in g.iterrows()]
+        buckets, clamped = [], []
+        for _, r in g.iterrows():
+            lo = None if pd.isna(r["bucket_lo"]) else int(r["bucket_lo"])
+            hi = None if pd.isna(r["bucket_hi"]) else int(r["bucket_hi"])
+            if lo is not None and lo < SCORE_MIN:
+                clamped.append(f"{lo}->{SCORE_MIN}")
+                lo = SCORE_MIN
+            if hi is not None and hi > SCORE_MAX:
+                clamped.append(f"{hi}->{SCORE_MAX}")
+                hi = SCORE_MAX
+            buckets.append((lo, hi, float(r[share_col])))
         try:
             mix = tiers_from_buckets(buckets)
         except Exception as e:  # noqa: BLE001
             rows.append({"trust": trust, "as_of": as_of, "error": str(e)[:120]})
             continue
-        rows.append({"trust": trust, "as_of": as_of, "basis": share_col,
+        rows.append({"trust": trust, "as_of": as_of, "basis": share_col, "clamped_edges": ";".join(clamped),
                      "score_type": ",".join(sorted(g["score_type"].dropna().astype(str).unique())),
                      "sample_note": ";".join(sorted(g["sample_note"].dropna().astype(str).unique())) if "sample_note" in g else "",
                      **{t: mix.get(t, 0.0) for t in TIERS}})

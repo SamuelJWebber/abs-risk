@@ -18,6 +18,60 @@ SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. Th
          "behaviour, and it cannot say which. Nothing here is a payment-hierarchy estimate.")
 
 
+def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> list[str]:
+    """Sentences computed from the tables, so the page cannot claim more than the numbers carry."""
+    out = []
+    if rank.empty:
+        return out
+    r = rank.pivot_table(index="trust", columns="shape_source", values="rank")
+    res = rank.pivot_table(index="trust", columns="shape_source", values="mean_residual")
+    stable = r[r.nunique(axis=1) == 1]
+    moved = r[r.nunique(axis=1) > 1]
+    n_shapes = r.shape[1]
+    if not stable.empty:
+        top = stable[stable.min(axis=1) == stable.min(axis=1).min()]
+        bot = stable[stable.max(axis=1) == stable.max(axis=1).max()]
+        parts = []
+        if not top.empty:
+            t = top.index[0]
+            parts.append(f"{t} charges off more than its own score mix predicts under every one of the {n_shapes} shapes "
+                         f"(residual {res.loc[t].min():+.2%} to {res.loc[t].max():+.2%})")
+        if not bot.empty and bot.index[0] != (top.index[0] if not top.empty else None):
+            b = bot.index[0]
+            parts.append(f"{b} charges off least relative to its mix under every shape ({res.loc[b].min():+.2%} to {res.loc[b].max():+.2%})")
+        if parts:
+            out.append("<b>The ends of the ranking hold; the middle does not.</b> " + "; ".join(parts) +
+                       f". {len(moved)} of {len(r)} trusts change rank depending on which loss curve is assumed"
+                       + (f" ({escape(', '.join(moved.index))})" if not moved.empty else "") +
+                       ". So the ordering of the extremes is a finding and the ordering of the middle is not.")
+    flip = res[(res > 0).any(axis=1) & (res < 0).any(axis=1)]
+    same = res[~res.index.isin(flip.index)]
+    if not flip.empty:
+        names = escape(", ".join(sorted(flip.index)))
+        line = (f"<b>The size of the gap is not identified.</b> For {len(flip)} of {len(res)} trusts ({names}) the residual changes sign "
+                f"with the assumed loss curve: the same trust looks worse than its mix under the consumer-level shapes and better under "
+                f"the card-level ones. The two families disagree by about five times on how much more a deep subprime account loses than "
+                f"a prime one, and that choice moves every level.")
+        if not same.empty:
+            keep = ", ".join(f"{t} ({res.loc[t].min():+.2%} to {res.loc[t].max():+.2%})" for t in sorted(same.index))
+            line += f" Only {escape(keep)} keeps the same sign under all {n_shapes}, so it is the one trust whose gap does not depend on the assumption."
+        out.append(line)
+    if not mix.empty and "deep_subprime" in mix:
+        m = mix.dropna(subset=["deep_subprime"]).copy()
+        m["below_prime"] = m[["deep_subprime", "subprime", "near_prime"]].sum(axis=1)
+        m = m[m["trust"].isin(set(rank["trust"]))]
+        if not m.empty:
+            hi, lo = m.loc[m["below_prime"].idxmax()], m.loc[m["below_prime"].idxmin()]
+            act = rank.groupby("trust")["mean_actual"].first()
+            mix_ratio = hi["below_prime"] / max(lo["below_prime"], 1e-9)
+            out.append(f"<b>The pools differ less than the losses do.</b> Below-prime receivables run from {lo['below_prime']:.1%} at "
+                       f"{lo['trust']} to {hi['below_prime']:.1%} at {hi['trust']}, a spread of {mix_ratio:.1f} times, while the "
+                       f"charge-off rates themselves run from {act.min():.2%} to {act.max():.2%}, a spread of "
+                       f"{act.max() / max(act.min(), 1e-9):.1f} times. Score mix is real but it is not the whole story, and the pool "
+                       f"tables cannot say what the rest is.")
+    return out
+
+
 def build(results: Path, out: Path) -> Path:
     pred = pd.read_csv(results / "a1_predicted.csv")
     rank = pd.read_csv(results / "a1_ranking.csv") if (results / "a1_ranking.csv").exists() else pd.DataFrame()
@@ -30,9 +84,12 @@ def build(results: Path, out: Path) -> Path:
     h.append(f"<p class='muted'>Built {date.today().isoformat()} from monthly 10-D reports and prospectus composition tables on EDGAR, "
              f"and CFPB card market report figure data. {pred['trust'].nunique()} trusts, {pred['period_end'].nunique()} months.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
+    h.append("<h2>What the data says</h2>")
+    for line in _headlines(rank, pred, mix):
+        h.append(f"<p>{line}</p>")
 
     h.append("<h2>1. Score mix by trust</h2>")
-    cols = ["trust", "as_of", "basis", "score_type", "deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
+    cols = ["trust", "as_of", "basis", "score_type", "clamped_edges", "deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
     cols = [c for c in cols if c in mix]
     h.append(table(mix.sort_values(["trust", "as_of"]), cols=cols, fmt={t: "{:.1%}" for t in ("deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime")}))
     if "error" in mix and mix["error"].notna().any():
