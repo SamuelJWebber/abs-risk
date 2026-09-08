@@ -1,0 +1,20 @@
+name: diag-edgar
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: EDGAR access matrix
+        env:
+          ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
+        run: uv run python scripts/scout/ua_diag.py
