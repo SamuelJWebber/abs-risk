@@ -38,8 +38,20 @@ selection and behaviour). No account-level card modelling. No forecasting in v1.
 - `share(t, tier)` from the trust's most recent prospectus FICO distribution, mapped to CFPB tiers.
   Prospectus buckets differ by trust; the crosswalk is explicit (crosswalks/fico_buckets.csv) and any bucket
   that straddles a tier boundary is split by a stated rule, with the sensitivity shown.
-- `loss_curve(tier, year)` from the CFPB Consumer Credit Card Market Report figure data (annualised
-  charge-off by tier, by year), the one public loss-by-tier curve for US cards.
+- `loss_curve(tier, year)`: **no public source gives card charge-off by score tier.** The CFPB says so in
+  its card market reports (2021 fn 75, 2023 fn 88: tiering by current score is endogenous to delinquency,
+  so loss by tier is withheld). Scouting record: design/scout-ccmr-tiers.md. The curve is therefore built as
+  shape times level:
+  - *Shape* (relative loss across tiers) from sources that are public and stated: FICO's published odds
+    table (share of consumers 90+ days late within 24 months by score band), the by-FICO default rates in
+    Agarwal, Chomsisengphet, Mahoney and Stroebel (2018, Y-14M, 2008 to 2012), and, once Track B is running,
+    the default-by-score curve measured directly in the auto loan-level data. FICO is built so odds scale
+    the same way across products, which is the assumption, and the three shapes are compared on the page.
+  - *Level* from the aggregate: the CFPB figure-data workbooks give industry general-purpose charge-off by
+    year and balances by tier, which pins the year's level so that the industry mix reproduces the
+    industry loss.
+  - The residual is reported under each shape. If the ranking of trusts changes with the shape, the page
+    says so; that is the finding, not a nuisance.
 
 **Outputs.** Per trust: actual vs predicted charge-off over time, the residual, and the same for payment
 rate and 30+ delinquency where the prospectus mix allows. A cross-trust chart of residual against pool
@@ -87,10 +99,21 @@ repurchase compete with default and must be treated as censoring, not as surviva
   both tracks have a fixture test and a golden check; not before.
 - Golden checks (checks/golden.yaml): numbers traced to a filing page or a CFPB table, re-verified each run.
 
-## 5. Open until scouting completes
+## 5. EDGAR access (settled 2026-09-08, the hard way)
 
-- Which trusts report which charge-off basis; which prospectuses give FICO by balances vs by accounts.
+- The home connection is ViaSat satellite behind carrier-grade NAT (99.196.128.3, AS40306). The SEC edge
+  blocks that address outright: 403 "Undeclared Automated Tool" on every host, every User-Agent, after a
+  quiet period. Nothing on this machine can pull from EDGAR. Record: design/scout-autos.md §0.
+- A GitHub Actions runner got the same 403 on its first request with the project User-Agent and no contact
+  address. The SEC's stated format is `Name contact@email`. Runs must carry a real contact address in
+  ABSRISK_CONTACT (an Actions secret); the session code appends it to the User-Agent.
+- So every fetch runs in Actions (`.github/workflows/scout.yml` now; a refresh workflow later), and local
+  work is on downloaded artifacts and committed derived tables. This is the same shape as the dashboard.
+
+## 6. Open until scouting completes
+
+- Which trusts report which charge-off basis (partly known from design/scout-cards.md: Amex, COMET, Chase,
+  Synchrony and BA all give gross and net; Citi unconfirmed; Discover defeased 2025-12, statements are images);
+  which prospectuses give FICO by balances vs by accounts (annex tables located, not yet copied).
 - Whether auto issuers report real credit scores; which fields are populated; asset-number persistence.
-- The CFPB figure-data workbooks: exact tier definitions and the years covered.
-- Contact address for the EDGAR User-Agent: the SEC asks for one. Set ABSRISK_CONTACT before any refresh runs
-  unattended; the session code appends it.
+- Which shape source to lead with in Track A, after the three are laid side by side.
