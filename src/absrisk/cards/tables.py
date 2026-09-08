@@ -24,10 +24,23 @@ _SGML_HEAD = re.compile(r"^\s*<DOCUMENT>.*?<TEXT>", re.S | re.I)
 _TYPE = re.compile(r"<TYPE>([^<\s]+)", re.I)
 _NORMALISE = {
     "’": "'", "‘": "'", "“": '"', "”": '"',
-    "–": "-", "—": "-", "‑": "-", "‒": "-", "­": "",
+    "–": "-", "—": "-", "‑": "-", "‒": "-", "­": "", "−": "-",
     " ": " ", " ": " ", " ": " ",
+    " ": " ", " ": " ", " ": " ", " ": " ", " ": " ", " ": " ",
+    " ": " ", " ": " ", " ": " ", "　": " ", "​": "",
     "�": " ",  # EDGAR serves some files with a literal replacement character where a dash was
+    # Windows-1252 punctuation written as numeric references (&#145;..&#151;, 13,157 times in the
+    # 10-D corpus). lxml keeps those as the C1 control points U+0091..U+0097 rather than applying
+    # the HTML5 cp1252 mapping, so Citi's "Finance Charge Receivables&#151;End of Due Period" and
+    # Chase's "Yield&#151;Finance Charge, Fees & Interchange" would otherwise carry an unmatchable
+    # character where the dash belongs.
+    "": "'", "": "'", "": '"', "": '"', "": "*",
+    "": "-", "": "-", "": "...", "": "(TM)",
 }
+
+# Footnote marks that EDGAR filings hang off a number ("28,776,718,144.36 †", BofA 2019-2021).
+_FOOTNOTE_MARKS = "†‡§¶*•·"
+_FOOTNOTE_TAIL = re.compile(r"^(.*?)\s*[" + re.escape(_FOOTNOTE_MARKS) + r"]+$", re.S)
 
 
 def read_text(path: Path) -> str:
@@ -148,6 +161,19 @@ class Num:
 _NUM_RE = re.compile(r"^\(?-?\$?\s?[\d,]*\d(\.\d+)?\)?%?$")
 
 
+def strip_footnote(c: str) -> str:
+    """Drop a trailing footnote mark from a cell whose remainder is a number.
+
+    BofA 2018-2021 prints "$ | 28,776,718,144.36 †" (the dagger is a <sup> pointing at the
+    "amounts are unaudited" note); the mark is presentation, not data. Only cells that are numbers
+    once the mark is removed are touched, so a label such as "Total*" keeps its asterisk.
+    """
+    m = _FOOTNOTE_TAIL.match(c.strip())
+    if m and m.group(1) and _NUM_RE.match(m.group(1).strip().replace(" ", "")):
+        return m.group(1).strip()
+    return c
+
+
 def is_number_cell(c: str) -> bool:
     c = c.strip()
     if c in ("-", "--", "N/A", "n/a", "NA"):
@@ -186,7 +212,7 @@ def tables(text: str) -> list[Table]:
         ri = 0
         for tr in tbl.find_all("tr"):
             cells = [normalise(re.sub(r"\s+", " ", td.get_text(" ", strip=True))) for td in tr.find_all(["td", "th"])]
-            cells = [c.strip() for c in cells if c and c.strip()]
+            cells = [strip_footnote(c.strip()) for c in cells if c and c.strip()]
             if cells:
                 t.rows.append(Row(ti, ri, cells))
             ri += 1
@@ -211,14 +237,26 @@ def find_row(rs: list[Row], pattern: str, *, table: int | None = None, nth: int 
     return hits[nth]
 
 
-def find_row_after(rs: list[Row], anchor: Row, pattern: str, within: int = 12) -> Row:
-    """First row after `anchor` (same table) whose label matches; used for 'i. | Current | x' sub-rows."""
+def _position(rs: list[Row], row: Row) -> int:
+    for i, r in enumerate(rs):
+        if r is row:
+            return i
+    raise ParseError(f"row {row.text!r} is not in this row list")
+
+
+def find_row_after(rs: list[Row], anchor: Row, pattern: str, within: int = 12, *,
+                   cross_table: bool = False) -> Row:
+    """First row after `anchor` whose label matches; used for 'i. | Current | x' sub-rows.
+
+    `cross_table=True` continues into the following tables in document order. Synchrony's Nov-2019 to
+    Mar-2022 statements put the block header ("a. Gross Trust Yield (...)") and its "i. Current" /
+    "ii. Three-Month Average" sub-rows in two separate <table> elements; from Apr-2022 they are one
+    table. The row window (`within`) is unchanged, so the search still cannot wander far.
+    """
     pat = re.compile(pattern, re.I)
-    seen = 0
-    for r in rs:
-        if r.table != anchor.table or r.index <= anchor.index:
-            continue
-        seen += 1
+    for seen, r in enumerate(rs[_position(rs, anchor) + 1:], start=1):
+        if not cross_table and r.table != anchor.table:
+            break
         if pat.search(r.label):
             return r
         if seen > within:
@@ -226,14 +264,61 @@ def find_row_after(rs: list[Row], anchor: Row, pattern: str, within: int = 12) -
     raise ParseError(f"no row matching {pattern!r} within {within} rows after {anchor.text!r}")
 
 
+def find_first(rs: list[Row], patterns, *, table: int | None = None, nth: int = 0) -> Row:
+    """The row matching the first of `patterns` that matches anything, tried in order.
+
+    `patterns` is the ordered list of label variants a field is known to appear under (one entry per
+    layout era; see design/cards-build.md "Historical layout variants"). Every entry must be a label
+    seen in a real filing - this is an alternation over known labels, not a relaxed pattern.
+    """
+    if isinstance(patterns, str):
+        patterns = (patterns,)
+    for pat in patterns:
+        hits = find_rows(rs, pat, table=table)
+        if len(hits) > nth:
+            return hits[nth]
+    raise ParseError(f"none of the label variants {tuple(patterns)!r} found (match #{nth})")
+
+
+def join_wrapped(rs: list[Row], row: Row, full: str, *, max_rows: int = 3) -> Row:
+    """`row` plus the following rows that carry the rest of a label wrapped across several <tr>s.
+
+    Amex and Chase break a long row label over two or three physical table rows, and the number lands
+    on whichever of them the wrap reached: five shapes occur for Amex's beginning-balance row alone
+    (design/cards-build.md section 6), and they alternate month to month rather than by era.
+
+    Rows are appended one at a time and the first join whose non-numeric cells match `full` - the
+    complete label, anchored - and that carries a number is returned, so the join is verified against
+    the known label rather than assumed from the layout.
+    """
+    pat = re.compile(full, re.I)
+    cells = list(row.cells)
+    start = _position(rs, row)
+    for extra in range(max_rows + 1):
+        if extra:
+            nxt = rs[start + extra] if start + extra < len(rs) else None
+            if nxt is None or nxt.table != row.table:
+                break
+            cells = cells + nxt.cells
+        cand = Row(row.table, row.index, cells)
+        text = " ".join(c for c in cells if not is_number_cell(c) and c not in ("$", "%"))
+        if pat.search(text) and cand.numbers():
+            return cand
+    raise ParseError(f"label {full!r} not reproduced by row {row.text!r} joined with the "
+                     f"{max_rows} rows after it")
+
+
 _MONTHS = {m.lower(): i for i, m in enumerate(calendar.month_name) if m}
 _MONTHS.update({m.lower(): i for i, m in enumerate(calendar.month_abbr) if m})
-_DATE_LONG = re.compile(r"([A-Z][a-z]+)\.?\s+(\d{1,2}),?\s+(\d{4})")
-_DATE_NUM = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})")
+# Internal spacing inside a date is formatting, not data: BofA's charge-off table header prints
+# "March 31,2023" (no space after the comma) and Synchrony's Jan/Feb 2020 statements print
+# "01 /31/2020". Both forms are accepted; nothing else about the date is relaxed.
+_DATE_LONG = re.compile(r"([A-Z][a-z]+)\.?\s+(\d{1,2})(?:\s*,\s*|\s+)(\d{4})")
+_DATE_NUM = re.compile(r"(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{4})")
 
 
 def parse_date(s: str) -> date:
-    """'July 31, 2026', 'Jul 31 2026' or '07/31/2026'."""
+    """'July 31, 2026', 'Jul 31 2026', 'March 31,2023', '07/31/2026' or '01 /31/2020'."""
     m = _DATE_LONG.search(s)
     if m and m.group(1).lower() in _MONTHS:
         return date(int(m.group(3)), _MONTHS[m.group(1).lower()], int(m.group(2)))

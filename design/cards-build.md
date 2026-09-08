@@ -238,5 +238,149 @@ under the crosswalk (receivables basis, July-2026 prospectus set): superprime 0.
 - Chase: FICO composition is a sample; recoveries are an allocation, not pool recoveries.
 - BofA: charge-off table in $ thousands; one delinquency bucket percentage disagrees with its dollars by
   0.008 pp (SEC-side rounding), inside the 1e-4 check.
-- Back history: only the August-2026 filings have been seen; label variants in older filings (before the
-  filer-agent switches) will surface as per-filing parse errors on the first runner pass.
+- Back history: the 2019-2026 corpus has now been parsed end to end; the label and layout variants it
+  turned up are in section 6, and three COMET months (May-Jul 2019) remain recorded failures.
+
+## 6. Historical layout variants (2019-2026 back run)
+
+Written after the first full pass over the 557 10-D/10-D-A filings from period Dec-2018 to Jul-2026 on
+disk (`--raw <cardsraw>`; six trusts, 330 MB). The first pass parsed 310 and failed 247; the parsers
+below read 554 and fail 3. Every variant here was found by opening the failing filing and reading the
+row; none is a guess. Where a field can appear under more than one label the parser holds an ordered
+list of accepted labels (`find_first`), never a widened pattern.
+
+### Text-level variants (all trusts, `tables.py`)
+
+| what | where seen | handling |
+|---|---|---|
+| `&#145;`..`&#151;` (cp1252 quotes and dashes as numeric references, 13,157 in the corpus) | Citi's "Finance Charge Receivables&#151;End of Due Period" (71 filings), Chase's "Yield&#151;Finance Charge, Fees & Interchange" (Mar-2021) | lxml keeps these as C1 control points U+0091..U+0097; `_NORMALISE` maps them to the ASCII punctuation the HTML5 cp1252 table specifies |
+| footnote dagger on an amount: `$ 28,776,718,144.36 <sup>&#8224;</sup>` | BofA item 2 amounts, Dec-2018 to Dec-2021 (39 filings) | `strip_footnote` drops a trailing `†‡§¶*•·` from a cell **only when the remainder is a number**, at cell-construction time; a label such as "Total*" keeps its mark |
+| Unicode spaces (`&#8194;` `&#8195;` `&#8199;` `&#8201;` `&#8202;` `&#8239;`), non-breaking hyphen, minus sign | scattered | added to `_NORMALISE` |
+| date with internal spacing: "March 31,2023" (no space after the comma), "01 /31/2020" | BofA charge-off table headers (3 filings), Synchrony Jan/Feb-2020 period line (2 filings) | `parse_date` accepts `,?\s*` and `\s*/\s*`; nothing else about the date is relaxed |
+| a long row label wrapped across two or three `<tr>`s | Amex trust block, Chase EX-99.2 item 6a | `join_wrapped(rs, row, full)` appends the following rows until the joined non-numeric cells match `full` - the complete label as the unwrapped era prints it - and the join carries a number. The join is verified against the known label, so it cannot swallow the next row's number by accident |
+
+### Per trust
+
+**Amex** - one variant, in the trust block only. "Beginning Principal Receivable Balance, including any
+Additions, Removals, or Adjustments of Principal Receivables during the Monthly Period" is wrapped by
+the RR Donnelley template and the number lands on whichever `<tr>` the wrap reached. Five shapes across
+the 92 filings, and they alternate month to month rather than by era (the wrap depends on the rendered
+line length), so the parser must handle all of them, not switch on a date:
+
+| shape (rows joined / row holding the number) | n | months | fixture |
+|---|---|---|---|
+| 3 rows, number on the last | 38 | Dec-2018 .. Jan-2026 | `amex/0001193125-23-167627` |
+| 2 rows, number on the last | 23 | Oct-2019 .. Oct-2025 | `amex/0001193125-22-075677` |
+| 1 row, label and number together | 20 | Jan-2021 .. Jul-2026 (every Toppan Merrill filing) | the July-2026 fixture |
+| 3 rows, number on the middle one | 9 | Dec-2021, Oct-2022, May-Nov 2024 | `amex/0001193125-22-285473` |
+| 2 rows, number on the first | 2 | Mar-2024, Apr-2024 | `amex/0001193125-24-095520` |
+
+Everything else in the Amex certificate (labels, delinquency buckets, the x365/days basis) is identical
+across 2019-2026.
+
+**Citi** - two variants, both of the same label. `CITI_FC_END`, in order:
+`^Finance Charge Receivables - End of Due Period` (the modern spacing, and the July-2026 fixture) and
+`^Finance Charge Receivables-End of Due Period` (no spaces; also the form `&#151;` normalises to). 70 of
+the 94 filings print the unspaced form (Dec-2018 to Jun-2026) and 24 the spaced form (Apr-2019 to
+Jul-2026); they alternate month to month, so this is a template artefact rather than an era and the
+parser tries both every time.
+
+**Chase** - two variants. `CHASE_YIELD` = `^Yield - Finance Charge, Fees & Interchange` (90 filings)
+then `^Yield-Finance Charge, Fees & Interchange` (Mar-2021 via `&#151;`, Dec-2025 as a plain hyphen).
+`CHASE_PRIN_COLL` is the wrapped item 6a: the anchor plus the full label the join must reproduce
+("...received by Asset Pool One for the related Monthly Period"), wrapped only in Apr-2020.
+
+**Synchrony** - one variant. From Nov-2019 to Mar-2022 each rate block header ("a. Gross Trust Yield
+(Finance Charge Collections + Recoveries / BOP Principal Receivables)") is its own single-row `<table>`
+and the "i. Current" / "ii. Three-Month Average" sub-rows sit in the next `<table>`; from Apr-2022 the
+header and its sub-rows share one table. `find_row_after(..., cross_table=True)` continues into the
+following tables in document order, with the same 12-row window, so the first "i. Current" after the
+header is still the one taken.
+
+**BofA** - three renderings of item 6(b) plus two formatting quirks. `BOFA_60PLUS`, in order:
+`^\(b\) 60\+-Day Delinquency Rate$` (Broadridge, Aug-2023 on, 9 filings),
+`^\(b\) 60 \+ -Day Delinquency Rate$` (Dec-2018 to Jun-2026, 84 filings, the `+` is a `<sup>`) and
+`^\(b\) 60 \+- Day Delinquency Rate$` (Sep-2025 only). The charge-off table is now found by parsing
+the dates in its header cells and comparing them to the period end, instead of matching a formatted
+date string, because three filings print "March 31,2023". And 19 filings (Dec-2018 to Jun-2022) print
+the 180+ delinquency percentage without its `%` sign; the trailing number is used and a note is written
+into `row_labels_json`, with the exact column reconstruction below as the guard.
+
+### Printed percentage columns are rounded, then shaved (`_rounded_column`)
+
+Citi and BofA do not round their delinquency percentages independently: each share is rounded half-up
+to two decimals as a percentage and then one row is moved by a unit so that the column adds up
+(BofA to its printed "Total:" row, Citi to exactly 100.00%). The shave reaches 0.03 pp, three times
+`RATE_TOL`, and it is what made 8 filings fail with "printed 0.003600 != recomputed 0.003754".
+
+`_rounded_column` reproduces the whole column instead of widening the tolerance, which is a *stronger*
+check than the per-row one it replaces for the shaved row: every row must equal the half-up rounding of
+its own dollar share except at most one; that one must be off by exactly the column residual; the
+residual must be no larger than the rounding the column's rows can accumulate; and the printed column
+must add up to the printed total. This holds for all 94 BofA filings (carrier always 30-59, the largest
+bucket) and all 94 Citi filings (carrier Current in 93, the 151-180 bucket in Jul-2022). Every row other
+than the carrier still gets the ordinary printed-vs-recomputed check at `RATE_TOL`.
+
+BofA's printed "(b) 60+-Day Delinquency Rate" is the printed Total minus the shaved 30-59 row, so it
+inherits the residual: the exact identity is checked, and the dollar-derived 60+ share is checked
+against it within 4e-4 (the residual bound plus two half-units).
+
+### Denominator corrected: Chase payment rate
+
+Chase's "Principal Payment Rate" is collections of principal receivables over **Average Pool Balance**,
+not over the beginning balance. The two are equal in a month with no mid-month addition or removal - the
+July-2026 fixture among them - which is why the original recompute passed there. Feb-2024 separates them:
+4,457,843,039.87 / 9,692,388,151.01 = 45.99% as printed, against 50.76% on the 8,782,409,683.67
+beginning balance. Four filings failed on this and now pass; `co_basis` and the loss recompute already
+used Average Pool Balance and are unchanged.
+
+### Tolerances, and what remains
+
+`RATE_TOL` is unchanged at 1e-4 everywhere. One tolerance was corrected: Citi's
+`portfolio_yield_identity` compares three separately printed two-decimal percentages, so it can be half
+a unit out in each and now uses 1.5e-4 - the allowance `parse_synchrony` already applied to the same
+kind of identity. One filing (Jun-2022) failed on it by exactly one unit.
+
+Three COMET filings still fail and are left failing:
+
+| filing | period | check | printed | recomputed |
+|---|---|---|---|---|
+| 0001163321-19-000027 | 2019-05 | yield (finance charge collections x12 / adjusted beginning principal) | 25.03% | 25.0197% |
+| 0001163321-19-000031 | 2019-06 | 60+ delinquency share (Total 60+ / end-of-month total receivables) | 1.29% | 1.30437% |
+| 0001163321-19-000034 | 2019-07 | yield | 24.80% | 24.7898% |
+
+In each case the printed percentage is one unit of the last printed digit away from the correct half-up
+rounding of the number COMET itself prints the inputs for (25.0197 should print 25.02, 1.30437 should
+print 1.30, 24.7898 should print 24.79), while every other rate in the same filing reproduces exactly
+(a survey of all 93 COMET filings: gross and net default rate, recovery rate, payment rate and the 30+
+delinquency share match the half-up rounding in every month; the yield is a unit high in exactly these
+three and the 60+ share a unit low in one). There is no denominator that explains them - the implied
+denominators differ from each other - so this is an error on the filer's side, not a layout the parser
+should learn, and widening the tolerance to swallow it would mean accepting 1.5 units of last-digit
+disagreement everywhere. They stay recorded failures.
+
+### Coverage after the fixes (distinct period months, amendments collapsed)
+
+    trust        2018  2019  2020  2021  2022  2023  2024  2025  2026  total  of 92
+    amex            1    12    12    12    12    12    12    12     7     92     92
+    bofa            1    12    12    12    12    12    12    12     7     92     92
+    chase           1    12    12    12    12    12    12    12     7     92     92
+    citi            1    12    12    12    12    12    12    12     7     92     92
+    comet           1     9    12    12    12    12    12    12     7     89     92
+    synchrony       1    12    12    12    12    12    12    12     7     92     92
+
+The fetch runs from filing date 2019-01-01, so the period range is Dec-2018 to Jul-2026, 92 months.
+Nothing is unfetched: every trust has a directory for all 92 months. The only gaps are the three
+unparsed COMET months above. `parse` writes one row per filing, so the row counts are higher where a
+10-D/A repeats a month: BofA 94 rows (Dec-2018 and May-2020 amended), Citi 94 (Sep-2019 and Oct-2019),
+COMET 90 rows from 93 filings (Feb-2019 amended, three failures). The amendments reproduce the original
+values exactly.
+
+### Fixtures
+
+`tests/fixtures/cards/historical/<slug>/<accession>/` holds one filing per variant above (17 filings,
+8.4 MB, each copied whole - none exceeds 5 MB so none is trimmed). They sit under `historical/` rather
+than beside the six July-2026 fixtures so that `filing_dirs(tests/fixtures/cards)` and the CLI tests
+still see exactly the six current filings. `tests/test_cards_parse.py` freezes the parsed values for
+each and asserts the mechanism the fixture is there for (the joined Amex label, the Chase average-pool
+denominator, the stripped dagger, the residual carrier in the shaved column, the spaced dates).

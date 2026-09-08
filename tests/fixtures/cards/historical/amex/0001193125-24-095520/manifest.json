@@ -1,0 +1,26 @@
+{
+ "slug": "amex",
+ "trust": "American Express Credit Account Master Trust",
+ "cik": "0001003509",
+ "form": "10-D",
+ "accession": "0001193125-24-095520",
+ "filing_date": "2024-04-15",
+ "period": "2024-03-31",
+ "primary_document": "d743992d10d.htm",
+ "url": "https://www.sec.gov/Archives/edgar/data/1003509/000119312524095520/",
+ "files": [
+  {
+   "name": "d743992d10d.htm",
+   "type": "10-D",
+   "size": 21548,
+   "sha256": "e2b431fa0e85ec7420a54812b49846630bd33e5a30fc04d80cad79d0200b0ee5"
+  },
+  {
+   "name": "d743992dex9901.htm",
+   "type": "EX-99.01",
+   "size": 1114428,
+   "sha256": "3f818ba29129e18d36199ec7fc9c9915081aef87261a5c1ad357b7f6f4e9c45a"
+  }
+ ],
+ "fetched": "2026-09-08T07:26:10Z"
+}

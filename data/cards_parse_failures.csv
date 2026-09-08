@@ -1,0 +1,4 @@
+trust,accession,error
+comet,0001163321-19-000027,ParseError: comet 0001163321-19-000027: yield printed 0.250300 != recomputed 0.250197 (tol 0.0001)
+comet,0001163321-19-000031,ParseError: comet 0001163321-19-000031: delinq_60plus_share printed 0.012900 != recomputed 0.013044 (tol 0.0001)
+comet,0001163321-19-000034,ParseError: comet 0001163321-19-000034: yield printed 0.248000 != recomputed 0.247898 (tol 0.0001)

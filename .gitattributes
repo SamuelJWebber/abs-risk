@@ -1,0 +1,4 @@
+# Test fixtures are byte-checked (sizes and sha256 are asserted), so they must never be
+# line-ending converted. Everything else keeps git's default handling.
+tests/fixtures/** -text
+data/raw/** -text

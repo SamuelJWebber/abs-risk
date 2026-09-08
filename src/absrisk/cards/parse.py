@@ -16,6 +16,7 @@ import json
 import re
 from collections import defaultdict
 from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from .tables import (
@@ -23,10 +24,12 @@ from .tables import (
     Row,
     close,
     doc_text,
+    find_first,
     find_row,
     find_row_after,
     find_rows,
     is_number_cell,
+    join_wrapped,
     month_end,
     parse_date,
     read_text,
@@ -145,6 +148,10 @@ class Rec:
         elif label:
             self.labels[field] = label
 
+    def record(self, name: str, detail: str):
+        """A check that passed by construction (it raises rather than returns), kept in the audit trail."""
+        self.checks.append(f"{name}: {detail} ok")
+
     def null(self, field: str, reason: str):
         self.out[field] = None
         self.null_reasons[field] = reason
@@ -190,6 +197,11 @@ def _bucket_dollars(rs: list[Row], patterns: dict[str, str], *, table: int | Non
 
 # ----------------------------------------------------------------------------- Amex
 
+# (anchor pattern, full label the join must reproduce): the same label in both Amex eras.
+AMEX_BEG_PRIN = (r"^Beginning Principal Receivable Balance",
+                 r"^Beginning Principal Receivable Balance, including any Additions, Removals, or "
+                 r"Adjustments of Principal Receivables during the Monthly Period$")
+
 
 def parse_amex(f: Filing) -> dict:
     ex = f.find_exhibit(r"Trust Totals", r"Annualized Default Rate, Net of Recoveries", r"Monthly Payment Rate")
@@ -206,7 +218,9 @@ def parse_amex(f: Filing) -> dict:
     days_row = find_row(rs, r"^Number of days in Monthly Period")
     t = days_row.table
     days = int(days_row.first())
-    beg_prin = find_row(rs, r"^Beginning Principal Receivable Balance", table=t).first()
+    # Through Jan-2026 (RR Donnelley) this label wraps over three <tr>s with the number on the last;
+    # from Feb-2026 (Toppan Merrill) it is one row. join_wrapped checks the joined label either way.
+    beg_prin = join_wrapped(rs, find_row(rs, AMEX_BEG_PRIN[0], table=t), AMEX_BEG_PRIN[1]).first()
     end_prin_row = find_row(rs, r"^Ending Principal Receivables Balance", table=t)
     end_prin = end_prin_row.first()
     end_total = find_row(rs, r"^Ending Total Receivables", table=t).first()
@@ -362,6 +376,16 @@ def _current_column(rs: list[Row], table: int, period_end: date) -> int:
     raise ParseError(f"no month header row in table {table}")
 
 
+# Chase EX-99.3 section C yield label: " - " in every month but two, "&#151;" (Mar-2021) and "-"
+# (Dec-2025), both of which normalise to a bare "-".
+CHASE_YIELD = (r"^Yield - Finance Charge, Fees & Interchange",
+               r"^Yield-Finance Charge, Fees & Interchange")
+# EX-99.2 item 6a wraps over two <tr>s in Apr-2020; the joined label must be the usual one.
+CHASE_PRIN_COLL = (r"aggregate amount of Collections of Principal Receivables received by Asset Pool One",
+                   r"aggregate amount of Collections of Principal Receivables received by Asset Pool One "
+                   r"for the related Monthly Period$")
+
+
 def parse_chase(f: Filing) -> dict:
     pool = f.find_exhibit(r"Asset Pool One", r"Losses and Recoveries")
     series = f.find_exhibit(r"CHASEseries", r"Excess Spread Percentage", r"Principal Payment Rate")
@@ -382,7 +406,7 @@ def parse_chase(f: Filing) -> dict:
     net_d = find_row(rs, r"^Net Losses \(\d\)$").first()
     gross_row = find_row(rs, r"^Gross Losses as a Percentage of Average Pool Balance")
     net_row = find_row(rs, r"^Net Losses as a percentage of Average Pool Balance")
-    prin_coll = find_row(rs, r"aggregate amount of Collections of Principal Receivables received by Asset Pool One").first()
+    prin_coll = join_wrapped(rs, find_row(rs, CHASE_PRIN_COLL[0]), CHASE_PRIN_COLL[1]).first()
     pool_default = find_row(rs, r"The Asset Pool One Default Amount for the related Monthly Period").first()
 
     r.set("receivables_principal", end_prin, prin_row, label="Principal Receivables (Ending Balance)")
@@ -401,7 +425,7 @@ def parse_chase(f: Filing) -> dict:
 
     # EX-99.3 section C: three month columns; take the column headed by the period month.
     ss = f.rows(series)
-    yrow = find_row(ss, r"^Yield - Finance Charge, Fees & Interchange")
+    yrow = find_first(ss, CHASE_YIELD)
     col = _current_column(ss, yrow.table, period_end)
     pyrow = find_row(ss, r"^\(a\) Portfolio Yield")
     brow = find_row(ss, r"^\(b\) Base Rate")
@@ -420,7 +444,11 @@ def parse_chase(f: Filing) -> dict:
     r.set("excess_spread", pcol(esrow), esrow)
     r.inputs.update(portfolio_yield=pcol(pyrow), base_rate=pcol(brow), net_credit_losses_ex993=pcol(ncl))
     r.check("net_credit_losses_ex993", pcol(ncl), net_row.pct())
-    r.check("payment_rate", pcol(prow), prin_coll / beg_prin)
+    # Denominator is Average Pool Balance, not the beginning balance: they are equal in months with
+    # no mid-month addition or removal (July 2026 among them) but differ whenever the pool changes
+    # size during the month (Feb-2024: 4,457,843,039.87 / 9,692,388,151.01 = 45.99% as printed,
+    # against 50.76% on the 8,782,409,683.67 beginning balance).
+    r.check("payment_rate", pcol(prow), prin_coll / avg)
     r.notes["yield"] = "gross yield (finance charge, fees and interchange) from EX-99.3; (a) Portfolio Yield in inputs"
 
     # Delinquency item 10: buckets 30-59 ... 180+, % of Pool Balance (total receivables incl. finance charges and fees).
@@ -451,6 +479,12 @@ def parse_chase(f: Filing) -> dict:
 # ----------------------------------------------------------------------------- Citi
 
 
+# Citi label variants, newest first. The dash between "Receivables" and "End of Due Period" is
+# printed three ways across the eras (" - ", "-", and "&#151;" which normalises to "-").
+CITI_FC_END = (r"^Finance Charge Receivables - End of Due Period",
+               r"^Finance Charge Receivables-End of Due Period")
+
+
 def parse_citi(f: Filing) -> dict:
     ex = f.find_exhibit(r"Portfolio Yield for the Collateral Certificate", r"Credit Loss Component")
     r = Rec(f)
@@ -476,7 +510,7 @@ def parse_citi(f: Filing) -> dict:
     beg = find_row(rs, r"^Principal Receivables Beginning of Due Period", table=t).dollars()
     avg = find_row(rs, r"^Principal Receivables Average", table=t).dollars()
     end_row = find_row(rs, r"^Principal Receivables End of Due Period", table=t)
-    fc_end = find_row(rs, r"^Finance Charge Receivables - End of Due Period", table=t).dollars()
+    fc_end = find_first(rs, CITI_FC_END, table=t).dollars()
     inv_def = find_row(rs, r"Investor Default Amount").dollars()
     surplus = find_row(rs, r"^\d\.\s*Surplus Finance Charge Collections$")
 
@@ -492,7 +526,9 @@ def parse_citi(f: Filing) -> dict:
     r.set("excess_spread", surplus.pct(), surplus)
     r.inputs.update(portfolio_yield=yrow.pct(), total_payment_rate=tot_pay.pct(), beginning_principal=beg,
                     average_principal=avg, finance_charge_receivables_end=fc_end, investor_default_amount=inv_def)
-    r.check("portfolio_yield_identity", yrow.pct(), yc.pct() - clc.pct())
+    # All three percentages are printed to 2 decimals, so the identity can be off by half a unit in
+    # each of them (0.015 pp); compare at that printed precision, as parse_synchrony already does.
+    r.check("portfolio_yield_identity", yrow.pct(), yc.pct() - clc.pct(), tol=1.5e-4)
     r.notes["gross_co_rate"] = ("Credit Loss Component of Portfolio Yield for the Collateral Certificate: investor "
                                 "default amount over the collateral certificate invested amount, annualised "
                                 f"actual/365 over the {days}-day due period (design/scout-cards.md B4); pro rata "
@@ -509,10 +545,22 @@ def parse_citi(f: Filing) -> dict:
     cur_rows = find_rows(rs, r"^Current$", table=t)
     cur = next(x.dollars() for x in cur_rows if any(n.dollar for n in x.numbers()))
     denom = cur + sum(b.values())
-    for x in pcts:
-        r.check(f"delinq_{x.label.split()[0]}", x.pct(), b[x.label] / denom)
     cur_pct = next(x for x in cur_rows if any(n.pct for n in x.numbers()))
-    r.check("delinq_current", cur_pct.pct(), cur / denom)
+    # Citi's seven printed percentages are each rounded half-up to two decimals and then one of them
+    # is moved by a unit so the column adds up to exactly 100.00%; the carrier is Current in 93 of the
+    # 94 filings on disk and the 151-180 bucket in July-2022. The column is reproduced exactly (see
+    # _rounded_column) rather than widening RATE_TOL for a 98% number.
+    printed = {x.label: x.pct() for x in pcts}
+    printed["Current"] = cur_pct.pct()
+    recomputed = {x.label: b[x.label] / denom for x in pcts}
+    recomputed["Current"] = cur / denom
+    carrier, residual = _rounded_column(printed, recomputed, 1.0, name="citi item 6 delinquency")
+    r.record("delinq_rounding", f"printed column adds to 100.00%, every row equals the half-up "
+                                f"rounding of its dollar share, residual {residual:+.4f} carried by "
+                                f"{carrier or 'no row'}")
+    for k, v in recomputed.items():
+        if k != carrier:
+            r.check(f"delinq_{k.split()[0].lower()}", printed[k], v)
 
     def bucket(prefix: str) -> float:
         return next(v for k, v in b.items() if k.startswith(prefix))
@@ -548,8 +596,13 @@ def parse_synchrony(f: Filing) -> dict:
     pr = find_row(rs, r"^b\.\s*Payment Rate \(")
     gc = find_row(rs, r"Gross Charge-Off Rate \(")
     nc = find_row(rs, r"Net Charge-Off Rate \(")
-    gy_cur, pr_cur = find_row_after(rs, gy, r"^i\.\s*Current"), find_row_after(rs, pr, r"^i\.\s*Current")
-    gc_cur, nc_cur = find_row_after(rs, gc, r"^i\.\s*Current"), find_row_after(rs, nc, r"^i\.\s*Current")
+    # Through Mar-2022 each rate header ("a. Gross Trust Yield (...)") is its own one-row <table> and
+    # the "i. Current" / "ii. ..." sub-rows sit in the next <table>; from Apr-2022 they share a table.
+    def current(anchor: Row) -> Row:
+        return find_row_after(rs, anchor, r"^i\.\s*Current", cross_table=True)
+
+    gy_cur, pr_cur = current(gy), current(pr)
+    gc_cur, nc_cur = current(gc), current(nc)
     default_amt = find_row(rs, r"Default Amount for Defaulted Accounts$").last()
     recov = find_row(rs, r"^f\.\s*Recovery Amount").last()
     net_amt = find_row(rs, r"Net Charge-Off \(Default Amount for Defaulted Accounts - Recoveries\)").last()
@@ -611,6 +664,16 @@ def parse_synchrony(f: Filing) -> dict:
 # ----------------------------------------------------------------------------- BofA
 
 
+# BofA prints item 6(b) with the "+" as a <sup>, so the cell text comes out three ways across the
+# eras; the label is otherwise identical. Ordered newest-first; each is a real label from a filing.
+BOFA_BUCKETS = {"30-59": r"^\(i\)\s*30 - 59 days", "60-89": r"^\(ii\)\s*60 - 89 days",
+                "90-119": r"^\(iii\)\s*90 - 119 days", "120-149": r"^\(iv\)\s*120 - 149 days",
+                "150-179": r"^\(v\)\s*150 - 179 days", "180+": r"^\(vi\)\s*180\s*-?\s*or more days"}
+BOFA_60PLUS = (r"^\(b\) 60\+-Day Delinquency Rate$",          # Broadridge, Aug-2023 onward
+               r"^\(b\) 60 \+ -Day Delinquency Rate$",         # self-filed, Dec-2018 .. Jun-2026
+               r"^\(b\) 60 \+- Day Delinquency Rate$")         # Sep-2025 only
+
+
 def parse_bofa(f: Filing) -> dict:
     ex = f.find_exhibit(r"MONTHLY CERTIFICATEHOLDERS.{0,3}STATEMENT",
                         r"Charge-Offs as a percentage of Average Principal Receivables Outstanding")
@@ -621,7 +684,6 @@ def parse_bofa(f: Filing) -> dict:
     if not m:
         raise ParseError("bofa: 'MONTHLY PERIOD ENDING <date>' not found")
     period_end = parse_date(m.group(1))
-    date_str = period_end.strftime("%B %d, %Y").replace(" 0", " ")
 
     beg_total = find_row(rs, r"aggregate amount of Receivables in the Trust as of the beginning").dollars()
     beg_prin = find_row(rs, r"aggregate amount of Principal Receivables in the Trust as of the beginning").dollars()
@@ -640,11 +702,13 @@ def parse_bofa(f: Filing) -> dict:
     co_tables = [x.table for x in find_rows(rs, r"^Total Charge-Offs$")]
     ct = None
     for t in co_tables:
-        if any(x.table == t and date_str in x.text for x in rs):
+        # The header cell is "March 31, 2023" in most filings and "March 31,2023" in a few, so the
+        # cells are parsed as dates and compared as dates rather than matched as formatted strings.
+        if any(x.table == t and any(_cell_date(c) == period_end for c in x.cells) for x in rs):
             ct = t
             break
     if ct is None:
-        raise ParseError(f"bofa: no charge-off table headed {date_str!r}")
+        raise ParseError(f"bofa: no charge-off table headed {period_end.isoformat()}")
     col = _current_column(rs, ct, period_end)
     avg_row = find_row(rs, r"^Average Principal Receivables Outstanding", table=ct)
     gross_amt = find_row(rs, r"^Total Charge-Offs$", table=ct)
@@ -681,15 +745,37 @@ def parse_bofa(f: Filing) -> dict:
     r.notes["yield"] = "Total Cash Yield (incl. recoveries) on the Series 2001-D floating allocation investor interest"
 
     # Delinquency item 6: dollars 30-59 ... 180+, "Percentage of Total Receivables" = ending total receivables (k).
-    b = {}
-    for k, pat in {"30-59": r"^\(i\)\s*30 - 59 days", "60-89": r"^\(ii\)\s*60 - 89 days", "90-119": r"^\(iii\)\s*90 - 119 days",
-                   "120-149": r"^\(iv\)\s*120 - 149 days", "150-179": r"^\(v\)\s*150 - 179 days",
-                   "180+": r"^\(vi\)\s*180\s*-?\s*or more days"}.items():
+    b, printed = {}, {}
+    for k, pat in BOFA_BUCKETS.items():
         row = find_row(rs, pat)
         b[k] = row.dollars()
-        r.check(f"delinq_{k}", row.pct(), b[k] / end_total)
-    d60 = find_row(rs, r"60\+-Day Delinquency Rate$")
-    r.check("delinq_60plus_share", d60.pct(), (sum(b.values()) - b["30-59"]) / end_total)
+        try:
+            printed[k] = row.pct()
+        except ParseError:
+            # Jun-2022 prints the 180+ percentage without its "%" sign; the reconstruction below is an
+            # independent prediction of the whole column, so a mis-read cell cannot slip through.
+            printed[k] = row.numbers()[-1].value / 100.0
+            r.notes[f"delinq_{k}"] = f"percentage cell printed without its % sign in {f.accession}"
+    dtab = find_row(rs, BOFA_BUCKETS["30-59"]).table
+    tot_row = find_row(rs, r"^Total:?$", table=dtab)
+    if not close(tot_row.dollars(), sum(b.values()), 2.0):
+        raise ParseError(f"bofa: delinquency Total {tot_row.dollars()} != sum of buckets {sum(b.values())}")
+    r.check("delinq_total_share", tot_row.pct(), sum(b.values()) / end_total)
+    # The printed bucket percentages are shaved so the column adds up to the printed Total; BofA puts
+    # the residual (up to 0.03 pp) in the 30-59 row, which is why that row alone can miss RATE_TOL.
+    # _rounded_column reproduces the whole column exactly instead of loosening the per-row check.
+    carrier, residual = _rounded_column(printed, {k: v / end_total for k, v in b.items()},
+                                        tot_row.pct(), name="bofa item 6 delinquency")
+    r.record("delinq_rounding", f"column adds up to the printed Total {tot_row.pct():.4f}, every row "
+                                f"equals the half-up rounding of its dollar share, residual "
+                                f"{residual:+.4f} carried by {carrier or 'no row'}")
+    for k in BOFA_BUCKETS:
+        if k != carrier:
+            r.check(f"delinq_{k}", printed[k], b[k] / end_total)
+    d60 = find_first(rs, BOFA_60PLUS)
+    # (b) is printed as Total minus the shaved 30-59 row, so it inherits the same residual.
+    r.check("delinq_60plus_printed_identity", d60.pct(), tot_row.pct() - printed["30-59"], tol=1e-9)
+    r.check("delinq_60plus_share", d60.pct(), (sum(b.values()) - b["30-59"]) / end_total, tol=4e-4)
     r.set("delinq_30plus_share", _share(sum(b.values()), end_total), label="30 - 59 + ... + 180 - or more days")
     r.set("delinq_90plus_share", _share(b["90-119"] + b["120-149"] + b["150-179"] + b["180+"], end_total),
           label="90 - 119 + 120 - 149 + 150 - 179 + 180 - or more days")
@@ -698,6 +784,53 @@ def parse_bofa(f: Filing) -> dict:
                              "90plus = sum from 90-119 (exact)")
     r.inputs["delinquency_buckets"] = b
     return r.finish(period_end, [ex])
+
+
+def _round_half_up(x: float, places: int) -> float:
+    """Round half away from zero, the way a filing's printed percentages are rounded."""
+    return float(Decimal(repr(x)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+
+
+def _rounded_column(printed: dict[str, float], recomputed: dict[str, float], total_printed: float, *,
+                    places: int = 4, name: str) -> tuple[str | None, float]:
+    """Check a printed percentage column against the shares recomputed from the dollar rows.
+
+    Citi and BofA round each share half-up to two decimals as a percentage and then move the leftover
+    unit into a single row so that the column adds up to the printed total (100.00% for Citi's item 6,
+    the printed "Total:" row for BofA's item 6). That shave reaches 0.03 pp, larger than RATE_TOL, so
+    it is reproduced exactly instead of tolerated: every row must equal the half-up rounding of its own
+    dollar share except at most one, that row must be off by exactly the column's residual, and the
+    residual must be no larger than the rounding the column's rows can accumulate.
+
+    Returns (the row carrying the residual or None, the residual).
+    """
+    if not close(sum(printed.values()), total_printed, 1e-9):
+        raise ParseError(f"{name}: printed percentages sum to {sum(printed.values()):.6f}, not the "
+                         f"printed total {total_printed:.6f}")
+    rounded = {k: _round_half_up(v, places) for k, v in recomputed.items()}
+    odd = [k for k in printed if not close(printed[k], rounded[k], 1e-9)]
+    if len(odd) > 1:
+        raise ParseError(f"{name}: {len(odd)} rows ({', '.join(odd)}) disagree with the half-up "
+                         f"rounding of their own dollar share; only the row carrying the column's "
+                         f"rounding residual may differ")
+    residual = round(total_printed - sum(rounded.values()), places + 4)
+    slack = len(recomputed) * 0.5 * 10 ** -places
+    if abs(residual) > slack + 1e-12:
+        raise ParseError(f"{name}: rounding residual {residual} is larger than the {slack} that the "
+                         f"column's {len(recomputed)} rows can accumulate")
+    if odd and not close(printed[odd[0]] - rounded[odd[0]], residual, 1e-9):
+        raise ParseError(f"{name}: row {odd[0]!r} is {printed[odd[0]] - rounded[odd[0]]:+.6f} off its "
+                         f"rounded share, not the column residual {residual:+.6f}")
+    if not odd and abs(residual) > 1e-12:
+        raise ParseError(f"{name}: column residual {residual:+.6f} is carried by no row")
+    return (odd[0] if odd else None), residual
+
+
+def _cell_date(cell: str) -> date | None:
+    try:
+        return parse_date(cell)
+    except ParseError:
+        return None
 
 
 PARSERS = {"amex": parse_amex, "comet": parse_comet, "chase": parse_chase, "citi": parse_citi,

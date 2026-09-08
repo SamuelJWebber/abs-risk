@@ -1,0 +1,32 @@
+{
+ "slug": "bofa",
+ "trust": "BA Credit Card Trust",
+ "cik": "0001128250",
+ "form": "10-D",
+ "accession": "0001128250-22-000081",
+ "filing_date": "2022-07-15",
+ "period": "2022-06-30",
+ "primary_document": "mot-10d.htm",
+ "url": "https://www.sec.gov/Archives/edgar/data/1128250/000112825022000081/",
+ "files": [
+  {
+   "name": "ex99_1.htm",
+   "type": "EX-99.1",
+   "size": 181997,
+   "sha256": "572dd136c0b11508e2aa8ea92a21ca1e552cf4c5b343463ece74d6dca3282751"
+  },
+  {
+   "name": "ex99_2.htm",
+   "type": "EX-99.2",
+   "size": 87720,
+   "sha256": "7bb12c0e9a72a64da662831bac53f42b113ad04485b9dc13ee25c61c445a704f"
+  },
+  {
+   "name": "mot-10d.htm",
+   "type": "10-D",
+   "size": 28471,
+   "sha256": "4157fd6e65007353dd1f3df98c1063b6c2bf4a8ac20d8edb5c1da80a7544c123"
+  }
+ ],
+ "fetched": "2026-09-08T07:34:20Z"
+}

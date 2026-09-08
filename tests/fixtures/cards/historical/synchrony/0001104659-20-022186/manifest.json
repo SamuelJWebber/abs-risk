@@ -1,0 +1,26 @@
+{
+ "slug": "synchrony",
+ "trust": "Synchrony Card Issuance Trust",
+ "cik": "0001724789",
+ "form": "10-D",
+ "accession": "0001104659-20-022186",
+ "filing_date": "2020-02-18",
+ "period": "2020-01-31",
+ "primary_document": "tm207282d1_10d.htm",
+ "url": "https://www.sec.gov/Archives/edgar/data/1724789/000110465920022186/",
+ "files": [
+  {
+   "name": "tm207282d1_10d.htm",
+   "type": "10-D",
+   "size": 69724,
+   "sha256": "3eaf7c58be1f7690a8a36423ad0a4061caab7d2d6fc7fe5561f8b300e245629b"
+  },
+  {
+   "name": "tm207282d1_ex99-1.htm",
+   "type": "EX-99.1",
+   "size": 210530,
+   "sha256": "d35a0287e72df26b3b2586e501a285dd6501caa88f539f05cf09aebce181e157"
+  }
+ ],
+ "fetched": "2026-09-08T07:33:17Z"
+}
