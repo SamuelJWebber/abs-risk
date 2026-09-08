@@ -64,15 +64,19 @@ def summarize(loans: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def run_b1(loans: pd.DataFrame, out: Path):
+def run_b1(loans: pd.DataFrame, out: Path, n_boot: int = 200):
     df = loans.copy()
     df["score_b"] = survival.score_bucket(df["score"])
-    cif = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36)
+    cif = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36, n_boot=n_boot)
     cif.to_csv(out / "b1_cif.csv", index=False)
     survival.incidence_at(cif, ["lender", "score_b"], 12).to_csv(out / "b1_at_12.csv", index=False)
     survival.incidence_at(cif, ["lender", "score_b"], 24).to_csv(out / "b1_at_24.csv", index=False)
-    by_lender = survival.cumulative_incidence(df, by=["lender"], horizon=36)
+    by_lender = survival.cumulative_incidence(df, by=["lender"], horizon=36, n_boot=n_boot)
     by_lender.to_csv(out / "b1_cif_by_lender.csv", index=False)
+    # fresh-entrant cut: loans first observed within six months of origination
+    fresh = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36, n_boot=n_boot, max_entry_age=6)
+    fresh.to_csv(out / "b1_cif_fresh.csv", index=False)
+    survival.incidence_at(fresh, ["lender", "score_b"], 24).to_csv(out / "b1_at_24_fresh.csv", index=False)
     return cif
 
 
@@ -87,9 +91,12 @@ def run_b2(loans: pd.DataFrame, out: Path):
         "full": ["age_b", "score_b", "lender", "cohort_q"] + [k for k in ("amount_q", "pti_q", "ltv_q", "apr_q") if k in df],
     }
     rows, meta = [], {}
+    # baselines with mass: the 660 score bucket (the prime boundary), the 7-9 month age bin, and the largest lender
+    base_lender = str(df["lender"].value_counts().idxmax())
+    baseline = {"score_b": "660", "age_b": "7-9", "lender": base_lender, "amount_q": "0", "pti_q": "0", "ltv_q": "0", "apr_q": "0"}
     for name, factors in specs.items():
         cells = hazard.aggregate_cells(lm, cells=[f for f in factors if f != "age_b"] + (["deal"] if "deal" not in factors else []))
-        res = hazard.fit_hazards(cells, factors=factors, cluster="deal")
+        res = hazard.fit_hazards(cells, factors=factors, cluster="deal", baseline=baseline)
         meta[name] = res["design_info"]
         for event in ("chargeoff", "prepay"):
             for f in factors:
@@ -98,6 +105,7 @@ def run_b2(loans: pd.DataFrame, out: Path):
                 hr.insert(0, "event", event)
                 hr.insert(0, "spec", name)
                 rows.append(hr)
+    meta["baseline"] = baseline
     pd.concat(rows, ignore_index=True).to_csv(out / "b2_hazard_ratios.csv", index=False)
     (out / "b2_fit.json").write_text(json.dumps(meta, indent=1, default=str))
 

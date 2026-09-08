@@ -116,6 +116,8 @@ def _dummies(df: pd.DataFrame, factors: list[str], baseline: dict) -> pd.DataFra
     for f in factors:
         levels = sorted(df[f].astype(str).unique())
         base = baseline.get(f, levels[0])
+        if base not in levels:
+            base = levels[0]
         for lv in levels:
             if lv == base:
                 continue

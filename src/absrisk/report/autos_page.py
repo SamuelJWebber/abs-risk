@@ -27,7 +27,18 @@ def _cif_chart(cif: pd.DataFrame, lender: str, buckets: list[str], measure: str)
         if s.empty or s["n_loans"].iloc[0] < 500:
             continue
         series.append({"name": f"{b} (n={int(s['n_loans'].iloc[0]):,})", "x": s["age"].tolist(), "y": s[measure].tolist()})
-    return line_chart(series, y_label="cumulative charge-off", x_label="months since first seen", title=f"{lender}: {measure}")
+    return line_chart(series, y_label="cumulative charge-off", x_label="months since origination", title=f"{lender}")
+
+
+def _lender_at_score_chart(at24: pd.DataFrame) -> str:
+    """Cumulative charge-off at 24 months against score bucket, one line per lender, cells with >= 1500 loans."""
+    a = at24[(at24["score_b"].astype(str) != "none") & (at24["n_loans"] >= 1500)].copy()
+    a["lo"] = a["score_b"].astype(int)
+    series = []
+    for lender, g in a.groupby("lender"):
+        g = g.sort_values("lo")
+        series.append({"name": lender, "x": g["lo"].tolist(), "y": g["aj_chargeoff"].tolist()})
+    return line_chart(series, y_label="charge-off by 24 months (AJ)", x_label="score bucket (lower edge)", title="Same score, different lender")
 
 
 def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
@@ -53,19 +64,35 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
                         "share_prepay": "{:.1%}", "share_absent": "{:.1%}", "share_censored": "{:.1%}", "n_loans": "{:,.0f}"}))
 
     h.append("<h2>2. Cumulative charge-off by score bucket, by lender</h2>")
-    h.append("<p>Aalen-Johansen cumulative incidence treats prepayment and repurchase as competing exits; the Kaplan-Meier "
-             "version treats them as censoring and is always higher. Buckets are 20 points wide, labelled by the lower edge; "
-             "cells with fewer than 500 loans are not drawn.</p>")
+    h.append("<p>Age is months since origination, with delayed entry: a loan counts in the risk set only at ages it was "
+             "actually observed in the trust. Aalen-Johansen cumulative incidence treats prepayment and repurchase as competing "
+             "exits; the Kaplan-Meier version treats them as censoring and is always higher. Buckets are 20 points wide, labelled "
+             "by the lower edge; cells with fewer than 500 loans are not drawn. Bands are 95 percent percentile bootstrap over loans.</p>")
+    h.append(_lender_at_score_chart(at24))
     buckets = sorted({str(b) for b in cif["score_b"].unique() if str(b) != "none"}, key=lambda s: int(s))
     h.append("<div class='grid2'>")
     for lender in sorted(cif["lender"].unique()):
         h.append(_cif_chart(cif, lender, buckets, "aj_chargeoff"))
     h.append("</div>")
-    h.append("<h3>At 12 and 24 months</h3>")
+    h.append("<h3>At 24 months, with bootstrap bands</h3>")
     piv = at12.merge(at24, on=["lender", "score_b"], suffixes=("_12", "_24"))
-    piv = piv[piv["n_loans_12"] >= 500].sort_values(["lender", "score_b"])
-    h.append(table(piv, cols=["lender", "score_b", "n_loans_12", "aj_chargeoff_12", "km_chargeoff_12", "aj_chargeoff_24", "km_chargeoff_24"],
-                   fmt={"aj_chargeoff_12": "{:.2%}", "km_chargeoff_12": "{:.2%}", "aj_chargeoff_24": "{:.2%}", "km_chargeoff_24": "{:.2%}", "n_loans_12": "{:,.0f}"}))
+    piv = piv[(piv["n_loans_12"] >= 500) & (piv["score_b"].astype(str) != "none")].copy()
+    piv["score_b"] = piv["score_b"].astype(int)
+    piv = piv.sort_values(["lender", "score_b"])
+    cols = ["lender", "score_b", "n_loans_12", "at_risk_24", "aj_chargeoff_12", "aj_chargeoff_24", "aj_lo95_24", "aj_hi95_24", "km_chargeoff_24"]
+    cols = [c for c in cols if c in piv]
+    h.append(table(piv, cols=cols, fmt={"aj_chargeoff_12": "{:.2%}", "aj_chargeoff_24": "{:.2%}", "aj_lo95_24": "{:.2%}", "aj_hi95_24": "{:.2%}",
+                                      "km_chargeoff_24": "{:.2%}", "n_loans_12": "{:,.0f}", "at_risk_24": "{:,.0f}"}, max_rows=400))
+    fresh_p = results / "b1_at_24_fresh.csv"
+    if fresh_p.exists():
+        fresh = pd.read_csv(fresh_p)
+        fresh = fresh[(fresh["n_loans"] >= 500) & (fresh["score_b"].astype(str) != "none")].copy()
+        fresh["score_b"] = fresh["score_b"].astype(int)
+        h.append("<h3>Fresh entrants only (first seen within six months of origination)</h3>")
+        h.append("<p>Seasoned loans enter a pool only because they survived to entry, and that survivor selection can differ by "
+                 "lender. This cut drops them. Where it agrees with the table above, seasoning is not driving the comparison.</p>")
+        h.append(table(fresh.sort_values(["lender", "score_b"]), cols=["lender", "score_b", "n_loans", "at_risk", "aj_chargeoff", "aj_lo95", "aj_hi95"],
+                       fmt={"aj_chargeoff": "{:.2%}", "aj_lo95": "{:.2%}", "aj_hi95": "{:.2%}", "n_loans": "{:,.0f}", "at_risk": "{:,.0f}"}, max_rows=400))
 
     h.append("<h2>3. Monthly charge-off hazard: lender at fixed score, size at fixed score and lender</h2>")
     h.append("<p>Discrete-time competing-risks hazard on the loan-month expansion, fitted as binomial logits on aggregated "

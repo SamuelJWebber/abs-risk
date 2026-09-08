@@ -81,46 +81,83 @@ def _event(loans: pd.DataFrame) -> np.ndarray:
     return np.where(et == "chargeoff", "chargeoff", np.where(np.isin(et, list(COMPETING)), "prepay", "censored"))
 
 
+def _counts(entry: np.ndarray, exit_: np.ndarray, ev: np.ndarray, horizon: int, w: np.ndarray | None = None):
+    """Vectorised life table counts per age 0..horizon: at risk, charge-offs, competing exits. `w` = loan weights."""
+    w = np.ones(len(entry)) if w is None else w
+    H = horizon + 1
+    e = np.clip(entry, 0, H)                       # entries at or beyond H never count
+    x = np.clip(exit_, 0, H)
+    entered = np.cumsum(np.bincount(e, weights=w, minlength=H + 1))[:H]          # entered by age t (entry <= t)
+    exited_before = np.concatenate([[0.0], np.cumsum(np.bincount(x, weights=w, minlength=H + 1))[:H - 1]])  # exit < t
+    at_risk = entered - exited_before
+    d_co = np.bincount(x[ev == "chargeoff"], weights=w[ev == "chargeoff"], minlength=H + 1)[:H]
+    d_comp = np.bincount(x[ev == "prepay"], weights=w[ev == "prepay"], minlength=H + 1)[:H]
+    return at_risk, d_co, d_comp
+
+
+def _curves(at_risk, d_co, d_comp):
+    n = at_risk.astype(float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h_co = np.where(n > 0, d_co / n, 0.0)
+        h_all = np.where(n > 0, (d_co + d_comp) / n, 0.0)
+    s_all = np.cumprod(1 - h_all)                      # overall survival (no exit of any kind)
+    s_prev = np.concatenate([[1.0], s_all[:-1]])
+    aj = np.cumsum(s_prev * h_co)                       # Aalen-Johansen CIF for charge-off
+    km = 1 - np.cumprod(1 - h_co)                       # KM treating competing exits as censoring
+    return aj, km
+
+
 def _life_table(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
     """Per age t (months since origination): at risk during t, charge-offs at t, competing exits at t.
 
     A loan is at risk at age t when entry_age <= t <= exit_age; its event, if any, happens at exit_age.
     """
-    ages_ = np.arange(0, horizon + 1)
     a = ages(df)
-    entry = a["entry_age"].to_numpy()
-    exit_ = a["exit_age"].to_numpy()
-    ev = a["event"].to_numpy()
-    is_co = ev == "chargeoff"
-    is_comp = ev == "prepay"
-    at_risk = np.array([((entry <= t) & (exit_ >= t)).sum() for t in ages_])
-    d_co = np.array([((exit_ == t) & is_co).sum() for t in ages_])
-    d_comp = np.array([((exit_ == t) & is_comp).sum() for t in ages_])
-    return pd.DataFrame({"age": ages_, "at_risk": at_risk, "d_chargeoff": d_co, "d_competing": d_comp})
+    at_risk, d_co, d_comp = _counts(a["entry_age"].to_numpy(), a["exit_age"].to_numpy(), a["event"].to_numpy(), horizon)
+    return pd.DataFrame({"age": np.arange(0, horizon + 1), "at_risk": at_risk.astype(int),
+                         "d_chargeoff": d_co.astype(int), "d_competing": d_comp.astype(int)})
 
 
-def cumulative_incidence(loans: pd.DataFrame, by: list[str], horizon: int = 36) -> pd.DataFrame:
-    """Long table: group columns, age, at_risk, d_chargeoff, d_competing, aj_chargeoff, km_chargeoff, n_loans."""
+def cumulative_incidence(loans: pd.DataFrame, by: list[str], horizon: int = 36, n_boot: int = 0, seed: int = 0,
+                         max_entry_age: int | None = None) -> pd.DataFrame:
+    """Long table: group columns, age, at_risk, d_chargeoff, d_competing, aj_chargeoff, km_chargeoff, n_loans,
+    entry_age_median, and with n_boot > 0 the percentile bootstrap band aj_lo95 / aj_hi95 (resampling loans).
+
+    max_entry_age keeps only loans first observed at or before that age since origination (a fresh-entrant cut:
+    seasoned entrants are survivors, and survivor selection can differ by lender)."""
+    rng = np.random.default_rng(seed)
     out = []
+    a_all = ages(loans)
+    if max_entry_age is not None:
+        keep = a_all["entry_age"] <= max_entry_age
+        loans, a_all = loans[keep], a_all[keep]
     for keys, g in loans.groupby(by, dropna=False, observed=True):
         keys = keys if isinstance(keys, tuple) else (keys,)
-        lt = _life_table(g, horizon)
-        n = lt["at_risk"].to_numpy().astype(float)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            h_co = np.where(n > 0, lt["d_chargeoff"] / n, 0.0)
-            h_all = np.where(n > 0, (lt["d_chargeoff"] + lt["d_competing"]) / n, 0.0)
-        s_all = np.cumprod(1 - h_all)                      # overall survival (no exit of any kind)
-        s_prev = np.concatenate([[1.0], s_all[:-1]])
-        aj = np.cumsum(s_prev * h_co)                       # Aalen-Johansen CIF for charge-off
-        km = 1 - np.cumprod(1 - h_co)                       # KM treating competing exits as censoring
-        lt["aj_chargeoff"] = aj
-        lt["km_chargeoff"] = km
+        a = a_all.loc[g.index]
+        entry, exit_, ev = a["entry_age"].to_numpy(), a["exit_age"].to_numpy(), a["event"].to_numpy()
+        at_risk, d_co, d_comp = _counts(entry, exit_, ev, horizon)
+        aj, km = _curves(at_risk, d_co, d_comp)
+        lt = pd.DataFrame({"age": np.arange(0, horizon + 1), "at_risk": at_risk.astype(int),
+                           "d_chargeoff": d_co.astype(int), "d_competing": d_comp.astype(int),
+                           "aj_chargeoff": aj, "km_chargeoff": km})
+        if n_boot > 0 and len(g) > 1:
+            reps = np.empty((n_boot, horizon + 1))
+            for b in range(n_boot):
+                w = rng.multinomial(len(g), np.full(len(g), 1.0 / len(g))).astype(float)
+                ar, dc, dp = _counts(entry, exit_, ev, horizon, w)
+                reps[b] = _curves(ar, dc, dp)[0]
+            lt["aj_lo95"] = np.percentile(reps, 2.5, axis=0)
+            lt["aj_hi95"] = np.percentile(reps, 97.5, axis=0)
+        else:
+            lt["aj_lo95"] = np.nan
+            lt["aj_hi95"] = np.nan
         lt["n_loans"] = len(g)
-        lt["entry_age_median"] = float(ages(g)["entry_age"].median())
+        lt["entry_age_median"] = float(np.median(entry)) if len(entry) else np.nan
         for k, v in zip(by, keys):
             lt[k] = v
         out.append(lt)
-    cols = by + ["age", "at_risk", "d_chargeoff", "d_competing", "aj_chargeoff", "km_chargeoff", "n_loans", "entry_age_median"]
+    cols = by + ["age", "at_risk", "d_chargeoff", "d_competing", "aj_chargeoff", "aj_lo95", "aj_hi95", "km_chargeoff",
+                 "n_loans", "entry_age_median"]
     return pd.concat(out, ignore_index=True)[cols] if out else pd.DataFrame(columns=cols)
 
 
