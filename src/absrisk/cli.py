@@ -35,7 +35,11 @@ def main(argv: list[str] | None = None) -> int:
             from .estimate.run_autos import main as run_autos
 
             return run_autos(rest[1:])
-        print("analyze: expected 'autos'", file=sys.stderr)
+        if rest and rest[0] == "cards":
+            from .estimate.run_cards import main as run_cards
+
+            return run_cards(rest[1:])
+        print("analyze: expected 'autos' or 'cards'", file=sys.stderr)
         return 2
     if cmd == "report":
         if rest and rest[0] == "autos":

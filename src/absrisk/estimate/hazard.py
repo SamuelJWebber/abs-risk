@@ -74,16 +74,22 @@ def fit_hazards(cells_df: pd.DataFrame, factors: list[str], cluster: str = "deal
     X = sm.add_constant(X, has_constant="add")
     groups = cells_df[cluster].astype("category").cat.codes.to_numpy() if cluster in cells_df else None
     res = {}
+    # cluster-robust covariance needs more cells than parameters and more than one cluster; otherwise plain
+    # model-based errors, and the design_info says so
+    n_params = X.shape[1]
+    robust = groups is not None and len(np.unique(groups)) > 1 and len(cells_df) > n_params + 1
     for event in ("chargeoff", "prepay"):
         y = cells_df[f"d_{event}"].to_numpy(dtype=float)
         n = cells_df["exposure"].to_numpy(dtype=float)
         endog = np.column_stack([y, n - y])
         model = sm.GLM(endog, X, family=sm.families.Binomial())
-        if groups is not None and len(np.unique(groups)) > 1:
+        if robust:
             res[event] = model.fit(cov_type="cluster", cov_kwds={"groups": groups})
         else:
             res[event] = model.fit()
-    res["design_info"] = {"columns": list(X.columns), "n_cells": len(cells_df), "n_exposure": float(cells_df["exposure"].sum())}
+    res["design_info"] = {"columns": list(X.columns), "n_cells": len(cells_df), "n_params": int(n_params),
+                          "n_exposure": float(cells_df["exposure"].sum()),
+                          "cov_type": "cluster by " + cluster if robust else "model-based (design too small for clustering)"}
     return res
 
 
