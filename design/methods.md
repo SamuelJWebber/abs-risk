@@ -133,3 +133,38 @@ dates.
 - Citi publishes no net charge-off and no dollar charge-off row, only a gross rate component.
 - Synchrony's prospectus score is VantageScore, Chase's FICO table is a 5 percent sample, and Amex's buckets do
   not align to the six tiers. All three are flagged in the crosswalk.
+
+## 7. Selection or protection: the entry and roll split
+
+The question the project exists for is whether a lender's lower losses at the same score mean it picked better
+borrowers or that borrowers protect that account. Charge-off levels cannot separate those: both stories predict
+the same lower number. Where they differ is which stage of default the advantage sits in.
+
+    charge-off  =  P(reach 30 days past due)  x  P(charge off | reached 30 days past due)
+                        entry                              roll
+
+- **Selection** means the borrower is less likely to get into trouble at all. It moves `entry` and leaves `roll`
+  alone: once behind, the account should resolve like anyone else's.
+- **Protection**, whether from the borrower ranking that debt first, from harder collections, or from collateral
+  the borrower cannot lose, moves `roll`. The borrower gets into trouble at the normal rate and the account
+  survives it.
+
+Taking logs makes the split additive, so each lender's gap against the baseline divides into an entry share and
+a roll share that sum to one.
+
+**The roll comparison is the trustworthy half.** It conditions on an observed behaviour, being 30 days late,
+rather than on a reported score. These lenders use different score models on different scales (FICO Score 8 Auto
+at Toyota, an unnamed bureau score at Santander, VantageScore at Exeter), so an entry comparison "at the same
+score" is partly a comparison of score scales. Conditioning on delinquency removes that.
+
+**What it can and cannot conclude.** A lender whose gap is all entry has no protection effect to speak of: that
+is what a null roll ratio means, and it rules out the simplest protection story. A lender whose gap is in the
+roll has something happening after trouble starts, but the design cannot say whether that is the borrower's
+ranking of debts, the servicer's collections, or the collateral. Separating those needs one person observed
+across two lenders, which no public data provides.
+
+**Applied to cards.** The same split runs on trust-level delinquency buckets: the flow into 30 days late against
+the flow from 30 days to charge-off. It is dollar-weighted and coarser than the loan-level version, and bucket
+edges differ by trust, so only the 30-plus and 90-plus cuts are comparable. The stress interaction is the second
+test: if borrowers really rank debts, a trust whose accounts are ranked first should see its roll advantage widen
+when households are squeezed and narrow when they are flush. Constant selection predicts a flat ratio.

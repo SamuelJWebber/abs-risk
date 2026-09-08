@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import hazard, rd, survival
+from . import decompose, hazard, rd, survival
 
 # securitization floors and cliffs that are selection, not pricing (design/scout-autos.md §6, §11)
 KNOWN_SELECTION_CUTOFFS = {"carmax": {650}, "toyota": {620}, "exeter": {640}, "americredit": {640}}
@@ -123,6 +123,29 @@ def run_b2(loans: pd.DataFrame, out: Path):
     (out / "b2_fit.json").write_text(json.dumps(meta, indent=1, default=str))
 
 
+def run_b6(loans: pd.DataFrame, out: Path):
+    """Selection or prioritisation: split each lender's gap into getting into trouble and trouble becoming loss."""
+    base = str(loans["lender"].value_counts().idxmax())
+    overall = decompose.decompose(loans, by=["lender"])
+    overall.to_csv(out / "b6_decomposition.csv", index=False)
+    decompose.attribute(overall, "lender", base).to_csv(out / "b6_attribution.csv", index=False)
+    within = decompose.by_score_and_group(loans, min_loans=1200, min_ever30=60)
+    within = within.dropna(subset=["implied"]).copy()
+    within["score_b"] = pd.to_numeric(within["score_b"], errors="coerce")
+    within = within.dropna(subset=["score_b"])
+    within.to_csv(out / "b6_by_score.csv", index=False)
+    # attribution inside each score bucket, against the baseline lender present in that bucket
+    rows = []
+    for sb, g in within.groupby("score_b"):
+        if base not in set(g["lender"]) or g["lender"].nunique() < 2:
+            continue
+        a = decompose.attribute(g, "lender", base)
+        a.insert(0, "score_b", int(sb))
+        rows.append(a)
+    if rows:
+        pd.concat(rows, ignore_index=True).to_csv(out / "b6_attribution_by_score.csv", index=False)
+
+
 def run_b3(loans: pd.DataFrame, out: Path):
     cut_rows, rd_rows = [], []
     for lender, g in loans.groupby("lender"):
@@ -193,5 +216,7 @@ def main(argv: list[str]) -> int:
         run_b2(loans, out)
     if "b3" not in skip:
         run_b3(loans, out)
+    if "b6" not in skip:
+        run_b6(loans, out)
     print(f"wrote results to {out} for {len(loans):,} loans in {loans['deal'].nunique()} deals", file=sys.stderr)
     return 0

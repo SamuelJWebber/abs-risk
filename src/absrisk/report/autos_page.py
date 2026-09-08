@@ -24,6 +24,36 @@ SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole 
          "refreshed after origination.")
 
 
+def _interpret_decomposition(att: pd.DataFrame) -> str:
+    """Read the entry/roll split back as sentences, per lender, from the medians across score buckets."""
+    if att.empty:
+        return ""
+    g = att.groupby("lender").agg(entry_share=("entry_share_of_gap", "median"), roll_ratio=("roll_ratio", "median"),
+                                  entry_ratio=("entry_ratio", "median"), n=("lender", "size"))
+    sel, roll = [], []
+    for name, r in g.iterrows():
+        if r["entry_share"] >= 0.7:
+            sel.append(f"{name} (entry {r['entry_share']:.0%} of the gap, roll ratio {r['roll_ratio']:.2f})")
+        elif r["entry_share"] <= 0.3:
+            roll.append(f"{name} (roll ratio {r['roll_ratio']:.2f}, entry ratio {r['entry_ratio']:.2f})")
+    out = ["<p>"]
+    if sel:
+        out.append(f"<b>For {escape(', '.join(n.split(' (')[0] for n in sel))} the advantage is selection.</b> "
+                   f"Median across score buckets: {escape('; '.join(sel))}. Their borrowers are far less likely to fall 30 days "
+                   f"behind at the same reported score, and once behind they charge off at close to the baseline lender's rate. "
+                   f"There is no sign here of an account that borrowers protect: the protection would have to show up in the roll, "
+                   f"and it does not. ")
+    if roll:
+        out.append(f"<b>For {escape(', '.join(n.split(' (')[0] for n in roll))} the difference sits in the roll instead.</b> "
+                   f"Median: {escape('; '.join(roll))}. Borrowers reach 30 days late at close to the baseline rate but the outcome "
+                   f"after that differs, which points at workout practice, repossession policy, or the value of the collateral to "
+                   f"the borrower rather than at who was lent to. ")
+    out.append("Neither pattern is a within-person comparison, so none of it measures how a borrower ranks two debts against each "
+               "other. What it does rule out is the simplest version of the protection story for the lenders whose entire gap is "
+               "entry: their accounts do not survive trouble better, they just meet trouble less often.</p>")
+    return "".join(out)
+
+
 def usable_cells(at: pd.DataFrame) -> pd.DataFrame:
     """Cells with enough loans and enough of them still under observation at the horizon."""
     a = at[(at["score_b"].astype(str) != "none") & (at["n_loans"] >= MIN_LOANS) & (at["at_risk"] >= MIN_AT_RISK)].copy()
@@ -251,7 +281,33 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     else:
         h.append("<p class='muted'>No cutoff passed the screens in this build.</p>")
 
-    h.append("<h2>5. What this does and does not say about cards</h2>")
+    dec_p, att_p = results / "b6_by_score.csv", results / "b6_attribution_by_score.csv"
+    if dec_p.exists() and att_p.exists():
+        dec, att = pd.read_csv(dec_p), pd.read_csv(att_p)
+        att = att[att["n_ever30"] >= 100]
+        h.append("<h2>5. Selection or protection: where in the process the advantage sits</h2>")
+        h.append("<p>A lender that loses less at the same score is either picking borrowers who do not get into trouble, or "
+                 "holding an account that survives trouble better. Those are different claims and the level of charge-off cannot "
+                 "separate them, so the gap is split into two stages: <b>entry</b>, the chance of reaching 30 days past due within "
+                 "24 months of origination, and <b>roll</b>, the chance of charging off within 12 months of first reaching 30 days. "
+                 "Their product is the charge-off rate, so the log gap against the baseline lender splits cleanly between them.</p>")
+        h.append("<div class='note'>The roll comparison is the more trustworthy of the two. It conditions on an observed behaviour, "
+                 "being 30 days late, rather than on a score, so it is not disturbed by the fact that these lenders report different "
+                 "score types on different scales. The entry comparison is partly contaminated by that scale difference; the roll "
+                 "comparison is not.</div>")
+        h.append("<h3>Entry rate: reaching 30 days past due within 24 months</h3>")
+        e = dec.pivot_table(index="score_b", columns="lender", values="entry_rate").reset_index()
+        h.append(table(e, fmt={c: "{:.1%}" for c in e.columns if c != "score_b"}))
+        h.append("<h3>Roll rate: charging off within 12 months of first being 30 days late</h3>")
+        r = dec.pivot_table(index="score_b", columns="lender", values="roll_rate").reset_index()
+        h.append(table(r, fmt={c: "{:.1%}" for c in r.columns if c != "score_b"}))
+        h.append("<h3>Share of the same-score gap that is entry</h3>")
+        h.append("<p>One means the whole difference is who gets into trouble, which is selection. Zero means the whole difference is "
+                 "what happens after trouble starts. Cells need at least 100 loans that ever reached 30 days.</p>")
+        s = att.pivot_table(index="score_b", columns="lender", values="entry_share_of_gap").reset_index()
+        h.append(table(s, fmt={c: "{:.2f}" for c in s.columns if c != "score_b"}))
+        h.append(_interpret_decomposition(att))
+    h.append("<h2>6. What this does and does not say about cards</h2>")
     h.append("<p>Nothing here observes a person's card and auto loan together, so it says nothing about which one they pay "
              "first. It says how default varies with lender and loan size at a fixed score in one product where the loan-level "
              "data is public. The score-shape of default from section 2 is one of the three candidate shapes used on the cards page.</p>")
