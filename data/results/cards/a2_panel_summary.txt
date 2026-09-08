@@ -1,0 +1,252 @@
+== month_fe ==
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.931
+Model:                            OLS   Adj. R-squared:                  0.900
+Method:                 Least Squares   F-statistic:                 6.111e+04
+Date:                Tue, 08 Sep 2026   Prob (F-statistic):                nan
+Time:                        04:47:12   Log-Likelihood:                 1289.7
+No. Observations:                 310   AIC:                            -2385.
+Df Residuals:                     213   BIC:                            -2023.
+Df Model:                          96                                         
+Covariance Type:         hac-groupsum                                         
+=================================================================================
+                    coef    std err          z      P>|z|      [0.025      0.975]
+---------------------------------------------------------------------------------
+const            -0.3917      0.066     -5.895      0.000      -0.522      -0.261
+deep_subprime     0.2613      0.043      6.063      0.000       0.177       0.346
+subprime          1.2382      0.206      6.001      0.000       0.834       1.643
+near_prime        0.1990      0.044      4.523      0.000       0.113       0.285
+prime             0.4911      0.085      5.789      0.000       0.325       0.657
+prime_plus        0.6472      0.104      6.207      0.000       0.443       0.852
+m_2019-01         0.0042        nan        nan        nan         nan         nan
+m_2019-02         0.0057   9.19e-05     61.869      0.000       0.006       0.006
+m_2019-03         0.0103        nan        nan        nan         nan         nan
+m_2019-04         0.0098      0.000     29.961      0.000       0.009       0.010
+m_2019-05         0.0112      0.000     60.866      0.000       0.011       0.012
+m_2019-06         0.0085      0.000     45.990      0.000       0.008       0.009
+m_2019-07         0.0064      0.000     34.885      0.000       0.006       0.007
+m_2019-08         0.0066        nan        nan        nan         nan         nan
+m_2019-09         0.0017        nan        nan        nan         nan         nan
+m_2019-10         0.0029      0.001      4.217      0.000       0.002       0.004
+m_2019-11         0.0032        nan        nan        nan         nan         nan
+m_2019-12         0.0069        nan        nan        nan         nan         nan
+m_2020-01         0.0020      0.001      3.171      0.002       0.001       0.003
+m_2020-02         0.0036      0.001      5.943      0.000       0.002       0.005
+m_2020-03         0.0066      0.000     27.884      0.000       0.006       0.007
+m_2020-04         0.0042      0.001      6.211      0.000       0.003       0.006
+m_2020-05         0.0046      0.001      7.883      0.000       0.003       0.006
+m_2020-06         0.0029        nan        nan        nan         nan         nan
+m_2020-07         0.0024        nan        nan        nan         nan         nan
+m_2020-08        -0.0006        nan        nan        nan         nan         nan
+m_2020-09        -0.0033        nan        nan        nan         nan         nan
+m_2020-10        -0.0053        nan        nan        nan         nan         nan
+m_2020-11        -0.0085        nan        nan        nan         nan         nan
+m_2020-12        -0.0084        nan        nan        nan         nan         nan
+m_2021-01        -0.0051      0.000    -15.110      0.000      -0.006      -0.004
+m_2021-02        -0.0021        nan        nan        nan         nan         nan
+m_2021-03         0.0011      0.001      1.650      0.099      -0.000       0.002
+m_2021-04        -0.0008        nan        nan        nan         nan         nan
+m_2021-05        -0.0019      0.000     -5.575      0.000      -0.003      -0.001
+m_2021-06        -0.0063        nan        nan        nan         nan         nan
+m_2021-07        -0.0142      0.001    -20.741      0.000      -0.016      -0.013
+m_2021-08        -0.0103      0.000    -30.356      0.000      -0.011      -0.010
+m_2021-09        -0.0153        nan        nan        nan         nan         nan
+m_2021-10        -0.0130      0.000    -38.026      0.000      -0.014      -0.012
+m_2021-11        -0.0144      0.001    -27.472      0.000      -0.015      -0.013
+m_2021-12        -0.0158        nan        nan        nan         nan         nan
+m_2022-01        -0.0099      0.001    -15.706      0.000      -0.011      -0.009
+m_2022-02        -0.0100      0.001    -12.846      0.000      -0.011      -0.008
+m_2022-03        -0.0081      0.001    -12.851      0.000      -0.009      -0.007
+m_2022-04        -0.0102      0.000    -25.210      0.000      -0.011      -0.009
+m_2022-05        -0.0092      0.000    -24.016      0.000      -0.010      -0.008
+m_2022-06        -0.0117      0.000    -34.402      0.000      -0.012      -0.011
+m_2022-07        -0.0130      0.000    -39.145      0.000      -0.014      -0.012
+m_2022-08        -0.0110        nan        nan        nan         nan         nan
+m_2022-09        -0.0133        nan        nan        nan         nan         nan
+m_2022-10        -0.0111        nan        nan        nan         nan         nan
+m_2022-11        -0.0110        nan        nan        nan         nan         nan
+m_2022-12        -0.0117        nan        nan        nan         nan         nan
+m_2023-01        -0.0107        nan        nan        nan         nan         nan
+m_2023-02        -0.0098        nan        nan        nan         nan         nan
+m_2023-03        -0.0060        nan        nan        nan         nan         nan
+m_2023-04        -0.0054      0.000    -13.334      0.000      -0.006      -0.005
+m_2023-05        -0.0038      0.000    -13.382      0.000      -0.004      -0.003
+m_2023-06        -0.0060        nan        nan        nan         nan         nan
+m_2023-07        -0.0045        nan        nan        nan         nan         nan
+m_2023-08        -0.0029      0.000    -12.250      0.000      -0.003      -0.002
+m_2023-09        -0.0045      0.000    -18.667      0.000      -0.005      -0.004
+m_2023-10        -0.0005        nan        nan        nan         nan         nan
+m_2023-11        -0.0002        nan        nan        nan         nan         nan
+m_2023-12         0.0010        nan        nan        nan         nan         nan
+m_2024-01      8.313e-06      0.001      0.015      0.988      -0.001       0.001
+m_2024-02         0.0035      0.001      5.122      0.000       0.002       0.005
+m_2024-03         0.0022      0.000      6.439      0.000       0.002       0.003
+m_2024-04         0.0028      0.000      8.098      0.000       0.002       0.003
+m_2024-05         0.0014        nan        nan        nan         nan         nan
+m_2024-06         0.0011        nan        nan        nan         nan         nan
+m_2024-07         0.0024        nan        nan        nan         nan         nan
+m_2024-08         0.0024        nan        nan        nan         nan         nan
+m_2024-09         0.0002        nan        nan        nan         nan         nan
+m_2024-10         0.0017        nan        nan        nan         nan         nan
+m_2024-11         0.0009        nan        nan        nan         nan         nan
+m_2024-12         0.0036      0.000      8.930      0.000       0.003       0.004
+m_2025-01         0.0017        nan        nan        nan         nan         nan
+m_2025-02         0.0046        nan        nan        nan         nan         nan
+m_2025-03         0.0056      0.000     16.422      0.000       0.005       0.006
+m_2025-04         0.0036      0.000     10.556      0.000       0.003       0.004
+m_2025-05         0.0027      0.000      5.639      0.000       0.002       0.004
+m_2025-06         0.0025        nan        nan        nan         nan         nan
+m_2025-07        -0.0005      0.000     -1.492      0.136      -0.001       0.000
+m_2025-08         0.0016      0.000      4.586      0.000       0.001       0.002
+m_2025-09        -0.0001        nan        nan        nan         nan         nan
+m_2025-10         0.0003        nan        nan        nan         nan         nan
+m_2025-11         0.0001      0.000      0.333      0.739      -0.001       0.001
+m_2025-12         0.0021      0.000      4.791      0.000       0.001       0.003
+m_2026-01        -0.0018        nan        nan        nan         nan         nan
+m_2026-02         0.0005      0.000      1.064      0.287      -0.000       0.001
+m_2026-03         0.0032      0.000      8.443      0.000       0.002       0.004
+m_2026-04         0.0011      0.001      2.168      0.030       0.000       0.002
+m_2026-05         0.0003      0.000      0.723      0.470      -0.001       0.001
+m_2026-06        -0.0009      0.000     -2.759      0.006      -0.002      -0.000
+m_2026-07        -0.0014      0.000     -2.927      0.003      -0.002      -0.000
+==============================================================================
+Omnibus:                        6.374   Durbin-Watson:                   2.557
+Prob(Omnibus):                  0.041   Jarque-Bera (JB):                6.132
+Skew:                          -0.314   Prob(JB):                       0.0466
+Kurtosis:                       3.283   Cond. No.                     2.26e+03
+==============================================================================
+
+Notes:
+[1] Driscoll and Kraay Standard Errors are robust to cluster correlation (HAC-Groupsum)
+[2] The condition number is large, 2.26e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+== month_and_trust_fe ==
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.931
+Model:                            OLS   Adj. R-squared:                  0.900
+Method:                 Least Squares   F-statistic:                -1.372e-10
+Date:                Tue, 08 Sep 2026   Prob (F-statistic):                nan
+Time:                        04:47:12   Log-Likelihood:                 1289.7
+No. Observations:                 310   AIC:                            -2385.
+Df Residuals:                     213   BIC:                            -2023.
+Df Model:                          96                                         
+Covariance Type:         hac-groupsum                                         
+===================================================================================
+                      coef    std err          z      P>|z|      [0.025      0.975]
+-----------------------------------------------------------------------------------
+const           -1.873e+10        nan        nan        nan         nan         nan
+deep_subprime    5.422e+09    5.8e+15   9.35e-07      1.000   -1.14e+16    1.14e+16
+subprime         7.035e+09    5.7e+15   1.23e-06      1.000   -1.12e+16    1.12e+16
+near_prime       1.096e+10   8.61e+15   1.27e-06      1.000   -1.69e+16    1.69e+16
+prime            9.909e+09   1.41e+16   7.04e-07      1.000   -2.76e+16    2.76e+16
+prime_plus        3.68e+10        nan        nan        nan         nan         nan
+m_2019-01           0.0041        nan        nan        nan         nan         nan
+m_2019-02           0.0056        nan        nan        nan         nan         nan
+m_2019-03           0.0102        nan        nan        nan         nan         nan
+m_2019-04           0.0097        nan        nan        nan         nan         nan
+m_2019-05           0.0111        nan        nan        nan         nan         nan
+m_2019-06           0.0084        nan        nan        nan         nan         nan
+m_2019-07           0.0064        nan        nan        nan         nan         nan
+m_2019-08           0.0065        nan        nan        nan         nan         nan
+m_2019-09           0.0017        nan        nan        nan         nan         nan
+m_2019-10           0.0028        nan        nan        nan         nan         nan
+m_2019-11           0.0032        nan        nan        nan         nan         nan
+m_2019-12           0.0068        nan        nan        nan         nan         nan
+m_2020-01           0.0019        nan        nan        nan         nan         nan
+m_2020-02           0.0035        nan        nan        nan         nan         nan
+m_2020-03           0.0066        nan        nan        nan         nan         nan
+m_2020-04           0.0042        nan        nan        nan         nan         nan
+m_2020-05           0.0045        nan        nan        nan         nan         nan
+m_2020-06           0.0029        nan        nan        nan         nan         nan
+m_2020-07           0.0023        nan        nan        nan         nan         nan
+m_2020-08          -0.0007        nan        nan        nan         nan         nan
+m_2020-09          -0.0033        nan        nan        nan         nan         nan
+m_2020-10          -0.0054        nan        nan        nan         nan         nan
+m_2020-11          -0.0086        nan        nan        nan         nan         nan
+m_2020-12          -0.0085        nan        nan        nan         nan         nan
+m_2021-01          -0.0052     14.504     -0.000      1.000     -28.433      28.423
+m_2021-02          -0.0022        nan        nan        nan         nan         nan
+m_2021-03           0.0011        nan        nan        nan         nan         nan
+m_2021-04          -0.0009        nan        nan        nan         nan         nan
+m_2021-05          -0.0020     16.240     -0.000      1.000     -31.831      31.828
+m_2021-06          -0.0064        nan        nan        nan         nan         nan
+m_2021-07          -0.0142        nan        nan        nan         nan         nan
+m_2021-08          -0.0104     14.437     -0.001      0.999     -28.306      28.285
+m_2021-09          -0.0153        nan        nan        nan         nan         nan
+m_2021-10          -0.0130     18.300     -0.001      0.999     -35.879      35.853
+m_2021-11          -0.0144        nan        nan        nan         nan         nan
+m_2021-12          -0.0158        nan        nan        nan         nan         nan
+m_2022-01          -0.0100        nan        nan        nan         nan         nan
+m_2022-02          -0.0100        nan        nan        nan         nan         nan
+m_2022-03          -0.0082        nan        nan        nan         nan         nan
+m_2022-04          -0.0103        nan        nan        nan         nan         nan
+m_2022-05          -0.0093        nan        nan        nan         nan         nan
+m_2022-06          -0.0118     17.655     -0.001      0.999     -34.614      34.591
+m_2022-07          -0.0130     14.023     -0.001      0.999     -27.498      27.472
+m_2022-08          -0.0110        nan        nan        nan         nan         nan
+m_2022-09          -0.0134        nan        nan        nan         nan         nan
+m_2022-10          -0.0111        nan        nan        nan         nan         nan
+m_2022-11          -0.0111        nan        nan        nan         nan         nan
+m_2022-12          -0.0117        nan        nan        nan         nan         nan
+m_2023-01          -0.0108        nan        nan        nan         nan         nan
+m_2023-02          -0.0099        nan        nan        nan         nan         nan
+m_2023-03          -0.0061        nan        nan        nan         nan         nan
+m_2023-04          -0.0054        nan        nan        nan         nan         nan
+m_2023-05          -0.0038        nan        nan        nan         nan         nan
+m_2023-06          -0.0061        nan        nan        nan         nan         nan
+m_2023-07          -0.0046        nan        nan        nan         nan         nan
+m_2023-08          -0.0030        nan        nan        nan         nan         nan
+m_2023-09          -0.0045        nan        nan        nan         nan         nan
+m_2023-10          -0.0006        nan        nan        nan         nan         nan
+m_2023-11          -0.0002        nan        nan        nan         nan         nan
+m_2023-12           0.0010        nan        nan        nan         nan         nan
+m_2024-01        -5.13e-05        nan        nan        nan         nan         nan
+m_2024-02           0.0034        nan        nan        nan         nan         nan
+m_2024-03           0.0021     17.974      0.000      1.000     -35.226      35.230
+m_2024-04           0.0027     15.478      0.000      1.000     -30.334      30.339
+m_2024-05           0.0013        nan        nan        nan         nan         nan
+m_2024-06           0.0011        nan        nan        nan         nan         nan
+m_2024-07           0.0023        nan        nan        nan         nan         nan
+m_2024-08           0.0024        nan        nan        nan         nan         nan
+m_2024-09           0.0001        nan        nan        nan         nan         nan
+m_2024-10           0.0017        nan        nan        nan         nan         nan
+m_2024-11           0.0009        nan        nan        nan         nan         nan
+m_2024-12           0.0035        nan        nan        nan         nan         nan
+m_2025-01           0.0017        nan        nan        nan         nan         nan
+m_2025-02           0.0046        nan        nan        nan         nan         nan
+m_2025-03           0.0055     18.658      0.000      1.000     -36.563      36.574
+m_2025-04           0.0035     19.135      0.000      1.000     -37.501      37.508
+m_2025-05           0.0026        nan        nan        nan         nan         nan
+m_2025-06           0.0025        nan        nan        nan         nan         nan
+m_2025-07          -0.0006     19.680  -2.89e-05      1.000     -38.572      38.571
+m_2025-08           0.0015     14.855      0.000      1.000     -29.115      29.118
+m_2025-09          -0.0002        nan        nan        nan         nan         nan
+m_2025-10           0.0002        nan        nan        nan         nan         nan
+m_2025-11        6.691e-05     12.152   5.51e-06      1.000     -23.817      23.817
+m_2025-12           0.0020        nan        nan        nan         nan         nan
+m_2026-01          -0.0019        nan        nan        nan         nan         nan
+m_2026-02           0.0004        nan        nan        nan         nan         nan
+m_2026-03           0.0032        nan        nan        nan         nan         nan
+m_2026-04           0.0009     15.665   5.94e-05      1.000     -30.703      30.705
+m_2026-05           0.0003        nan        nan        nan         nan         nan
+m_2026-06          -0.0010     15.272  -6.54e-05      1.000     -29.933      29.931
+m_2026-07          -0.0014        nan        nan        nan         nan         nan
+trust_bofa      -6.885e+07   1.91e+14  -3.61e-07      1.000   -3.73e+14    3.73e+14
+trust_chase     -1.041e+09   2.89e+14   -3.6e-06      1.000   -5.67e+14    5.67e+14
+trust_citi           1e+08   2.97e+14   3.37e-07      1.000   -5.82e+14    5.82e+14
+trust_comet      1.036e+09   6.84e+14   1.51e-06      1.000   -1.34e+15    1.34e+15
+trust_synchrony  2.987e+09   2.15e+15   1.39e-06      1.000   -4.21e+15    4.21e+15
+==============================================================================
+Omnibus:                        6.746   Durbin-Watson:                   2.557
+Prob(Omnibus):                  0.034   Jarque-Bera (JB):                6.535
+Skew:                          -0.321   Prob(JB):                       0.0381
+Kurtosis:                       3.305   Cond. No.                     4.38e+18
+==============================================================================
+
+Notes:
+[1] Driscoll and Kraay Standard Errors are robust to cluster correlation (HAC-Groupsum)
+[2] The smallest eigenvalue is 2.38e-35. This might indicate that there are
+strong multicollinearity problems or that the design matrix is singular.
