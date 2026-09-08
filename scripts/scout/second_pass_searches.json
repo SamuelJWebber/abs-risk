@@ -1,0 +1,14 @@
+{
+  "_purpose": "Search-only rerun of the queries the second pass did not reach (it crashed before them).",
+  "fetch": [],
+  "pairs": [],
+  "searches": [
+    {"name": "Honda Auto Receivables", "forms": "ABS-EE"},
+    {"name": "USAA Auto Owner", "forms": "ABS-EE"},
+    {"name": "AmeriCredit Automobile Receivables Trust 2025", "forms": "ABS-EE"},
+    {"name": "AmeriCredit Automobile Receivables Trust 2026", "forms": "ABS-EE"},
+    {"name": "Exeter Automobile Receivables Trust", "forms": "424B5"},
+    {"name": "Santander Drive Auto Receivables Trust 2026-1", "forms": "424B5"},
+    {"name": "Capital One Prime Auto Receivables Trust 2026-1", "forms": "424B5"}
+  ]
+}

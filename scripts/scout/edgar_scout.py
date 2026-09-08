@@ -369,7 +369,7 @@ def second_pass(spec_path: Path):
     # auto-pair: consecutive filings fetched via one "latest: N" item share a slug; compare each adjacent pair
     by_slug: dict[str, list[dict]] = {}
     for r in results["fetched"]:
-        if r.get("file") and r.get("latest"):
+        if r.get("file") and r.get("latest") and r.get("accession") in paths:
             by_slug.setdefault(r["slug"], []).append(r)
     for slug, rs in by_slug.items():
         rs.sort(key=lambda r: r["accession"])
@@ -438,7 +438,7 @@ def main():
     if not ok:
         MANIFEST["notes"].append("EDGAR blocked from this runner too; aborting after probe")
     elif mode == "second_pass":
-        second_pass(HERE / "second_pass.json")
+        second_pass(Path(os.environ.get("SCOUT_SPEC") or (HERE / "second_pass.json")))
     else:
         scout_cards()
         scout_autos()

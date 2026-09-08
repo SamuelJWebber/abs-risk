@@ -7,6 +7,10 @@ on:
         description: "full (cards + autos discovery) or second_pass (fetch scripts/scout/second_pass.json)"
         default: full
         required: false
+      spec:
+        description: "second_pass only: path of the spec JSON"
+        default: scripts/scout/second_pass.json
+        required: false
 
 permissions:
   contents: read
@@ -24,6 +28,7 @@ jobs:
           ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
           SCOUT_OUT: scout_out
           SCOUT_MODE: ${{ inputs.mode || 'full' }}
+          SCOUT_SPEC: ${{ inputs.spec || 'scripts/scout/second_pass.json' }}
         run: uv run python scripts/scout/edgar_scout.py
       - name: Sizes
         if: always()
