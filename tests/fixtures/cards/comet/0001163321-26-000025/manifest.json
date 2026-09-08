@@ -1,0 +1,32 @@
+{
+ "slug": "comet",
+ "trust": "Capital One Multi-asset Execution Trust",
+ "cik": "0001163321",
+ "form": "10-D",
+ "accession": "0001163321-26-000025",
+ "filing_date": "2026-08-17",
+ "period": "2026-07-31",
+ "primary_document": "form10-djuly2026.htm",
+ "url": "https://www.sec.gov/Archives/edgar/data/1163321/000116332126000025/",
+ "files": [
+  {
+   "name": "exhibit9912002-ccjuly2026.htm",
+   "type": "EX-99.1",
+   "size": 151134,
+   "sha256": "c9e67710a671ccd28d9e5b5519a2367216c5a24f8653462a9c30487bb7365d5c"
+  },
+  {
+   "name": "exhibit992nhsjuly2026.htm",
+   "type": "EX-99.2",
+   "size": 384102,
+   "sha256": "4be11e97218b0b7ade7a9f9595eec9cfb1f104f9856e214c640ebfb059830851"
+  },
+  {
+   "name": "form10-djuly2026.htm",
+   "type": "10-D",
+   "size": 31007,
+   "sha256": "7174ec01a4399ca763ea361fdf329e6bf472e5571e782c0bdbb81bfa7aeb93f3"
+  }
+ ],
+ "fetched": "2026-09-08T06:51:37Z"
+}

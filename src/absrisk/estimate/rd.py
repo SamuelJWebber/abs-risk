@@ -42,8 +42,10 @@ def find_cutoffs(df: pd.DataFrame, running: str = "score", var: str = "orig_apr"
                  min_jump: float | None = None) -> pd.DataFrame:
     """Candidate cutoffs where `var` jumps at a score threshold. Returns every candidate with its statistics.
 
-    A candidate is flagged when |jump| > k * se and, if `min_jump` is given, |jump| > min_jump as well (so a
-    statistically sharp but economically trivial step is not a cutoff). The grid is aligned to multiples of `step`.
+    A candidate is flagged when |jump| > k * se at bandwidth h, |jump| > min_jump if given (so a statistically
+    sharp but economically trivial step is not a cutoff), and the jump keeps its sign and clears k/2 * se at
+    0.6h and 1.4h as well (a wiggle in a noisy variable flips sign between adjacent grid points and bandwidths;
+    a pricing step does not). The grid is aligned to multiples of `step`.
     """
     x = df[running].to_numpy(dtype=float)
     y = df[var].to_numpy(dtype=float)
@@ -59,8 +61,20 @@ def find_cutoffs(df: pd.DataFrame, running: str = "score", var: str = "orig_apr"
         jump = fr - fl
         se = np.sqrt(sl**2 / nl + sr**2 / nr)
         flag = bool(abs(jump) > k * se) and (min_jump is None or abs(jump) > min_jump)
+        stable = True
+        for hh in (0.6 * h, 1.4 * h):
+            fl2, sl2, nl2 = _local_linear(x, y, c, hh, "left")
+            fr2, sr2, nr2 = _local_linear(x, y, c, hh, "right")
+            if nl2 < 5 or nr2 < 5 or not np.isfinite(fl2) or not np.isfinite(fr2):
+                stable = False
+                break
+            j2 = fr2 - fl2
+            se2 = np.sqrt(sl2**2 / nl2 + sr2**2 / nr2)
+            if np.sign(j2) != np.sign(jump) or abs(j2) <= (k / 2) * se2:
+                stable = False
+                break
         rows.append({"cutoff": c, "left": fl, "right": fr, "jump": jump, "se": se, "t": jump / se if se > 0 else np.nan,
-                     "n_left": nl, "n_right": nr, "flag": flag})
+                     "n_left": nl, "n_right": nr, "stable_across_bandwidths": stable, "flag": flag and stable})
     return pd.DataFrame(rows)
 
 

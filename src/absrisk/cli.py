@@ -46,7 +46,11 @@ def main(argv: list[str] | None = None) -> int:
             from .report.autos_page import main as report_autos
 
             return report_autos(rest[1:])
-        print("report: expected 'autos'", file=sys.stderr)
+        if rest and rest[0] == "cards":
+            from .report.cards_page import main as report_cards
+
+            return report_cards(rest[1:])
+        print("report: expected 'autos' or 'cards'", file=sys.stderr)
         return 2
     print(__doc__)
     return 1

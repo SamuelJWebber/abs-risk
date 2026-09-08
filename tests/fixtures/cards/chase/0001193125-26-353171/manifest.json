@@ -1,0 +1,38 @@
+{
+ "slug": "chase",
+ "trust": "Chase Issuance Trust",
+ "cik": "0001174821",
+ "form": "10-D",
+ "accession": "0001193125-26-353171",
+ "filing_date": "2026-08-17",
+ "period": "2026-07-31",
+ "primary_document": "d169887d10d.htm",
+ "url": "https://www.sec.gov/Archives/edgar/data/1174821/000119312526353171/",
+ "files": [
+  {
+   "name": "d169887d10d.htm",
+   "type": "10-D",
+   "size": 21766,
+   "sha256": "c20defa14ba6279661ea2649b69088fec1b72b1dd50953a97e4f27d320e449d3"
+  },
+  {
+   "name": "d169887dex991.htm",
+   "type": "EX-99.1",
+   "size": 5527,
+   "sha256": "cde90dced0c5f82c4d793fbf13c08401af6869778471fb68c884b7db344b4d03"
+  },
+  {
+   "name": "d169887dex992.htm",
+   "type": "EX-99.2",
+   "size": 64676,
+   "sha256": "132903b27057a5c06cbb67962243a85ad39eaff18e5ff3f51636167791f8da46"
+  },
+  {
+   "name": "d169887dex993.htm",
+   "type": "EX-99.3",
+   "size": 161266,
+   "sha256": "4d50014f23bf86b6716e5f3e280ec3eabc93a38087b0d5c96a75e18f8b401ba4"
+  }
+ ],
+ "fetched": "2026-09-08T06:51:37Z"
+}

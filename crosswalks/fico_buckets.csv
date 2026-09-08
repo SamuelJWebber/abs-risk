@@ -1,0 +1,42 @@
+trust,score_type,bucket_label,bucket_lo,bucket_hi,w_deep_subprime,w_subprime,w_near_prime,w_prime,w_prime_plus,w_superprime,rule,flags
+amex,FICO,Less than 560,,559,1.0,0.0,0.0,0.0,0.0,0.0,"uniform in score over [300,559] (open end clamped to 300/850); weight = tier points / bucket width 260",amex_nonstandard_buckets
+amex,FICO,560 -659,560,659,0.2,0.4,0.4,0.0,0.0,0.0,"uniform in score over [560,659]; weight = tier points / bucket width 100","straddle,amex_nonstandard_buckets"
+amex,FICO,660 -699,660,699,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [660,699]; weight = tier points / bucket width 40",amex_nonstandard_buckets
+amex,FICO,700 -759,700,759,0.0,0.0,0.0,0.333333,0.666667,0.0,"uniform in score over [700,759]; weight = tier points / bucket width 60","straddle,amex_nonstandard_buckets"
+amex,FICO,760 and above,760,,0.0,0.0,0.0,0.0,0.43956,0.56044,"uniform in score over [760,850] (open end clamped to 300/850); weight = tier points / bucket width 91","straddle,amex_nonstandard_buckets"
+amex,FICO,Refreshed FICO Unavailable,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,"unscored,amex_nonstandard_buckets"
+bofa,FICO,Over 720,721,,0.0,0.0,0.0,0.0,0.607692,0.392308,"uniform in score over [721,850] (open end clamped to 300/850); weight = tier points / bucket width 130",straddle
+bofa,FICO,661-720,661,720,0.0,0.0,0.0,0.983333,0.016667,0.0,"uniform in score over [661,720]; weight = tier points / bucket width 60","straddle,one_point_offset"
+bofa,FICO,601-660,601,660,0.0,0.316667,0.666667,0.016667,0.0,0.0,"uniform in score over [601,660]; weight = tier points / bucket width 60","straddle,one_point_offset"
+bofa,FICO,Less than or equal to 600,,600,0.930233,0.069767,0.0,0.0,0.0,0.0,"uniform in score over [300,600] (open end clamped to 300/850); weight = tier points / bucket width 301",straddle
+bofa,FICO,Unscored,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,unscored
+chase,FICO,No FICO Score,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,"unscored,sample_5pct"
+chase,FICO,Less Than 600,,599,0.933333,0.066667,0.0,0.0,0.0,0.0,"uniform in score over [300,599] (open end clamped to 300/850); weight = tier points / bucket width 300","straddle,sample_5pct"
+chase,FICO,600 to 659,600,659,0.0,0.333333,0.666667,0.0,0.0,0.0,"uniform in score over [600,659]; weight = tier points / bucket width 60","straddle,sample_5pct"
+chase,FICO,660 to 719,660,719,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [660,719]; weight = tier points / bucket width 60",sample_5pct
+chase,FICO,720 and Above,720,,0.0,0.0,0.0,0.0,0.610687,0.389313,"uniform in score over [720,850] (open end clamped to 300/850); weight = tier points / bucket width 131","straddle,sample_5pct"
+citi,FICO,000,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,unscored
+citi,FICO,001 to 599,1,599,0.933333,0.066667,0.0,0.0,0.0,0.0,"uniform in score over [300,599] (open end clamped to 300/850); weight = tier points / bucket width 300",straddle
+citi,FICO,600 to 639,600,639,0.0,0.5,0.5,0.0,0.0,0.0,"uniform in score over [600,639]; weight = tier points / bucket width 40",straddle
+citi,FICO,640 to 660,640,660,0.0,0.0,0.952381,0.047619,0.0,0.0,"uniform in score over [640,660]; weight = tier points / bucket width 21","straddle,one_point_offset"
+citi,FICO,661 to 679,661,679,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [661,679]; weight = tier points / bucket width 19",
+citi,FICO,680 to 699,680,699,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [680,699]; weight = tier points / bucket width 20",
+citi,FICO,700 to 719,700,719,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [700,719]; weight = tier points / bucket width 20",
+citi,FICO,720 to 739,720,739,0.0,0.0,0.0,0.0,1.0,0.0,"uniform in score over [720,739]; weight = tier points / bucket width 20",
+citi,FICO,740 to 759,740,759,0.0,0.0,0.0,0.0,1.0,0.0,"uniform in score over [740,759]; weight = tier points / bucket width 20",
+citi,FICO,760 to 800,760,800,0.0,0.0,0.0,0.0,0.97561,0.02439,"uniform in score over [760,800]; weight = tier points / bucket width 41","straddle,one_point_offset"
+citi,FICO,801+,801,,0.0,0.0,0.0,0.0,0.0,1.0,"uniform in score over [801,850] (open end clamped to 300/850); weight = tier points / bucket width 50",
+comet,FICO,No score,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,unscored
+comet,FICO,Less than or equal to 600,,600,0.930233,0.069767,0.0,0.0,0.0,0.0,"uniform in score over [300,600] (open end clamped to 300/850); weight = tier points / bucket width 301",straddle
+comet,FICO,601-660,601,660,0.0,0.316667,0.666667,0.016667,0.0,0.0,"uniform in score over [601,660]; weight = tier points / bucket width 60","straddle,one_point_offset"
+comet,FICO,661-720,661,720,0.0,0.0,0.0,0.983333,0.016667,0.0,"uniform in score over [661,720]; weight = tier points / bucket width 60","straddle,one_point_offset"
+comet,FICO,Greater than 720,721,,0.0,0.0,0.0,0.0,0.607692,0.392308,"uniform in score over [721,850] (open end clamped to 300/850); weight = tier points / bucket width 130",straddle
+discover,FICO,No Score,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,"unscored,stale_2023"
+discover,FICO,Less than 600,,599,0.933333,0.066667,0.0,0.0,0.0,0.0,"uniform in score over [300,599] (open end clamped to 300/850); weight = tier points / bucket width 300","straddle,stale_2023"
+discover,FICO,600 to 659,600,659,0.0,0.333333,0.666667,0.0,0.0,0.0,"uniform in score over [600,659]; weight = tier points / bucket width 60","straddle,stale_2023"
+discover,FICO,660 to 719,660,719,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [660,719]; weight = tier points / bucket width 60",stale_2023
+discover,FICO,720 and above,720,,0.0,0.0,0.0,0.0,0.610687,0.389313,"uniform in score over [720,850] (open end clamped to 300/850); weight = tier points / bucket width 131","straddle,stale_2023"
+synchrony,VantageScore,No score and/or less than or equal to 599*,,599,0.933333,0.066667,0.0,0.0,0.0,0.0,"uniform in score over [300,599] (open end clamped to 300/850); weight = tier points / bucket width 300","straddle,includes_unscored,vantagescore"
+synchrony,VantageScore,600-659,600,659,0.0,0.333333,0.666667,0.0,0.0,0.0,"uniform in score over [600,659]; weight = tier points / bucket width 60","straddle,vantagescore"
+synchrony,VantageScore,660-719,660,719,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [660,719]; weight = tier points / bucket width 60",vantagescore
+synchrony,VantageScore,720 and above,720,,0.0,0.0,0.0,0.0,0.610687,0.389313,"uniform in score over [720,850] (open end clamped to 300/850); weight = tier points / bucket width 131","straddle,vantagescore"

@@ -1,0 +1,26 @@
+{
+ "slug": "citi",
+ "trust": "Citibank Credit Card Issuance Trust",
+ "cik": "0001108348",
+ "form": "10-D",
+ "accession": "0001193125-26-353756",
+ "filing_date": "2026-08-17",
+ "period": "2026-07-28",
+ "primary_document": "d138267d10d.htm",
+ "url": "https://www.sec.gov/Archives/edgar/data/1108348/000119312526353756/",
+ "files": [
+  {
+   "name": "d138267d10d.htm",
+   "type": "10-D",
+   "size": 24489,
+   "sha256": "16edb320cad281a26c4b5b2101d7b25b6b789cad8f8c770f887f6819c00d7aa6"
+  },
+  {
+   "name": "d138267dex99.htm",
+   "type": "EX-99",
+   "size": 157610,
+   "sha256": "ed1bdfa5827d443405b0a5c2db2210209712b1074e7eacc69c216bb30019b534"
+  }
+ ],
+ "fetched": "2026-09-08T06:51:37Z"
+}

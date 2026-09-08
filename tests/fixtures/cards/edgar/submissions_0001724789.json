@@ -1,0 +1,64 @@
+{
+ "cik": "0001724789",
+ "name": "Synchrony Card Issuance Trust",
+ "filings": {
+  "recent": {
+   "accessionNumber": [
+    "0001104659-26-097449",
+    "0001104659-26-092741",
+    "0001104659-26-083732",
+    "0001104659-26-073676",
+    "0001104659-26-029477"
+   ],
+   "filingDate": [
+    "2026-08-17",
+    "2026-08-07",
+    "2026-07-15",
+    "2026-06-15",
+    "2026-03-17"
+   ],
+   "reportDate": [
+    "2026-07-31",
+    "",
+    "2026-06-30",
+    "2026-05-31",
+    ""
+   ],
+   "form": [
+    "10-D",
+    "424B5",
+    "10-D",
+    "10-D",
+    "424B5"
+   ],
+   "primaryDocument": [
+    "tm2622590d1_10d.htm",
+    "tm2622401d3_424b5.htm",
+    "tm2619974d1_10d.htm",
+    "tm2617140d1_10d.htm",
+    "tm268841d1_424b5.htm"
+   ],
+   "primaryDocDescription": [
+    "FORM 10-D",
+    "424B5",
+    "FORM 10-D",
+    "FORM 10-D",
+    "424B5"
+   ]
+  },
+  "files": [
+   {
+    "name": "CIK0001724789-submissions-001.json",
+    "filingCount": 2,
+    "filingFrom": "2018-10-15",
+    "filingTo": "2018-12-31"
+   },
+   {
+    "name": "CIK0001724789-submissions-002.json",
+    "filingCount": 2,
+    "filingFrom": "2019-01-15",
+    "filingTo": "2019-02-28"
+   }
+  ]
+ }
+}

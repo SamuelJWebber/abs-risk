@@ -109,8 +109,8 @@ def run_b3(loans: pd.DataFrame, out: Path):
         if len(g) < 5000:
             continue
         for var in ("orig_apr", "orig_amount"):
-            # economic floor on a jump: half a point of APR, or two percent of the median loan amount
-            min_jump = 0.005 if var == "orig_apr" else 0.02 * float(g["orig_amount"].median())
+            # economic floor on a jump: half a point of APR, or five percent of the median loan amount
+            min_jump = 0.005 if var == "orig_apr" else 0.05 * float(g["orig_amount"].median())
             c = rd.find_cutoffs(g, var=var, lo=int(g["score"].quantile(0.02)), hi=int(g["score"].quantile(0.98)),
                                 min_jump=min_jump)
             if c.empty:
