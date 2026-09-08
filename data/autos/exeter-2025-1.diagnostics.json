@@ -1,0 +1,381 @@
+{
+ "deal": "exeter-2025-1",
+ "lender": "exeter",
+ "cik": "",
+ "built_at": "2026-09-08T07:01:50Z",
+ "seconds": 122.0,
+ "n_files": 19,
+ "periods": [
+  "2025-01-31",
+  "2025-02-28",
+  "2025-03-31",
+  "2025-04-30",
+  "2025-05-31",
+  "2025-06-30",
+  "2025-07-31",
+  "2025-08-31",
+  "2025-09-30",
+  "2025-10-31",
+  "2025-11-30",
+  "2025-12-31",
+  "2026-01-31",
+  "2026-02-28",
+  "2026-03-31",
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2025-01-31",
+ "last_period": "2026-07-31",
+ "n_loans": 65321,
+ "n_loan_months": 1231761,
+ "exit_type_counts": {
+  "prepay": 12675,
+  "censored": 42809,
+  "chargeoff": 9611,
+  "repurchase": 226
+ },
+ "exit_code_counts": {
+  "1": 12675,
+  "4": 9611,
+  "3": 226
+ },
+ "n_absent_without_code": 0,
+ "share_absent_without_code": 0.0,
+ "n_gaps": 0,
+ "n_added_after_first_file": 0,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 783,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps every loan for the deal's life; delinquency reset to 0 at zero balance",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-000942/eart2025-1_exhibit102.xml",
+   "period": "2025-01-31",
+   "n_records": 65321,
+   "sha256": "1484ef7ae5acd77ee1ddd7e5223b5d100bdbe70014149efe392bbf836cdc5934",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09815,
+   "dup_counts": {
+    "modificationTypeCode": 93
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 783,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-001356/eart2025-1_exhibit102.xml",
+   "period": "2025-02-28",
+   "n_records": 65321,
+   "sha256": "c059b54c66045f9928c4b47bfa04990621df4e14c9954d9db385eebae9856fa2",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1027,
+   "dup_counts": {
+    "modificationTypeCode": 80
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 783,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-001679/eart2025-1_exhibit102.xml",
+   "period": "2025-03-31",
+   "n_records": 65210,
+   "sha256": "fc3ade07d4f162ff45adf99cf11ed8907f717985cab6012a640f79865f66b70e",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10355,
+   "dup_counts": {
+    "modificationTypeCode": 62
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 783,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-002033/eart2025-1_exhibit102.xml",
+   "period": "2025-04-30",
+   "n_records": 65188,
+   "sha256": "76f45884498d20bb455592ced8e4baee52d0688de20f95c1e1ac6df676cc61ad",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1031,
+   "dup_counts": {
+    "modificationTypeCode": 30
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 783,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-002363/eart2025-1_exhibit102.xml",
+   "period": "2025-05-31",
+   "n_records": 65153,
+   "sha256": "4e7267babe25624e581d231a72462e75ecda3b5118374d6fe570039027a47019",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10195,
+   "dup_counts": {
+    "modificationTypeCode": 30
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 782,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-002733/eart2025-1_exhibit102.xml",
+   "period": "2025-06-30",
+   "n_records": 65142,
+   "sha256": "fc5575464b8c41262bf3e78ee0a0e4c340bed2eeef0b67e1b15236ddfab02664",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1007,
+   "dup_counts": {
+    "modificationTypeCode": 37
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 782,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-003193/eart2025-1_exhibit102.xml",
+   "period": "2025-07-31",
+   "n_records": 65131,
+   "sha256": "7a70b3a51596232770b7c93e67274d2e348371a8849b6fdd6c180bc1b9eaa99a",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1009,
+   "dup_counts": {
+    "modificationTypeCode": 47
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 781,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-003600/eart2025-1_exhibit102.xml",
+   "period": "2025-08-31",
+   "n_records": 65109,
+   "sha256": "efd989ecd740a070c62846ccc7b32d61ee8b857fda6bb98a7d87f062bc8cb790",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1019,
+   "dup_counts": {
+    "modificationTypeCode": 39
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 781,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-004021/eart2025-1_exhibit102.xml",
+   "period": "2025-09-30",
+   "n_records": 65103,
+   "sha256": "7281af95a95165547e1a75f4c83778f532f15528b7c8521f8ca7ad75dcde1bc6",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1021,
+   "dup_counts": {
+    "modificationTypeCode": 53
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 781,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-004415/eart2025-1_exhibit102.xml",
+   "period": "2025-10-31",
+   "n_records": 65081,
+   "sha256": "f57927fb15ebfb84ab1e754079ebcb54d40da1310157f5e9c0f87fb0fe96efab",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1013,
+   "dup_counts": {
+    "modificationTypeCode": 40
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 780,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-25-004713/eart2025-1_exhibit102.xml",
+   "period": "2025-11-30",
+   "n_records": 65023,
+   "sha256": "bc836bf1161ed07198e1816aa6793b07972943e6a402979fd996733f10ec6bd1",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1006,
+   "dup_counts": {
+    "modificationTypeCode": 46
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 780,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-000292/eart2025-1_exhibit102.xml",
+   "period": "2025-12-31",
+   "n_records": 64906,
+   "sha256": "83dc0ac0f59d8e557b00c9cb0b7a8577936960193fbbe55f848b64bdb70b092f",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.101,
+   "dup_counts": {
+    "modificationTypeCode": 42
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 779,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-000797/eart2025-1_exhibit102.xml",
+   "period": "2026-01-31",
+   "n_records": 64890,
+   "sha256": "636e3c9261085b6e88d4845c30d50f6b4ddd9d6c16ef6404f9f3a6ed2304307c",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.101,
+   "dup_counts": {
+    "modificationTypeCode": 33
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 778,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-001278/eart2025-1_exhibit102.xml",
+   "period": "2026-02-28",
+   "n_records": 64885,
+   "sha256": "c93fe84b14d8d6dac72b9b0390e1ba36f43aa9f6a4fee5ff2a27d7ec2a8721b3",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1006,
+   "dup_counts": {
+    "modificationTypeCode": 36
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 778,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-001623/eart2025-1_exhibit102.xml",
+   "period": "2026-03-31",
+   "n_records": 64176,
+   "sha256": "74315936d8701844163f8aa06dff82ffaf25b500df0817936e4ad627eb431ea0",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.1003,
+   "dup_counts": {
+    "modificationTypeCode": 35
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 774,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-002021/eart2025-1_exhibit102.xml",
+   "period": "2026-04-30",
+   "n_records": 64090,
+   "sha256": "5408e27e033d19be16856acf8b8b431f6e986a8f0e03596b3d3701341399b267",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0978,
+   "dup_counts": {
+    "modificationTypeCode": 21
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 772,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-002401/eart2025-1_exhibit102.xml",
+   "period": "2026-05-31",
+   "n_records": 64063,
+   "sha256": "b4ffc4e601aa8c4bc8fcc023ec8d85937c3b3637838b95bd748cd9012c3b6212",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0973,
+   "dup_counts": {
+    "modificationTypeCode": 27
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 770,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-002766/eart2025-1_exhibit102.xml",
+   "period": "2026-06-30",
+   "n_records": 63986,
+   "sha256": "f3d618cd27a13a85f526f9a809636ccaf36f960c0b958121fde47c2b8afa9eb0",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0996,
+   "dup_counts": {
+    "modificationTypeCode": 21
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 770,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-1/0000929638-26-003311/eart2025-1_exhibit102.xml",
+   "period": "2026-07-31",
+   "n_records": 63983,
+   "sha256": "65eac60a045a1afdd55f0a5c03cc34bfc625b0ae20d654f9adb49b9f163fd603",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0984,
+   "dup_counts": {
+    "modificationTypeCode": 36
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 770,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  }
+ ]
+}

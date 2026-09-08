@@ -1,0 +1,551 @@
+{
+ "deal": "amcar-2024-1",
+ "lender": "americredit",
+ "cik": "0002020251",
+ "built_at": "2026-09-08T07:03:35Z",
+ "seconds": 204.4,
+ "n_files": 27,
+ "periods": [
+  "2024-05-31",
+  "2024-06-30",
+  "2024-07-31",
+  "2024-08-31",
+  "2024-09-30",
+  "2024-10-31",
+  "2024-11-30",
+  "2024-12-31",
+  "2025-01-31",
+  "2025-02-28",
+  "2025-03-31",
+  "2025-04-30",
+  "2025-05-31",
+  "2025-06-30",
+  "2025-07-31",
+  "2025-08-31",
+  "2025-09-30",
+  "2025-10-31",
+  "2025-11-30",
+  "2025-12-31",
+  "2026-01-31",
+  "2026-02-28",
+  "2026-03-31",
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2024-05-31",
+ "last_period": "2026-07-31",
+ "n_loans": 72665,
+ "n_loan_months": 1434537,
+ "exit_type_counts": {
+  "prepay": 28547,
+  "censored": 34562,
+  "chargeoff": 9550,
+  "repurchase": 6
+ },
+ "exit_code_counts": {
+  "1": 28547,
+  "4": 9550,
+  "3": 6
+ },
+ "n_absent_without_code": 0,
+ "share_absent_without_code": 0.0,
+ "n_gaps": 3607,
+ "n_added_after_first_file": 1,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 492,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps charge-offs; drops payoffs the month after",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000003/exh1024650052024.xml",
+   "period": "2024-05-31",
+   "n_records": 72664,
+   "sha256": "ba5d7cf8017af0a85c0776137548eb6c896d147894dad764c9afa0e15b8a29f9",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0899,
+   "dup_counts": {
+    "subvented": 7972
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 492,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000006/exh1024650062024.xml",
+   "period": "2024-06-30",
+   "n_records": 71658,
+   "sha256": "40baab17f91406c8ac9a8054e52ca63d5eb7e6a29c232fa9b48368894692d180",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09,
+   "dup_counts": {
+    "subvented": 7846,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 486,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000009/exh1024650072024.xml",
+   "period": "2024-07-31",
+   "n_records": 70440,
+   "sha256": "2353d31162b80e833a649b71d7197fc3cd0ee6d488cdc389481da01e86698145",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0905,
+   "dup_counts": {
+    "subvented": 7681,
+    "modificationTypeCode": 15
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 477,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000012/exh1024650082024.xml",
+   "period": "2024-08-31",
+   "n_records": 68897,
+   "sha256": "60a6946ef5daf411afeda6dfdd250fdfd219590a395e9b04f297758187ef043d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0908,
+   "dup_counts": {
+    "subvented": 7455,
+    "modificationTypeCode": 15
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 465,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000015/exh1024650092024.xml",
+   "period": "2024-09-30",
+   "n_records": 67279,
+   "sha256": "ecc8159fa22d0290fd76ae50e758fc2e54d14583af788e19ae99a605b16e8327",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09125,
+   "dup_counts": {
+    "subvented": 7193,
+    "modificationTypeCode": 45
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 451,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000018/exh1024650102024.xml",
+   "period": "2024-10-31",
+   "n_records": 65625,
+   "sha256": "8c0b15da3afa9e82069ed4ba9a70b0da6770002017dc0c26f88346db95818e78",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0913,
+   "dup_counts": {
+    "modificationTypeCode": 45,
+    "subvented": 6938
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 435,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-24-000021/exh1024650112024.xml",
+   "period": "2024-11-30",
+   "n_records": 63734,
+   "sha256": "aa7ff47a9f25782d983211b8f0d648c45e95b0d0f419bf7bc67a46cff98e21be",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0923,
+   "dup_counts": {
+    "modificationTypeCode": 60,
+    "subvented": 6698
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 419,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000003/exh1024650122024.xml",
+   "period": "2024-12-31",
+   "n_records": 62117,
+   "sha256": "9fcbff36f316cfa14428d70da2ef8b9741babc86b08a347cdb9deab325edd054",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0927,
+   "dup_counts": {
+    "modificationTypeCode": 102,
+    "subvented": 6504
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 404,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000006/exh1024650012025.xml",
+   "period": "2025-01-31",
+   "n_records": 60464,
+   "sha256": "4d25844ef6d947a66f8d72fb0763a5aa865bfcbd866deb4ea69e81dd1eba52eb",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0928,
+   "dup_counts": {
+    "modificationTypeCode": 135,
+    "subvented": 6276
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 391,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000012/exh1024650022025.xml",
+   "period": "2025-02-28",
+   "n_records": 58784,
+   "sha256": "afd7dfdfe1a07b66ea733231153efd4c5ebe483cd395d5a3e024cb194b27e46d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09234999999999999,
+   "dup_counts": {
+    "modificationTypeCode": 151,
+    "subvented": 6019
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 381,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000017/exh1024650032025.xml",
+   "period": "2025-03-31",
+   "n_records": 57125,
+   "sha256": "c28b005a2db57d615ab3b93eca20e08b403b7637f6648f1f96de6920390b02e6",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0926,
+   "dup_counts": {
+    "modificationTypeCode": 170,
+    "subvented": 5786
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 359,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000020/exh1024650042025.xml",
+   "period": "2025-04-30",
+   "n_records": 55333,
+   "sha256": "0b538bad2fd34baa25602c0700e82fa80f7aa45d811970a574bd1f9cbb118f19",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.093,
+   "dup_counts": {
+    "modificationTypeCode": 191,
+    "subvented": 5530
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 342,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000024/exh1024650052025.xml",
+   "period": "2025-05-31",
+   "n_records": 53498,
+   "sha256": "396dbdcd87ae8fd4c8859e3a400191721a7d881048ca38266c1077fe85910ef5",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09295,
+   "dup_counts": {
+    "subvented": 5289,
+    "modificationTypeCode": 149
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 329,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000027/exh1024650062025.xml",
+   "period": "2025-06-30",
+   "n_records": 51742,
+   "sha256": "6a76dc82681261fbd7329062b4a81ef3756c4b441a77a02f046f4397a8bb4404",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0937,
+   "dup_counts": {
+    "modificationTypeCode": 150,
+    "subvented": 5062
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 317,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000030/exh1024650072025.xml",
+   "period": "2025-07-31",
+   "n_records": 50167,
+   "sha256": "fd28053d96feb00b4fb6f44cda4b69bfe2bd2f0adec734631a68064a1a58e99f",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09425,
+   "dup_counts": {
+    "subvented": 4849,
+    "modificationTypeCode": 198
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 305,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000033/exh1024650082025.xml",
+   "period": "2025-08-31",
+   "n_records": 48674,
+   "sha256": "582f870b6c2441686887f0e09891222c59cb1244c84e7b8117a15d598617a0bb",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09545000000000001,
+   "dup_counts": {
+    "subvented": 4660,
+    "modificationTypeCode": 125
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 300,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000036/exh1024650092025.xml",
+   "period": "2025-09-30",
+   "n_records": 47245,
+   "sha256": "fe8d2487985d21419172dec4babc697450f76884f7a7d7ef682187cf5903d579",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09545000000000001,
+   "dup_counts": {
+    "subvented": 4508,
+    "modificationTypeCode": 146
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 289,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000039/exh1024650102025.xml",
+   "period": "2025-10-31",
+   "n_records": 46020,
+   "sha256": "008b189d366f815876a49ea9f6838495bcb6ae1fcf603e9b176d20c4030315be",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0957,
+   "dup_counts": {
+    "subvented": 4374,
+    "modificationTypeCode": 167
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 277,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-25-000042/exh1024650112025.xml",
+   "period": "2025-11-30",
+   "n_records": 44743,
+   "sha256": "e6d131067db11474bf7f1dd4db3f92c0fb575178aee6dca7096d9c6426b37d3b",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0957,
+   "dup_counts": {
+    "subvented": 4219,
+    "modificationTypeCode": 121
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 266,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000003/exh1024650122025.xml",
+   "period": "2025-12-31",
+   "n_records": 43597,
+   "sha256": "e9234aea0230bdbad26ad68f751299271af825d7331fb82d92fb1c9a3117aefb",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0957,
+   "dup_counts": {
+    "subvented": 4064,
+    "modificationTypeCode": 132
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 265,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000006/exh1024650012026.xml",
+   "period": "2026-01-31",
+   "n_records": 42399,
+   "sha256": "a799a8d5c1200f7f013654335391d0b43f527ab5f18402b5a083b6515a57ad97",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.096,
+   "dup_counts": {
+    "subvented": 3922,
+    "modificationTypeCode": 131
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 252,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000011/exh1024650022026.xml",
+   "period": "2026-02-28",
+   "n_records": 41355,
+   "sha256": "e9fcd2953bc2720407bd94bc1d5253812ebf2ae30865f4c90b2d4c6a171d1da4",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.096,
+   "dup_counts": {
+    "subvented": 3787,
+    "modificationTypeCode": 91
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 249,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000016/exh1024650032026.xml",
+   "period": "2026-03-31",
+   "n_records": 40327,
+   "sha256": "7fe11b5caad10dd91b7dac7b0b6a5e3713335b9a14813655d19a44f5976c6662",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.096,
+   "dup_counts": {
+    "subvented": 3675,
+    "modificationTypeCode": 82
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 243,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000020/exh1024650042026.xml",
+   "period": "2026-04-30",
+   "n_records": 39298,
+   "sha256": "fce81ca6999d35708317577c5618f1d9b849257fcb6aadc97885f1660b1f7481",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.096,
+   "dup_counts": {
+    "subvented": 3561,
+    "modificationTypeCode": 54
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 232,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000023/exh1024650052026.xml",
+   "period": "2026-05-31",
+   "n_records": 38080,
+   "sha256": "1cdbcff8528bef75bcdc4afab208d9d33dea20212e1a4b27d82e9f9596d86641",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09645000000000001,
+   "dup_counts": {
+    "subvented": 3427,
+    "modificationTypeCode": 18
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 224,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000026/exh1024650062026.xml",
+   "period": "2026-06-30",
+   "n_records": 37160,
+   "sha256": "96017072b068abfa78a9445e041c4f4b63cb245985d4c39d536c597943990666",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0972,
+   "dup_counts": {
+    "subvented": 3320,
+    "modificationTypeCode": 23
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 214,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/amcar-2024-1/0002020251-26-000030/exh1024650072026.xml",
+   "period": "2026-07-31",
+   "n_records": 36112,
+   "sha256": "bb477854f97a9e6f18b6a611657d9d1ff28ed91017f7144c1fe1da510b04d0cd",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0966,
+   "dup_counts": {
+    "subvented": 3199,
+    "modificationTypeCode": 18
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 206,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  }
+ ]
+}

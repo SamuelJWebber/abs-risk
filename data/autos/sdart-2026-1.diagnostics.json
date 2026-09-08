@@ -1,0 +1,153 @@
+{
+ "deal": "sdart-2026-1",
+ "lender": "santander",
+ "cik": "0001383094",
+ "built_at": "2026-09-08T06:57:32Z",
+ "seconds": 68.5,
+ "n_files": 6,
+ "periods": [
+  "2026-02-28",
+  "2026-03-31",
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2026-02-28",
+ "last_period": "2026-07-31",
+ "n_loans": 86349,
+ "n_loan_months": 497235,
+ "exit_type_counts": {
+  "prepay": 9522,
+  "censored": 75051,
+  "absent": 6,
+  "chargeoff": 1007,
+  "repurchase": 763
+ },
+ "exit_code_counts": {
+  "1": 9522,
+  "4": 1007,
+  "3": 763
+ },
+ "n_absent_without_code": 6,
+ "share_absent_without_code": 6.9e-05,
+ "n_gaps": 2,
+ "n_added_after_first_file": 0,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 14588,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps charge-offs (code 4); drops payoffs (1) and repurchases (3) the month after",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/sdart-2026-1/0001193125-26-106847/sdart261ex102.xml",
+   "period": "2026-02-28",
+   "n_records": 86349,
+   "sha256": "d09f2ad6345effc05738b62db7801524996e7ecbbaead9d4df34a5ccaadbf921",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.069956955,
+   "dup_counts": {
+    "subvented": 1329,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 14588,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2026-1/0001193125-26-155453/sdart261ex102.xml",
+   "period": "2026-03-31",
+   "n_records": 85340,
+   "sha256": "def89321507b6ea60dfa86b9ea7df8aa8e9dfd9cdcf535bc52ac4ce826d4a29f",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.07024896,
+   "dup_counts": {
+    "subvented": 1282
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 14424,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2026-1/0001193125-26-224703/sdart261ex102.xml",
+   "period": "2026-04-30",
+   "n_records": 83994,
+   "sha256": "8a3933acc8e124c23a8892634c62ee86873b322f72fbabea6402f2f1e6f2ac49",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.070459975,
+   "dup_counts": {
+    "subvented": 1214,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 14220,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2026-1/0001193125-26-269968/sdart261ex102.xml",
+   "period": "2026-05-31",
+   "n_records": 82484,
+   "sha256": "8a803edb01df341daf65663237a871f3df284c639f59175b736fc36e87576f00",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.070567445,
+   "dup_counts": {
+    "subvented": 1153,
+    "modificationTypeCode": 1
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13967,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2026-1/0001193125-26-303622/sdart261ex102.xml",
+   "period": "2026-06-30",
+   "n_records": 80613,
+   "sha256": "cf3948e7969f6db90ffedd353b32bcab6e848d9dc5ccd0419961e05d91273b62",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.071314575,
+   "dup_counts": {
+    "subvented": 1073,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13639,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2026-1/0001193125-26-352879/sdart261ex102.xml",
+   "period": "2026-07-31",
+   "n_records": 78455,
+   "sha256": "7faa5cf5fe40b604b96a88122e97fd0935e4e7683640b107742ac1777ad5bee0",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.07297413999999999,
+   "dup_counts": {
+    "subvented": 976,
+    "modificationTypeCode": 1
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13231,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  }
+ ]
+}

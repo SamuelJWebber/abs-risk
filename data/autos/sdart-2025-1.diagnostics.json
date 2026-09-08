@@ -1,0 +1,399 @@
+{
+ "deal": "sdart-2025-1",
+ "lender": "santander",
+ "cik": "0001383094",
+ "built_at": "2026-09-08T06:59:54Z",
+ "seconds": 170.4,
+ "n_files": 19,
+ "periods": [
+  "2025-01-31",
+  "2025-02-28",
+  "2025-03-31",
+  "2025-04-30",
+  "2025-05-31",
+  "2025-06-30",
+  "2025-07-31",
+  "2025-08-31",
+  "2025-09-30",
+  "2025-10-31",
+  "2025-11-30",
+  "2025-12-31",
+  "2026-01-31",
+  "2026-02-28",
+  "2026-03-31",
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2025-01-31",
+ "last_period": "2026-07-31",
+ "n_loans": 99060,
+ "n_loan_months": 1592828,
+ "exit_type_counts": {
+  "chargeoff": 10744,
+  "prepay": 32456,
+  "absent": 56,
+  "censored": 55113,
+  "repurchase": 691
+ },
+ "exit_code_counts": {
+  "4": 10744,
+  "1": 32456,
+  "3": 691
+ },
+ "n_absent_without_code": 56,
+ "share_absent_without_code": 0.000565,
+ "n_gaps": 19,
+ "n_added_after_first_file": 0,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 13880,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps charge-offs (code 4); drops payoffs (1) and repurchases (3) the month after",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-000657/sdart251ex102.xml",
+   "period": "2025-01-31",
+   "n_records": 99060,
+   "sha256": "45b5815958f8a8181bb8a28937c1095bba7742cbf053b8df6203248df0bbb799",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.096693255,
+   "dup_counts": {
+    "subvented": 223
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13880,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-001109/sdart251ex102.xml",
+   "period": "2025-02-28",
+   "n_records": 98050,
+   "sha256": "ff2ce1c52ac1f8ad7866d0809abc57213ef2fecbd98ab35529564006bb24ec1b",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09704956,
+   "dup_counts": {
+    "subvented": 222,
+    "modificationTypeCode": 1
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13713,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-001598/sdart251ex102.xml",
+   "period": "2025-03-31",
+   "n_records": 96890,
+   "sha256": "d435210e7a20c6f2d81b28e7250fcfb62899b75b38a99131e8189f0652cc759d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09729238500000001,
+   "dup_counts": {
+    "subvented": 218,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13524,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-002063/sdart251ex102.xml",
+   "period": "2025-04-30",
+   "n_records": 95415,
+   "sha256": "137720391ea6f12ff88e8ed89382706bfd7e74fe17b8614161c3e74e6dfb72c6",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.097363125,
+   "dup_counts": {
+    "subvented": 216,
+    "modificationTypeCode": 4
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 13288,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-002430/sdart251ex102.xml",
+   "period": "2025-05-31",
+   "n_records": 93555,
+   "sha256": "e93ab4cb7302e10cf76a2349cd3aa81b5780ec6071ae7f19f4edf9191cb32454",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.098585635,
+   "dup_counts": {
+    "subvented": 209,
+    "modificationTypeCode": 1
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 12964,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-002883/sdart251ex102.xml",
+   "period": "2025-06-30",
+   "n_records": 91506,
+   "sha256": "c6a75261ae6802f3603ccb55cbaaf4e5629a16167b7b83cb8b0145f468be9536",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.099127245,
+   "dup_counts": {
+    "subvented": 206
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 12601,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0000950131-25-003300/sdart251ex102.xml",
+   "period": "2025-07-31",
+   "n_records": 89602,
+   "sha256": "33116741deb1be46414abd0e7ecfa099eaf9e741311d104127cb7921751b5286",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09976547,
+   "dup_counts": {
+    "subvented": 201,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 12248,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-25-202508/sdart251ex102.xml",
+   "period": "2025-08-31",
+   "n_records": 87671,
+   "sha256": "4bf5c8443dccc74b425724bc79a8b19159dd74527a494ae5f22a8c45e17deb60",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10016233,
+   "dup_counts": {
+    "subvented": 194,
+    "modificationTypeCode": 5
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 11883,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-25-239352/sdart251ex102.xml",
+   "period": "2025-09-30",
+   "n_records": 85752,
+   "sha256": "9a36186faec083b657e0e403928ec7e22fe18afb812491a14864057583c7a0cb",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10128729,
+   "dup_counts": {
+    "subvented": 191,
+    "modificationTypeCode": 16
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 11506,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-25-283577/sdart251ex102.xml",
+   "period": "2025-10-31",
+   "n_records": 84002,
+   "sha256": "c858a716d0cb72fbe0e167422055def9edda1ee83d6a00ac12813aae1ebf3fdf",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.102299415,
+   "dup_counts": {
+    "subvented": 185,
+    "modificationTypeCode": 9
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 11200,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-25-318040/sdart251ex102.xml",
+   "period": "2025-11-30",
+   "n_records": 82021,
+   "sha256": "bc198092a4de217265c20018248d3d315444c76f6cba4e6c7bd4d05ed6c55ab3",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.102299415,
+   "dup_counts": {
+    "subvented": 177,
+    "modificationTypeCode": 4
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 10842,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-013317/sdart251ex102.xml",
+   "period": "2025-12-31",
+   "n_records": 80302,
+   "sha256": "74fff59197cbe1eed6faf545cded0c65a7968e73e45abd3ee61803cdcc463acd",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.103162125,
+   "dup_counts": {
+    "subvented": 170,
+    "modificationTypeCode": 3
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 10521,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-052068/sdart251ex102.xml",
+   "period": "2026-01-31",
+   "n_records": 78374,
+   "sha256": "10c4a28ba8bcd085821d7c3802e501e5108817e5d526bc77ce9ec39a66af2a07",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.104055715,
+   "dup_counts": {
+    "subvented": 161,
+    "modificationTypeCode": 8
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 10202,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-106842/sdart251ex102.xml",
+   "period": "2026-02-28",
+   "n_records": 76675,
+   "sha256": "5b5b65cd55542733f6a10c702e72ccd467e3256839d335cf69c15d41b15ee077",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10493606,
+   "dup_counts": {
+    "subvented": 159,
+    "modificationTypeCode": 6
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 9944,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-155415/sdart251ex102.xml",
+   "period": "2026-03-31",
+   "n_records": 74941,
+   "sha256": "9d1f811b73c9c8234305776def77780f485d7de94216386ec5ada76f69d2690c",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10558126,
+   "dup_counts": {
+    "subvented": 152,
+    "modificationTypeCode": 7
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 9658,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-224682/sdart251ex102.xml",
+   "period": "2026-04-30",
+   "n_records": 72481,
+   "sha256": "ccfa6c9c781ec701915687f53c592c080b333b0f3e189a10a2e3cb5b8718571d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10700931,
+   "dup_counts": {
+    "subvented": 144,
+    "modificationTypeCode": 3
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 9305,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-269947/sdart251ex102.xml",
+   "period": "2026-05-31",
+   "n_records": 70674,
+   "sha256": "465cf34e19e9855ff5fe601431430a5e23ae74a334f898660737f26405ce9084",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10791125,
+   "dup_counts": {
+    "modificationTypeCode": 8,
+    "subvented": 137
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 9028,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-303594/sdart251ex102.xml",
+   "period": "2026-06-30",
+   "n_records": 68960,
+   "sha256": "290b1491ac85ba43735e74b8970bc05757150ba59a64ffe093d9f40bd26cdedc",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10903942,
+   "dup_counts": {
+    "modificationTypeCode": 14,
+    "subvented": 133
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 8793,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/sdart-2025-1/0001193125-26-352849/sdart251ex102.xml",
+   "period": "2026-07-31",
+   "n_records": 66897,
+   "sha256": "defd32e95ce6a1a672bb2bc968dbfa0594d50786c92b0053489d4ade5acf203d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.10848714500000001,
+   "dup_counts": {
+    "subvented": 123,
+    "modificationTypeCode": 7
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 8526,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  }
+ ]
+}

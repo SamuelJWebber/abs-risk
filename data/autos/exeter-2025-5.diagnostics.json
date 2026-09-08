@@ -1,0 +1,183 @@
+{
+ "deal": "exeter-2025-5",
+ "lender": "exeter",
+ "cik": "0002092528",
+ "built_at": "2026-09-08T06:59:16Z",
+ "seconds": 55.8,
+ "n_files": 8,
+ "periods": [
+  "2025-12-31",
+  "2026-01-31",
+  "2026-02-28",
+  "2026-03-31",
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2025-12-31",
+ "last_period": "2026-07-31",
+ "n_loans": 55432,
+ "n_loan_months": 442968,
+ "exit_type_counts": {
+  "prepay": 5033,
+  "censored": 46909,
+  "chargeoff": 3356,
+  "repurchase": 134
+ },
+ "exit_code_counts": {
+  "1": 5033,
+  "4": 3356,
+  "3": 134
+ },
+ "n_absent_without_code": 0,
+ "share_absent_without_code": 0.0,
+ "n_gaps": 0,
+ "n_added_after_first_file": 0,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 747,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps every loan for the deal's life; delinquency reset to 0 at zero balance",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-000296/eart2025-5_exhibit102.xml",
+   "period": "2025-12-31",
+   "n_records": 55432,
+   "sha256": "412fe34a80bae737f5cb0e5287a4886f65bd957fda2a02f400d8df660f7265c9",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0944,
+   "dup_counts": {
+    "modificationTypeCode": 73
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 747,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-000800/eart2025-5_exhibit102.xml",
+   "period": "2026-01-31",
+   "n_records": 55421,
+   "sha256": "b893817660055eb3eee1c509cf13396274e1a86ea60822745928eeb0a11cc83d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0952,
+   "dup_counts": {
+    "modificationTypeCode": 50
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 747,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-001282/eart2025-5_exhibit102.xml",
+   "period": "2026-02-28",
+   "n_records": 55404,
+   "sha256": "abb41ab39a7499886b918de25a2c05d7fc403942afbad4a75d0736dc780e64e2",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0947,
+   "dup_counts": {
+    "modificationTypeCode": 35
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 747,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-001627/eart2025-5_exhibit102.xml",
+   "period": "2026-03-31",
+   "n_records": 55376,
+   "sha256": "b1c940a1ea8317c0611637f07959a109cd9b7fc0819db35b8ef3d2af3f739f1b",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09634999999999999,
+   "dup_counts": {
+    "modificationTypeCode": 40
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 747,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-002009/eart2025-5_exhibit102.xml",
+   "period": "2026-04-30",
+   "n_records": 55356,
+   "sha256": "524e3d249ba9e5e0bf337e1d16778c8c6e504cbf7d4a3bfb417c79ee347a905e",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0951,
+   "dup_counts": {
+    "modificationTypeCode": 42
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 747,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-002405/eart2025-5_exhibit102.xml",
+   "period": "2026-05-31",
+   "n_records": 55342,
+   "sha256": "1563145a4b92d297e64ea236a3bfec0054923dfbe9b5820848deaaae0d9bb225",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0941,
+   "dup_counts": {
+    "modificationTypeCode": 39
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 746,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-002770/eart2025-5_exhibit102.xml",
+   "period": "2026-06-30",
+   "n_records": 55323,
+   "sha256": "41f097c0620cdce7213ab6c3cb2a4616a9bbc4080384d69394e9767a0ce5e200",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.09545000000000001,
+   "dup_counts": {
+    "modificationTypeCode": 45
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 746,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/exeter-2025-5/0000929638-26-003315/eart2025-5_exhibit102.xml",
+   "period": "2026-07-31",
+   "n_records": 55314,
+   "sha256": "add76b788c40524c9aa04d923f25da52515a0f4773ba8a0a70a69aa0bacd8315",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.095,
+   "dup_counts": {
+    "modificationTypeCode": 39
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 746,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  }
+ ]
+}

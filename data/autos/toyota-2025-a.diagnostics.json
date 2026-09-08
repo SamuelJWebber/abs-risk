@@ -1,0 +1,398 @@
+{
+ "deal": "toyota-2025-a",
+ "lender": "toyota",
+ "cik": "0002047571",
+ "built_at": "2026-09-08T07:01:49Z",
+ "seconds": 89.2,
+ "n_files": 19,
+ "periods": [
+  "2025-01-31",
+  "2025-02-28",
+  "2025-03-31",
+  "2025-04-30",
+  "2025-05-31",
+  "2025-06-30",
+  "2025-07-31",
+  "2025-08-31",
+  "2025-09-30",
+  "2025-10-31",
+  "2025-11-30",
+  "2025-12-31",
+  "2026-01-31",
+  "2026-02-28",
+  "2026-03-31",
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2025-01-31",
+ "last_period": "2026-07-31",
+ "n_loans": 69132,
+ "n_loan_months": 1080829,
+ "exit_type_counts": {
+  "prepay": 23776,
+  "censored": 44739,
+  "chargeoff": 580,
+  "repurchase": 37
+ },
+ "exit_code_counts": {
+  "1": 23776,
+  "4": 580,
+  "3": 37
+ },
+ "n_absent_without_code": 0,
+ "share_absent_without_code": 0.0,
+ "n_gaps": 0,
+ "n_added_after_first_file": 0,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 0,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps charge-offs; drops payoffs the month after",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-000886/taot25aex102.xml",
+   "period": "2025-01-31",
+   "n_records": 69132,
+   "sha256": "40ba338af278e9d872b4fb47cf0f9af03eacfb6028527b9aa85ffbbb8285bea4",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0854,
+   "dup_counts": {
+    "subvented": 4486,
+    "modificationTypeCode": 11
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-001348/taot25aex102.xml",
+   "period": "2025-02-28",
+   "n_records": 66892,
+   "sha256": "88a5ef8b099304e79815d480fe110db8d3659f03762fe5779feb48413657bcae",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0797,
+   "dup_counts": {
+    "subvented": 4349,
+    "modificationTypeCode": 7
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-001824/taot25aex102.xml",
+   "period": "2025-03-31",
+   "n_records": 65716,
+   "sha256": "8ffea5d2d39e13d4c489bf7ac9e3c42db5113346e91a3a84da992b9e8bed9a81",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0799,
+   "dup_counts": {
+    "subvented": 4268,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-002276/taot25aex102.xml",
+   "period": "2025-04-30",
+   "n_records": 64196,
+   "sha256": "a80c82f4872c296ef06f86d11acc23be97f0dbeba1217fd796e82e1ebc2d18c7",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0804,
+   "dup_counts": {
+    "subvented": 4174,
+    "modificationTypeCode": 5
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-002674/taot25aex102.xml",
+   "period": "2025-05-31",
+   "n_records": 62863,
+   "sha256": "006447c8812fb572d0957bc2accc34f28a93895094b02273645fbb0b80242120",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0804,
+   "dup_counts": {
+    "subvented": 4087,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-003110/taot25aex102.xml",
+   "period": "2025-06-30",
+   "n_records": 61615,
+   "sha256": "3b58d61c65652f142e6688a2c23a5a86894f386267fbba4da48a7778add38d6a",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0872,
+   "dup_counts": {
+    "subvented": 4008,
+    "modificationTypeCode": 5
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0000950131-25-003513/taot25aex102.xml",
+   "period": "2025-07-31",
+   "n_records": 60308,
+   "sha256": "f54e505afa5b024341d22ab879fdfb94c22d6bcb5c478e190a0dc0e10e8bdc91",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0803,
+   "dup_counts": {
+    "subvented": 3913,
+    "modificationTypeCode": 4
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-25-219788/taot25aex102.xml",
+   "period": "2025-08-31",
+   "n_records": 58897,
+   "sha256": "41ec402dbb484d773fb19f641f262b2ba1a2db2cf93699aec91f1d22d6795c2d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.08765,
+   "dup_counts": {
+    "subvented": 3821,
+    "modificationTypeCode": 6
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-25-255675/taot25aex102.xml",
+   "period": "2025-09-30",
+   "n_records": 57619,
+   "sha256": "7656a4e3bd3adbc66a4da25cc6ff566b073d97528032516a756b77ea727735f0",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0791,
+   "dup_counts": {
+    "subvented": 3723
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-25-295641/taot25aex102.xml",
+   "period": "2025-10-31",
+   "n_records": 56414,
+   "sha256": "3fac5285cc17cdb411aabda13367659c08ba2b9fac8cace7f8f08d525db72565",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0793,
+   "dup_counts": {
+    "subvented": 3646,
+    "modificationTypeCode": 4
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-25-328052/taot25aex102.xml",
+   "period": "2025-11-30",
+   "n_records": 55188,
+   "sha256": "a1eeacc022e7db24a6aaf9683925c0fc6b17995721e4a2b2e2d71793c7bae4f1",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0796,
+   "dup_counts": {
+    "subvented": 3566,
+    "modificationTypeCode": 7
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-026660/taot25aex102.xml",
+   "period": "2025-12-31",
+   "n_records": 54208,
+   "sha256": "6c86dc567efa3063fb6ed4822ab3ad69e74c7361a6aacc708c906a0b71db68b7",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0778,
+   "dup_counts": {
+    "subvented": 3507,
+    "modificationTypeCode": 8
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-069438/taot25aex102.xml",
+   "period": "2026-01-31",
+   "n_records": 53079,
+   "sha256": "86b2216358eba04c82103588c7f49c6250c9848056161c02c4e572ec5b396722",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0807,
+   "dup_counts": {
+    "subvented": 3442,
+    "modificationTypeCode": 4
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-128020/taot25aex102.xml",
+   "period": "2026-02-28",
+   "n_records": 51926,
+   "sha256": "c9ea1c5470b406e077472e275eeb7eeaa6815da4b08e448f3e968f5d3e33ff09",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.081,
+   "dup_counts": {
+    "subvented": 3360,
+    "modificationTypeCode": 6
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-184739/taot25aex102.xml",
+   "period": "2026-03-31",
+   "n_records": 50898,
+   "sha256": "dbfd944798d2f5c58d15242beba0b156862659deff7673dec305b42bb9dead8d",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.087,
+   "dup_counts": {
+    "subvented": 3299,
+    "modificationTypeCode": 4
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-240914/taot25aex102.xml",
+   "period": "2026-04-30",
+   "n_records": 49612,
+   "sha256": "6bd79ecf5e10643f83158d083f0ed713bd956676f14aaf81f7e24bce44637a8a",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0812,
+   "dup_counts": {
+    "subvented": 3215,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-284350/taot25aex102.xml",
+   "period": "2026-05-31",
+   "n_records": 48463,
+   "sha256": "0ee944aa614de0c1eecca9813c275cd2c3c3aefc98e675b3cce847103c09ba3b",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.08085,
+   "dup_counts": {
+    "subvented": 3150
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-322573/taot25aex102.xml",
+   "period": "2026-06-30",
+   "n_records": 47460,
+   "sha256": "a84348c5e327b8c8c3a2308026b62ede9e21f28413a96b3fad19ebdc8331eea0",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.08095,
+   "dup_counts": {
+    "subvented": 3073,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  },
+  {
+   "path": "raw/autos/toyota-2025-a/0001193125-26-370139/taot25aex102.xml",
+   "period": "2026-07-31",
+   "n_records": 46343,
+   "sha256": "b2864d081b9237ba23a506eae5117102462a04572829cfb5c83a28c1abbd5574",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0773,
+   "dup_counts": {
+    "subvented": 2984,
+    "modificationTypeCode": 2
+   },
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 0
+  }
+ ]
+}
