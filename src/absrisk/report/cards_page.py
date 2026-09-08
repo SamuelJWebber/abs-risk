@@ -105,20 +105,43 @@ def _interpret_stages(bt: pd.DataFrame) -> str:
 
 
 def _interpret_stress(sdf: pd.DataFrame, order: list[str]) -> str:
-    """Does the conversion ratio move with the macro cycle, or hold?"""
+    """Does the conversion ratio move with the macro cycle, and in which direction?
+
+    Prioritisation predicts a specific sign: a card borrowers protect should have its deeply delinquent accounts
+    rescued more often when money is tight, so its conversion ratio should FALL in a squeeze. A ratio that holds
+    still, or rises, is evidence against that story rather than for it.
+    """
     w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order)
     w = w.dropna(thresh=2)
     if w.empty or len(order) < 2:
         return ""
-    spread = (w.max(axis=1) - w.min(axis=1)).abs()
     ent = sdf.pivot_table(index="trust", columns="period", values="entry").reindex(columns=order).dropna(thresh=2)
     ent_move = (ent.max(axis=1) / ent.min(axis=1)).median() if not ent.empty else float("nan")
-    return (f"<p>The conversion ratios hold still. Across these periods the largest move for any trust is "
-            f"{spread.max():.2f} and the median is {spread.median():.2f}, while the level of delinquency itself moves by about "
-            f"{ent_move:.1f} times between the easiest and hardest period. Households went from stimulus cheques to a squeeze and "
-            f"back, delinquency rose and fell with it, and the relative fate of a 90-day-late account at each issuer barely changed. "
-            f"A ranking that borrowers act on under pressure should not be that steady. This is what a fixed difference in who was "
-            f"lent to, and in how each issuer charges off, looks like.</p>")
+    first, last = order[0], order[-1]
+    best = w.mean(axis=1).idxmin()          # the trust with the lowest conversion, the protection candidate
+    lowest_loss = sdf.groupby("trust")["co_monthly"].mean().idxmin()
+    moves = (w[last] - w[first]).dropna()
+    rose = moves[moves > 0.05]
+    fell = moves[moves < -0.05]
+    parts = [f"<p>Between {escape(first)} and {escape(last)}, delinquency itself moved by about {ent_move:.1f} times, "
+             f"so households really were squeezed and relieved across this window. "]
+    if len(rose) >= len(fell):
+        names = escape(", ".join(sorted(rose.index))) if not rose.empty else "none"
+        parts.append(f"The conversion ratios did not fall for anyone who looks protected. They rose for {names} "
+                     f"and fell for {len(fell)} trust(s). ")
+    else:
+        parts.append(f"Conversion ratios fell for {escape(', '.join(sorted(fell.index)))}. ")
+    parts.append(f"Prioritisation predicts a particular sign here: a card that borrowers pay first should rescue more of its "
+                 f"90-day-late accounts exactly when money is tight, so its conversion ratio should drop in the squeeze. ")
+    if lowest_loss in moves.index:
+        d = moves[lowest_loss]
+        parts.append(f"{lowest_loss}, the trust with the lowest loss rate, moves {d:+.2f} over the window, "
+                     f"{'the wrong way for that story' if d > 0 else 'the direction that story predicts'}. ")
+    parts.append(f"The trust with the lowest conversion throughout is {best}, which is not the lowest-loss trust, so the ordering by "
+                 f"'accounts that survive trouble' does not match the ordering by 'accounts that lose least'. Taken together the "
+                 f"cycle evidence does not support borrowers ranking these issuers; it fits fixed differences in who was lent to and "
+                 f"in how each issuer charges off.</p>")
+    return "".join(parts)
 
 
 def build(results: Path, out: Path) -> Path:
@@ -206,9 +229,10 @@ def build(results: Path, out: Path) -> Path:
                 order = [p for p in ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on") if p in set(sdf["period"])]
                 w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order).reset_index()
                 h.append("<h3>The same ratio through four very different years</h3>")
-                h.append("<p>If borrowers rank their debts, the ranking should bite hardest when money is tight. A protected card's "
-                         "conversion advantage would widen in a squeeze and narrow when households are flush. Fixed selection, or a "
-                         "fixed charge-off policy, predicts a flat line instead.</p>")
+                h.append("<p>If borrowers rank their debts, the ranking should bite hardest when money is tight, so a protected "
+                         "card's 90-day-late accounts should be rescued more often in a squeeze and its conversion ratio should "
+                         "<i>fall</i>. This is the one place the two stories make opposite predictions about a direction, rather than "
+                         "about a level, which is why it is worth looking at even though the periods are crude.</p>")
                 h.append(table(w, fmt={c: "{:.2f}" for c in w.columns if c != "trust"}))
                 h.append(_interpret_stress(sdf, order))
     h.append("<h2>6. Panel regression</h2>")
