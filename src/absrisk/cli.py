@@ -37,6 +37,13 @@ def main(argv: list[str] | None = None) -> int:
             return run_autos(rest[1:])
         print("analyze: expected 'autos'", file=sys.stderr)
         return 2
+    if cmd == "report":
+        if rest and rest[0] == "autos":
+            from .report.autos_page import main as report_autos
+
+            return report_autos(rest[1:])
+        print("report: expected 'autos'", file=sys.stderr)
+        return 2
     print(__doc__)
     return 1
 
