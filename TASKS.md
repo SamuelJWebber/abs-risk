@@ -9,7 +9,7 @@ Status: `todo` | `doing` | `done YYYY-MM-DD` | `blocked (why)`.
 |---|------|----------------|--------|
 | 0.1 | EDGAR access from a runner | `scout.yml` probe returns 200 from data.sec.gov with ABSRISK_CONTACT set | done 2026-09-08 (plain `abs-risk contact` User-Agent; any URL in the UA is refused; home ISP blocked regardless, PLAN §5; runs 34190694825 diag, 34190842910 full) |
 | 0.2 | Card trust scouting | design/scout-cards.md has, per live trust, the charge-off row labels and the FICO and credit-limit tables copied from a downloaded prospectus | done 2026-09-08 (all seven trusts from raw 10-D exhibits and prospectus annexes; Discover defeased; Synchrony is VantageScore; Chase FICO is a 5% sample; Amex buckets do not map) |
-| 0.3 | Auto ABS-EE scouting | design/scout-autos.md has, for three issuers across the spectrum, the field list, score distribution, delinquency and charge-off shares from a downloaded EX-102, and an asset-number persistence check across two months | doing (nine loan files from seven issuers profiled; same-deal pairs show full persistence at CarMax and Capital One and survivor persistence at Santander; write-up in progress) |
+| 0.3 | Auto ABS-EE scouting | design/scout-autos.md has, for three issuers across the spectrum, the field list, score distribution, delinquency and charge-off shares from a downloaded EX-102, and an asset-number persistence check across two months | done 2026-09-08 (nine loan files, seven issuers, 20 public filers found; asset ids persist 100% in same-deal pairs; credit score never changes month to month, so it is an origination attribute; retention and charge-off timing rules differ by issuer; design inputs for B1/B2 in design/scout-autos.md §11) |
 | 0.4 | CFPB tier data | design/scout-ccmr-tiers.md has the tier definitions and every by-tier series the CCMR publishes, with workbook citations | done 2026-09-08 (finding: no loss by tier exists; utilization, lines, balances, late-fee incidence by tier do; workbooks for 2021, 2023, 2025 saved) |
 
 ## A. Cards, pool level
@@ -31,7 +31,25 @@ Status: `todo` | `doing` | `done YYYY-MM-DD` | `blocked (why)`.
 | B4 | Loan size and payment burden at constant score | chart 2 with cohort and lender fixed effects, described as descriptive with controls | todo |
 | B5 | Regression discontinuity at lender cutoffs | density test, first-stage jump in rate or amount, outcome jump, bandwidth sensitivity; published only if the first stage exists | todo |
 
+## Handoff 2026-09-08 (session 1)
+Scouting is complete on both tracks and the CFPB side. EDGAR access works only from GitHub Actions with the plain
+`abs-risk contact@email` User-Agent (secret ABSRISK_CONTACT is set); the home ISP is blocked for good. Raw artifacts
+live under data/raw/scout/edgar, edgar2, edgar3 (gitignored, re-fetchable with `gh run download`). Next session,
+one of: A3 (shape sources, needs no EDGAR, unblocks the whole card residual), A1 (10-D fetcher and parser; labels
+and bases are in design/scout-cards.md), or B1+B2 (ABS-EE fetcher and parquet panel; field list, unit fixes,
+retention and exit rules are in design/scout-autos.md §11). The auto scout's third-pass list (§10 there) should be
+folded into B1's first run rather than run as scouting.
+
 ## Open items and known gaps
+- Track B schema hazards to encode, not discover again: PTI is a fraction everywhere except Capital One (percent);
+  three different "no score" encodings; Ford carries a commercial-obligor slice on a different score scale with no
+  PTI; Santander repeats `subvented` in about 1% of records (take the first value); Synchrony-style score-type labels
+  vary ("Bureau", "FICO", VantageScore at Exeter).
+- Track B retention: CarMax, Capital One and Exeter keep every loan for the deal's life; Santander, AmeriCredit and
+  Toyota keep charge-offs but drop payoffs the month after; Ford drops everything after one month. Exit is the
+  earlier of first zero-balance code and first absence.
+- Track A mapping: five of seven FICO tables collapse to <600 / 600-659 / 660-719 / 720+; Amex's buckets
+  (560/660/700/760) do not, Synchrony is VantageScore, Chase is a 5% sample. The crosswalk carries these as flags.
 - Discover Card Execution Note Trust was defeased 2025-12-18 (Capital One acquisition). Its history to Nov 2025 is usable only via OCR of image statements; out of scope for v1.
 - Chase and BA compute loss rates on average balance; Amex, COMET and Synchrony on beginning balance. Keep per-trust basis in the data, never mix.
 - Delinquency bucket edges differ by trust (design/scout-cards.md). 30+ and 90+ are the only cross-trust comparable cuts.
