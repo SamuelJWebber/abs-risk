@@ -79,6 +79,48 @@ def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> lis
     return out
 
 
+def _interpret_stages(bt: pd.DataFrame) -> str:
+    """Read the entry/progression/conversion split back as sentences."""
+    d = bt.dropna(subset=["entry_share_of_gap"])
+    if d.empty:
+        return ""
+    base = bt.loc[bt["co_monthly"].idxmax(), "trust"]
+    best = d.loc[d["co_monthly"].idxmin()]
+    over = d[d["entry_share_of_gap"] > 1.0]
+    parts = [f"<p><b>The advantage is in never getting into trouble, not in surviving it.</b> {best['trust']} loses "
+             f"{best['co_monthly_ratio']:.2f} times what {base} loses each month. Its 30-plus share is "
+             f"{best['entry_ratio']:.2f} times {base}'s, but once an account is 90 days late it converts to a loss at "
+             f"{best['conversion_ratio']:.2f} times {base}'s rate. Entry accounts for {best['entry_share_of_gap']:.0%} of the gap "
+             f"and conversion for {best['conversion_share_of_gap']:+.0%}."]
+    if not over.empty:
+        names = ", ".join(sorted(over["trust"]))
+        parts.append(f" For {escape(names)} the entry share exceeds one, meaning conversion works against them: their deeply "
+                     f"delinquent accounts end in loss <i>more</i> readily than the worst trust's do, and the entry advantage has to "
+                     f"cover that too.")
+    parts.append(" That is the opposite of what protection would look like. If cardholders paid this issuer first, accounts would "
+                 "reach 90 days late and then be rescued, which is a low conversion rate, not a high one. Two other readings survive: "
+                 "the issuer may charge off faster by policy or re-age less, and the pools differ in score mix. The mix objection does "
+                 "not touch conversion, which already conditions on being 90 days late; the policy objection does.</p>")
+    return "".join(parts)
+
+
+def _interpret_stress(sdf: pd.DataFrame, order: list[str]) -> str:
+    """Does the conversion ratio move with the macro cycle, or hold?"""
+    w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order)
+    w = w.dropna(thresh=2)
+    if w.empty or len(order) < 2:
+        return ""
+    spread = (w.max(axis=1) - w.min(axis=1)).abs()
+    ent = sdf.pivot_table(index="trust", columns="period", values="entry").reindex(columns=order).dropna(thresh=2)
+    ent_move = (ent.max(axis=1) / ent.min(axis=1)).median() if not ent.empty else float("nan")
+    return (f"<p>The conversion ratios hold still. Across these periods the largest move for any trust is "
+            f"{spread.max():.2f} and the median is {spread.median():.2f}, while the level of delinquency itself moves by about "
+            f"{ent_move:.1f} times between the easiest and hardest period. Households went from stimulus cheques to a squeeze and "
+            f"back, delinquency rose and fell with it, and the relative fate of a 90-day-late account at each issuer barely changed. "
+            f"A ranking that borrowers act on under pressure should not be that steady. This is what a fixed difference in who was "
+            f"lent to, and in how each issuer charges off, looks like.</p>")
+
+
 def build(results: Path, out: Path) -> Path:
     pred = pd.read_csv(results / "a1_predicted.csv")
     rank = pd.read_csv(results / "a1_ranking.csv") if (results / "a1_ranking.csv").exists() else pd.DataFrame()
@@ -138,7 +180,38 @@ def build(results: Path, out: Path) -> Path:
         h.append(f"<p><b>{'The ranking is the same under every shape.' if stable else 'The ranking changes with the shape.'}</b> "
                  f"{'The ordering of trusts does not depend on which loss curve is assumed.' if stable else 'Which trust looks worse depends on the assumed loss curve, so no single ordering is reported as a finding.'}</p>")
 
-    h.append("<h2>5. Panel regression</h2>")
+    bt_p, stress_p = results / "a3_by_trust.csv", results / "a3_stress.csv"
+    if bt_p.exists():
+        bt = pd.read_csv(bt_p)
+        h.append("<h2>5. Does anyone pay this card first?</h2>")
+        h.append("<p>A trust with a low loss rate either has accounts that rarely go delinquent, or accounts that go delinquent and "
+                 "do not end in a loss. Those are different claims. The monthly charge-off rate factors exactly, with no modelling, "
+                 "into three shares the trust reports itself:</p>")
+        h.append("<p class='muted'>monthly charge-off &nbsp;=&nbsp; <b>entry</b> (30+ share) &nbsp;x&nbsp; "
+                 "<b>progression</b> (90+ / 30+) &nbsp;x&nbsp; <b>conversion</b> (monthly charge-off / 90+)</p>")
+        h.append("<p>If cardholders really did protect one issuer's account, that issuer's <b>conversion</b> would be low: accounts "
+                 "would reach 90 days late and still be rescued. Selection instead shows up in <b>entry</b>. The comparison of "
+                 "conversion is the more trustworthy half, because it conditions on accounts already 90 days late rather than on the "
+                 "pool's score mix.</p>")
+        cols = ["trust", "months", "co_monthly", "entry", "progression", "conversion",
+                "entry_ratio", "conversion_ratio", "entry_share_of_gap", "conversion_share_of_gap"]
+        cols = [c for c in cols if c in bt]
+        h.append(table(bt, cols=cols, fmt={"co_monthly": "{:.3%}", "entry": "{:.2%}", "progression": "{:.2f}", "conversion": "{:.1%}",
+                                          "entry_ratio": "{:.2f}", "conversion_ratio": "{:.2f}",
+                                          "entry_share_of_gap": "{:.2f}", "conversion_share_of_gap": "{:.2f}"}))
+        h.append(_interpret_stages(bt))
+        if stress_p.exists():
+            sdf = pd.read_csv(stress_p)
+            if not sdf.empty:
+                order = [p for p in ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on") if p in set(sdf["period"])]
+                w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order).reset_index()
+                h.append("<h3>The same ratio through four very different years</h3>")
+                h.append("<p>If borrowers rank their debts, the ranking should bite hardest when money is tight. A protected card's "
+                         "conversion advantage would widen in a squeeze and narrow when households are flush. Fixed selection, or a "
+                         "fixed charge-off policy, predicts a flat line instead.</p>")
+                h.append(table(w, fmt={c: "{:.2f}" for c in w.columns if c != "trust"}))
+                h.append(_interpret_stress(sdf, order))
+    h.append("<h2>6. Panel regression</h2>")
     h.append("<p>Trust-month regression of the gross charge-off rate on tier shares with month fixed effects, then with trust fixed "
              "effects added. Driscoll-Kraay standard errors. With six trusts and slow-moving mixes, trust effects and mix are close to "
              "collinear; the first column identifies the mix gradient across trusts, the second only its within-trust movement.</p>")

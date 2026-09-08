@@ -20,6 +20,14 @@ import pandas as pd
 
 from ..shape import TIERS, default_shapes, load_level, predict_chargeoff, tiers_from_buckets
 from . import cards as cards_est
+from . import cards_roll
+
+STRESS_PERIODS = {
+    "pre-covid 2019": ("2019-01-01", "2020-02-29"),
+    "stimulus 2020-21": ("2020-04-01", "2021-12-31"),
+    "normalising 2022-23H1": ("2022-01-01", "2023-06-30"),
+    "squeeze 2023H2 on": ("2023-07-01", "2030-12-31"),
+}
 
 
 SCORE_MIN, SCORE_MAX = 300, 850
@@ -136,6 +144,17 @@ def main(argv: list[str]) -> int:
     pred.to_csv(out / "a1_predicted.csv", index=False)
     if not pred.empty:
         ranking(pred).to_csv(out / "a1_ranking.csv", index=False)
+    # A3: the loss rate factors exactly into entry x progression x conversion; where a trust's advantage sits
+    # separates "its accounts rarely get into trouble" from "its accounts survive trouble".
+    try:
+        st = cards_roll.stages(monthly, a.rate)
+        st.to_csv(out / "a3_stages.csv", index=False)
+        bt = cards_roll.by_trust(st)
+        bt.to_csv(out / "a3_by_trust.csv", index=False)
+        cards_roll.stress_test(st, STRESS_PERIODS).to_csv(out / "a3_stress.csv", index=False)
+    except Exception as e:  # noqa: BLE001
+        (out / "a3_stages.csv").write_text(f"not computed: {e}\n")
+
     mm = monthly_mix(mix, monthly)
     try:
         fits, tidy = cards_est.panel_regression(monthly.assign(period_end=pd.to_datetime(monthly["period_end"])), mm, rate_col=a.rate)
