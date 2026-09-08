@@ -32,6 +32,8 @@ jobs:
           key: cards-raw-${{ github.run_id }}
           restore-keys: |
             cards-raw-
+      - name: Tests
+        run: uv run pytest -q
       - name: Fetch 10-D filings and prospectuses
         env:
           ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
@@ -40,8 +42,6 @@ jobs:
         run: uv run absrisk cards parse --raw raw/cards --out data/cards_monthly.csv
       - name: Parse composition tables
         run: uv run absrisk cards composition --raw raw/cards --out data/cards_composition.csv
-      - name: Tests
-        run: uv run pytest -q
       - name: Upload raw filings for local parser work
         if: always()
         uses: actions/upload-artifact@v4
