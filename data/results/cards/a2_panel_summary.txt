@@ -5,7 +5,7 @@ Dep. Variable:                      y   R-squared:                       0.918
 Model:                            OLS   Adj. R-squared:                  0.901
 Method:                 Least Squares   F-statistic:                 4.254e+05
 Date:                Tue, 08 Sep 2026   Prob (F-statistic):                nan
-Time:                        09:21:50   Log-Likelihood:                 2342.9
+Time:                        13:52:48   Log-Likelihood:                 2342.9
 No. Observations:                 554   AIC:                            -4492.
 Df Residuals:                     457   BIC:                            -4073.
 Df Model:                          96                                         
@@ -127,7 +127,7 @@ Dep. Variable:                      y   R-squared:                       0.918
 Model:                            OLS   Adj. R-squared:                  0.901
 Method:                 Least Squares   F-statistic:                -2.506e-12
 Date:                Tue, 08 Sep 2026   Prob (F-statistic):                nan
-Time:                        09:21:50   Log-Likelihood:                 2342.9
+Time:                        13:52:48   Log-Likelihood:                 2342.9
 No. Observations:                 554   AIC:                            -4492.
 Df Residuals:                     457   BIC:                            -4073.
 Df Model:                          96                                         
