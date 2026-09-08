@@ -1,0 +1,101 @@
+{
+ "deal": "carmax-2026-2",
+ "lender": "carmax",
+ "cik": "0002117307",
+ "built_at": "2026-09-08T06:53:13Z",
+ "seconds": 19.8,
+ "n_files": 4,
+ "periods": [
+  "2026-04-30",
+  "2026-05-31",
+  "2026-06-30",
+  "2026-07-31"
+ ],
+ "first_period": "2026-04-30",
+ "last_period": "2026-07-31",
+ "n_loans": 52812,
+ "n_loan_months": 211248,
+ "exit_type_counts": {
+  "prepay": 3319,
+  "censored": 49456,
+  "chargeoff": 37
+ },
+ "exit_code_counts": {
+  "1": 3319,
+  "4": 37
+ },
+ "n_absent_without_code": 0,
+ "share_absent_without_code": 0.0,
+ "n_gaps": 0,
+ "n_added_after_first_file": 0,
+ "n_duplicate_ids_within_file": 0,
+ "n_recovery_stub_records": 0,
+ "n_recovery_stubs_for_unknown_loans": 0,
+ "n_score_missing": 0,
+ "n_commercial": 0,
+ "n_ltv_null": 0,
+ "retention_rule": "keeps every loan for the deal's life",
+ "exit_rule": "earlier of first non-empty zeroBalanceCode and last period before first absence (analysis-plan 1a; scout-autos 5b, 11)",
+ "files": [
+  {
+   "path": "raw/autos/carmax-2026-2/0002117307-26-000003/cart20262.xml",
+   "period": "2026-04-30",
+   "n_records": 52812,
+   "sha256": "19203635a2ec20b1f6cf95ac3ce6902805b12412e109462813f9e59937a5a28f",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0516,
+   "dup_counts": {},
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 2
+  },
+  {
+   "path": "raw/autos/carmax-2026-2/0002117307-26-000008/cart20262.xml",
+   "period": "2026-05-31",
+   "n_records": 52812,
+   "sha256": "cb24846b4835e37fb4f2abb957a2a3208069b4650e40235ce0de612012d33f3c",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0516,
+   "dup_counts": {},
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 2
+  },
+  {
+   "path": "raw/autos/carmax-2026-2/0002117307-26-000013/cart20262.xml",
+   "period": "2026-06-30",
+   "n_records": 52812,
+   "sha256": "7d211471733a807b289d3c84a8db64e260cf785f1c15b1409822a6ff5764bd87",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0516,
+   "dup_counts": {},
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 2
+  },
+  {
+   "path": "raw/autos/carmax-2026-2/0002117307-26-000018/cart20262.xml",
+   "period": "2026-07-31",
+   "n_records": 52812,
+   "sha256": "04ba0188bd9d6e3b4de4ce36bb21a9bd7f12fbaa38c85a07e0e9f54c65f831b5",
+   "pti_rule": null,
+   "pti_divisor": 1.0,
+   "pti_sample_median_raw": 0.0516,
+   "dup_counts": {},
+   "n_apr_gt_1": 0,
+   "n_periods_other": 0,
+   "n_score_missing": 0,
+   "n_commercial": 0,
+   "n_pti_gt_1_after": 2
+  }
+ ]
+}
