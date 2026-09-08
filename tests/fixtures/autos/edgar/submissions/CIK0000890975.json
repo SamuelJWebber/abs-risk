@@ -1,0 +1,121 @@
+{
+ "cik": "0000890975",
+ "name": "AMERICAN HONDA RECEIVABLES LLC",
+ "filings": {
+  "recent": {
+   "accessionNumber": [
+    "0001193125-26-374999",
+    "0001193125-26-340001",
+    "0001193125-26-375001",
+    "0001193125-26-300001",
+    "0001193125-26-300002"
+   ],
+   "filingDate": [
+    "2026-08-31",
+    "2026-08-17",
+    "2026-08-31",
+    "2026-07-15",
+    "2026-07-15"
+   ],
+   "reportDate": [
+    "2026-07-31",
+    "2026-07-31",
+    "2026-07-31",
+    "2026-06-30",
+    "2026-06-30"
+   ],
+   "acceptanceDateTime": [
+    "",
+    "",
+    "",
+    "",
+    ""
+   ],
+   "act": [
+    "34",
+    "34",
+    "34",
+    "34",
+    "34"
+   ],
+   "form": [
+    "ABS-EE/A",
+    "ABS-EE",
+    "ABS-EE/A",
+    "ABS-EE",
+    "ABS-EE"
+   ],
+   "fileNumber": [
+    "",
+    "",
+    "",
+    "",
+    ""
+   ],
+   "filmNumber": [
+    "",
+    "",
+    "",
+    "",
+    ""
+   ],
+   "items": [
+    "",
+    "",
+    "",
+    "",
+    ""
+   ],
+   "core_type": [
+    "ABS-EE/A",
+    "ABS-EE",
+    "ABS-EE/A",
+    "ABS-EE",
+    "ABS-EE"
+   ],
+   "size": [
+    180000000,
+    180000000,
+    150000000,
+    181000000,
+    151000000
+   ],
+   "isXBRL": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "isInlineXBRL": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "isXBRLNumeric": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "primaryDocument": [
+    "harot251abseea_0828-1757.htm",
+    "harot251absee_0812-1500.htm",
+    "harot252abseea_0828-1757.htm",
+    "harot251absee_0710-1500.htm",
+    "harot252absee_0710-1500.htm"
+   ],
+   "primaryDocDescription": [
+    "ABS-EE/A",
+    "ABS-EE",
+    "ABS-EE/A",
+    "ABS-EE",
+    "ABS-EE"
+   ]
+  },
+  "files": []
+ }
+}

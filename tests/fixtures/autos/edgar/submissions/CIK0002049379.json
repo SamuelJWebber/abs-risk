@@ -1,0 +1,89 @@
+{
+ "cik": "0002049379",
+ "name": "Exeter Automobile Receivables Trust 2025-1",
+ "filings": {
+  "recent": {
+   "accessionNumber": [
+    "0000929638-26-003310",
+    "0000929638-26-002760",
+    "0000929638-26-002830"
+   ],
+   "filingDate": [
+    "2026-08-31",
+    "2026-07-30",
+    "2026-07-30"
+   ],
+   "reportDate": [
+    "2026-07-31",
+    "2026-06-30",
+    "2026-06-30"
+   ],
+   "acceptanceDateTime": [
+    "",
+    "",
+    ""
+   ],
+   "act": [
+    "34",
+    "34",
+    "34"
+   ],
+   "form": [
+    "ABS-EE",
+    "ABS-EE",
+    "10-D"
+   ],
+   "fileNumber": [
+    "",
+    "",
+    ""
+   ],
+   "filmNumber": [
+    "",
+    "",
+    ""
+   ],
+   "items": [
+    "",
+    "",
+    ""
+   ],
+   "core_type": [
+    "ABS-EE",
+    "ABS-EE",
+    "10-D"
+   ],
+   "size": [
+    90000000,
+    91000000,
+    400000
+   ],
+   "isXBRL": [
+    0,
+    0,
+    0
+   ],
+   "isInlineXBRL": [
+    0,
+    0,
+    0
+   ],
+   "isXBRLNumeric": [
+    0,
+    0,
+    0
+   ],
+   "primaryDocument": [
+    "eart2025-1_absee.htm",
+    "eart2025-1_absee.htm",
+    "eart2025-1_10d.htm"
+   ],
+   "primaryDocDescription": [
+    "ABS-EE",
+    "ABS-EE",
+    "10-D"
+   ]
+  },
+  "files": []
+ }
+}

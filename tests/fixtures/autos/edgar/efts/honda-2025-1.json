@@ -1,0 +1,568 @@
+{
+ "hits": {
+  "total": {
+   "value": 9
+  },
+  "hits": [
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-26-374999:harot251abseea_0828-1757.htm",
+    "_score": 20.267109,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2026-07-31",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2026-08-31",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE/A",
+     "adsh": "0001193125-26-374999",
+     "film_num": [
+      "261342093",
+      "261342094"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE/A",
+     "file_description": "ABS-EE/A",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-25-288603:harot251absee_1119-1853.htm",
+    "_score": 17.827822,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2025-10-31",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2025-11-20",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0001193125-25-288603",
+     "film_num": [
+      "251500842",
+      "251500843"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-26-059998:harot251absee_0219-1654.htm",
+    "_score": 17.795301,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2026-01-31",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2026-02-20",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0001193125-26-059998",
+     "film_num": [
+      "26656363",
+      "26656364"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-26-119079:harot251absee_0320-1641.htm",
+    "_score": 17.790726,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2026-02-28",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2026-03-23",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0001193125-26-119079",
+     "film_num": [
+      "26781055",
+      "26781056"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0000950131-25-002529:harot251absee_0620-1345.htm",
+    "_score": 17.785862,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2025-05-31",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2025-06-20",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0000950131-25-002529",
+     "film_num": [
+      "251062380",
+      "251062381"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-25-241760:harot251absee_1016-1705.htm",
+    "_score": 17.7813,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2025-09-30",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2025-10-17",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0001193125-25-241760",
+     "film_num": [
+      "251398804",
+      "251398805"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0000950131-25-003444:harot251absee_0825-1235.htm",
+    "_score": 17.778812,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2025-07-31",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2025-08-25",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0000950131-25-003444",
+     "film_num": [
+      "251251576",
+      "251251577"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-25-211855:harot251absee_0922-1816.htm",
+    "_score": 17.778242,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2025-08-31",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2025-09-23",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0001193125-25-211855",
+     "film_num": [
+      "251331409",
+      "251331410"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001193125-26-236155:harot251absee_0522-1012.htm",
+    "_score": 17.775213,
+    "_source": {
+     "ciks": [
+      "0002052479",
+      "0000890975"
+     ],
+     "period_ending": "2026-04-30",
+     "file_num": [
+      "333-261436-11",
+      "333-261436"
+     ],
+     "display_names": [
+      "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+      "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "ABS-EE"
+     ],
+     "file_date": "2026-05-22",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "ABS-EE",
+     "adsh": "0001193125-26-236155",
+     "film_num": [
+      "261012534",
+      "261012535"
+     ],
+     "biz_locations": [
+      "Torrance, CA",
+      "Torrance, CA"
+     ],
+     "file_type": "ABS-EE",
+     "file_description": "ABS-EE",
+     "inc_states": [
+      "DE"
+     ],
+     "items": []
+    }
+   }
+  ]
+ },
+ "aggregations": {
+  "entity_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "AMERICAN HONDA RECEIVABLES LLC  (CIK 0000890975)",
+     "doc_count": 288
+    },
+    {
+     "key": "Honda Auto Receivables 2025-1 Owner Trust  (CIK 0002052479)",
+     "doc_count": 22
+    },
+    {
+     "key": "Honda Auto Receivables 2023-2 Owner Trust  (CIK 0001976562)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2023-3 Owner Trust  (CIK 0001985449)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2023-4 Owner Trust  (CIK 0001996308)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2024-1 Owner Trust  (CIK 0002008953)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2024-2 Owner Trust  (CIK 0002019551)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2024-3 Owner Trust  (CIK 0002029555)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2024-4 Owner Trust  (CIK 0002037549)",
+     "doc_count": 21
+    },
+    {
+     "key": "Honda Auto Receivables 2023-1 Owner Trust  (CIK 0001962487)",
+     "doc_count": 19
+    },
+    {
+     "key": "Honda Auto Receivables 2025-2 Owner Trust  (CIK 0002062789)",
+     "doc_count": 19
+    },
+    {
+     "key": "Honda Auto Receivables 2025-3 Owner Trust  (CIK 0002077602)",
+     "doc_count": 16
+    },
+    {
+     "key": "Honda Auto Receivables 2022-2 Owner Trust  (CIK 0001937619)",
+     "doc_count": 14
+    },
+    {
+     "key": "Honda Auto Receivables 2025-4 Owner Trust  (CIK 0002089171)",
+     "doc_count": 13
+    },
+    {
+     "key": "Honda Auto Receivables 2026-1 Owner Trust  (CIK 0002100818)",
+     "doc_count": 10
+    },
+    {
+     "key": "Honda Auto Receivables 2022-1 Owner Trust  (CIK 0001902266)",
+     "doc_count": 9
+    },
+    {
+     "key": "Honda Auto Receivables 2026-2 Owner Trust  (CIK 0002123682)",
+     "doc_count": 7
+    },
+    {
+     "key": "Honda Auto Receivables 2021-4 Owner Trust  (CIK 0001889115)",
+     "doc_count": 6
+    },
+    {
+     "key": "Honda Auto Receivables 2021-3 Owner Trust  (CIK 0001874803)",
+     "doc_count": 3
+    },
+    {
+     "key": "Honda Auto Receivables 2026-3 Owner Trust  (CIK 0002143476)",
+     "doc_count": 3
+    }
+   ]
+  },
+  "sic_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "6189",
+     "doc_count": 288
+    }
+   ]
+  },
+  "biz_states_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "CA",
+     "doc_count": 288
+    }
+   ]
+  },
+  "form_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "ABS-EE",
+     "doc_count": 288
+    }
+   ]
+  }
+ }
+}

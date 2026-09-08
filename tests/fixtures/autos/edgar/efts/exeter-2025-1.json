@@ -1,0 +1,254 @@
+{
+ "hits": {
+  "total": {
+   "value": 13,
+   "relation": "eq"
+  },
+  "hits": [
+   {
+    "_index": "edgar_file",
+    "_id": "0000929638-26-000244:eart2026-1_424b5.htm",
+    "_score": 16.439426,
+    "_source": {
+     "ciks": [
+      "0001654238",
+      "0002101848"
+     ],
+     "period_ending": null,
+     "file_num": [
+      "333-268757",
+      "333-268757-19"
+     ],
+     "display_names": [
+      "EFCAR, LLC  (CIK 0001654238)",
+      "Exeter Automobile Receivables Trust 2026-1  (CIK 0002101848)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "424B5"
+     ],
+     "file_date": "2026-01-23",
+     "biz_states": [
+      "TX"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "424B5",
+     "adsh": "0000929638-26-000244",
+     "film_num": [
+      "26557436",
+      "26557437"
+     ],
+     "biz_locations": [
+      "Irving, TX",
+      "Irving, TX"
+     ],
+     "file_type": "424B5",
+     "file_description": null,
+     "inc_states": [
+      "DE",
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0000929638-26-001122:eart2026-2_424b5.htm",
+    "_score": 16.361488,
+    "_source": {
+     "ciks": [
+      "0001654238",
+      "0002114382"
+     ],
+     "period_ending": null,
+     "file_num": [
+      "333-268757",
+      "333-268757-20"
+     ],
+     "display_names": [
+      "EFCAR, LLC  (CIK 0001654238)",
+      "Exeter Automobile Receivables Trust 2026-2  (CIK 0002114382)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "424B5"
+     ],
+     "file_date": "2026-03-24",
+     "biz_states": [
+      "TX"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "424B5",
+     "adsh": "0000929638-26-001122",
+     "film_num": [
+      "26785633",
+      "26785634"
+     ],
+     "biz_locations": [
+      "Irving, TX",
+      "Irving, TX"
+     ],
+     "file_type": "424B5",
+     "file_description": null,
+     "inc_states": [
+      "DE",
+      "DE"
+     ],
+     "items": []
+    }
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0000929638-26-003269:eart2026-4_424b5.htm",
+    "_score": 14.97906,
+    "_source": {
+     "ciks": [
+      "0001654238",
+      "0002150254"
+     ],
+     "period_ending": null,
+     "file_num": [
+      "333-292293",
+      "333-292293-02"
+     ],
+     "display_names": [
+      "EFCAR, LLC  (CIK 0001654238)",
+      "Exeter Automobile Receivables Trust 2026-4  (CIK 0002150254)"
+     ],
+     "xsl": null,
+     "sequence": 1,
+     "root_forms": [
+      "424B5"
+     ],
+     "file_date": "2026-08-28",
+     "biz_states": [
+      "TX"
+     ],
+     "sics": [
+      "6189",
+      "6189"
+     ],
+     "form": "424B5",
+     "adsh": "0000929638-26-003269",
+     "film_num": [
+      "261334355",
+      "261334356"
+     ],
+     "biz_locations": [
+      "Irving, TX",
+      "Irving, TX"
+     ],
+     "file_type": "424B5",
+     "file_description": null,
+     "inc_states": [
+      "DE",
+      "DE"
+     ],
+     "items": []
+    }
+   }
+  ]
+ },
+ "aggregations": {
+  "entity_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "EFCAR, LLC  (CIK 0001654238)",
+     "doc_count": 13
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2025-1  (CIK 0002049379)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2025-2  (CIK 0002056803)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2025-3  (CIK 0002067124)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2025-4  (CIK 0002078220)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2025-5  (CIK 0002092528)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2026-1  (CIK 0002101848)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2026-2  (CIK 0002114382)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2026-3  (CIK 0002132838)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Automobile Receivables Trust 2026-4  (CIK 0002150254)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Select Automobile Receivables Trust 2025-1  (CIK 0002061324)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Select Automobile Receivables Trust 2025-2  (CIK 0002073963)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Select Automobile Receivables Trust 2025-3  (CIK 0002086449)",
+     "doc_count": 1
+    },
+    {
+     "key": "Exeter Select Automobile Receivables Trust 2026-1  (CIK 0002128772)",
+     "doc_count": 1
+    }
+   ]
+  },
+  "sic_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "6189",
+     "doc_count": 13
+    }
+   ]
+  },
+  "biz_states_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "TX",
+     "doc_count": 13
+    }
+   ]
+  },
+  "form_filter": {
+   "doc_count_error_upper_bound": 0,
+   "sum_other_doc_count": 0,
+   "buckets": [
+    {
+     "key": "424B5",
+     "doc_count": 13
+    }
+   ]
+  }
+ }
+}
