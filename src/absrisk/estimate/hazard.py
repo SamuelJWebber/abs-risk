@@ -18,23 +18,28 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .survival import COMPETING, score_bucket
+from .survival import ages, score_bucket
 
-AGE_BINS = [0, 3, 6, 9, 12, 18, 24, 36, 48, 60, 10**6]
-AGE_LABELS = ["1-3", "4-6", "7-9", "10-12", "13-18", "19-24", "25-36", "37-48", "49-60", "61+"]
+AGE_BINS = [-1, 3, 6, 9, 12, 18, 24, 36, 48, 60, 10**6]
+AGE_LABELS = ["0-3", "4-6", "7-9", "10-12", "13-18", "19-24", "25-36", "37-48", "49-60", "61+"]
 
 
 def expand_loan_months(loans: pd.DataFrame, keep: list[str]) -> pd.DataFrame:
-    """One row per loan per age with the loan's fixed attributes and event flags at its last age."""
-    m = loans["months_observed"].to_numpy().astype(int)
+    """One row per loan per observed age (entry_age..exit_age, months since origination) with the loan's fixed
+    attributes and event flags at exit_age. Delayed entry: a loan contributes no rows before it was observed."""
+    a = ages(loans)
+    entry = a["entry_age"].to_numpy()
+    exit_ = a["exit_age"].to_numpy()
+    ev = a["event"].to_numpy()
+    m = (exit_ - entry + 1).astype(int)
     idx = np.repeat(np.arange(len(loans)), m)
-    age = np.concatenate([np.arange(1, k + 1) for k in m]) if len(m) else np.array([], dtype=int)
+    age = np.concatenate([np.arange(e, x + 1) for e, x in zip(entry, exit_)]) if len(m) else np.array([], dtype=int)
     base = loans.iloc[idx][keep].reset_index(drop=True)
     base["age"] = age
-    last = age == np.repeat(m, m)
-    et = loans["exit_type"].to_numpy()[idx]
-    base["ev_chargeoff"] = (last & (et == "chargeoff")).astype(int)
-    base["ev_prepay"] = (last & np.isin(et, list(COMPETING))).astype(int)
+    last = age == np.repeat(exit_, m)
+    ev_rep = ev[idx]
+    base["ev_chargeoff"] = (last & (ev_rep == "chargeoff")).astype(int)
+    base["ev_prepay"] = (last & (ev_rep == "prepay")).astype(int)
     return base
 
 

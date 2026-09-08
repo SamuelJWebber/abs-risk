@@ -46,10 +46,13 @@ def summarize(loans: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for deal, g in loans.groupby("deal"):
         et = g["exit_type"].value_counts(normalize=True)
+        a = survival.ages(g)
         rows.append({
             "deal": deal, "lender": g["lender"].iloc[0], "n_loans": len(g),
             "first_period": str(g["first_period"].min()), "last_period": str(g["last_period"].max()),
             "months_observed_median": float(g["months_observed"].median()),
+            "entry_age_median": float(a["entry_age"].median()), "entry_age_p90": float(a["entry_age"].quantile(0.9)),
+            "exit_age_max": int(a["exit_age"].max()),
             "share_chargeoff": float(et.get("chargeoff", 0)), "share_prepay": float(et.get("prepay", 0)),
             "share_repurchase": float(et.get("repurchase", 0)), "share_absent": float(et.get("absent", 0)),
             "share_censored": float(et.get("censored", 0)),

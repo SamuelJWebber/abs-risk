@@ -146,9 +146,21 @@ def rd_estimate(df: pd.DataFrame, outcome: str, c: float, running: str = "score"
     return pd.DataFrame(rows)
 
 
-def outcome_by_horizon(loans: pd.DataFrame, months: int) -> pd.Series:
-    """1 if the loan charged off within `months` of first observation, 0 if observed that long without, NaN if not yet."""
-    obs = loans["months_observed"].to_numpy()
-    co = (loans["exit_type"] == "chargeoff").to_numpy()
-    y = np.where(co & (obs <= months), 1.0, np.where(obs >= months, 0.0, np.nan))
+def outcome_by_horizon(loans: pd.DataFrame, months: int, max_entry_age: int | None = 6) -> pd.Series:
+    """1 if the loan charged off by age `months` (since origination), 0 if it was observed to that age without
+    charging off (a prepayment before then counts as 0), NaN if censored earlier.
+
+    Loans that entered the pool after `max_entry_age` are NaN: a seasoned loan is in the pool only because it
+    survived to entry, and that selection differs across a pricing cutoff, so the RD sample is restricted to
+    loans observed from close to origination. None disables the restriction.
+    """
+    from .survival import ages
+
+    a = ages(loans)
+    entry, exit_, ev = a["entry_age"].to_numpy(), a["exit_age"].to_numpy(), a["event"].to_numpy()
+    co = ev == "chargeoff"
+    y = np.where(co & (exit_ <= months), 1.0,
+                 np.where((exit_ >= months) | ((ev == "prepay") & (exit_ <= months)), 0.0, np.nan))
+    if max_entry_age is not None:
+        y = np.where(entry > max_entry_age, np.nan, y)
     return pd.Series(y, index=loans.index)
