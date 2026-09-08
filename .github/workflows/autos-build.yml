@@ -1,0 +1,101 @@
+name: autos-build
+
+# Build the loan-level `loans` table for each deal in data/deals.csv: one runner job per deal (fetch every
+# ABS-EE filing's EX-102, stream-parse, write parquet), then one job collects the parquet files and commits them.
+
+on:
+  workflow_dispatch:
+    inputs:
+      deals:
+        description: "comma-separated deal slugs from data/deals.csv, or 'all'"
+        default: all
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autos-build
+  cancel-in-progress: false
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      deals: ${{ steps.set.outputs.deals }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set
+        env:
+          WANT: ${{ inputs.deals || 'all' }}
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import csv, json, os
+          want = os.environ["WANT"].strip()
+          rows = list(csv.DictReader(open("data/deals.csv", newline="", encoding="utf-8")))
+          slugs = [r["deal"] for r in rows]
+          if want != "all":
+              keep = {s.strip() for s in want.split(",") if s.strip()}
+              slugs = [s for s in slugs if s in keep]
+          print("deals=" + json.dumps(slugs))
+          EOF
+
+  build:
+    needs: matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        deal: ${{ fromJson(needs.matrix.outputs.deals) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Fetch every EX-102 for ${{ matrix.deal }}
+        env:
+          ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
+        run: uv run absrisk autos fetch --deal "${{ matrix.deal }}" --raw raw/autos
+      - name: Build loans table for ${{ matrix.deal }}
+        run: uv run absrisk autos build --deal "${{ matrix.deal }}" --raw raw/autos --out out/autos
+      - name: Sizes
+        if: always()
+        run: |
+          du -sh raw/autos/* 2>/dev/null || true
+          ls -la out/autos 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loans-${{ matrix.deal }}
+          path: out/autos
+          retention-days: 30
+          if-no-files-found: warn
+
+  collect:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: loans-*
+          path: collected
+          merge-multiple: true
+      - name: Place outputs
+        run: |
+          mkdir -p data/autos
+          cp -v collected/* data/autos/ 2>/dev/null || true
+          ls -la data/autos
+      - name: Commit
+        run: |
+          git config user.name "abs-risk bot"
+          git config user.email "abs-risk-bot@users.noreply.github.com"
+          git add data/autos
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "autos-build: loans tables from run ${{ github.run_id }}"
+          git pull --rebase origin main
+          git push origin HEAD:main

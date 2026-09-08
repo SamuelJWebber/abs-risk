@@ -1,0 +1,53 @@
+name: cards-refresh
+
+# Fetch every 10-D since 2019 for the six live card trusts (cached between runs), parse the monthly rows,
+# parse the prospectus composition tables, and commit data/cards_monthly.csv and data/cards_composition.csv.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 20 * *"   # the 20th of each month, after the mid-month 10-D filings
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cards-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Restore raw filings cache
+        uses: actions/cache@v4
+        with:
+          path: raw/cards
+          key: cards-raw-${{ github.run_id }}
+          restore-keys: |
+            cards-raw-
+      - name: Fetch 10-D filings and prospectuses
+        env:
+          ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
+        run: uv run absrisk cards fetch --since 2019-01-01 --raw raw/cards
+      - name: Parse monthly rows
+        run: uv run absrisk cards parse --raw raw/cards --out data/cards_monthly.csv
+      - name: Parse composition tables
+        run: uv run absrisk cards composition --raw raw/cards --out data/cards_composition.csv
+      - name: Tests
+        run: uv run pytest -q
+      - name: Commit
+        run: |
+          git config user.name "abs-risk bot"
+          git config user.email "abs-risk-bot@users.noreply.github.com"
+          git add data/cards_monthly.csv data/cards_composition.csv
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "cards-refresh: monthly rows and composition from run ${{ github.run_id }}"
+          git pull --rebase origin main
+          git push origin HEAD:main
