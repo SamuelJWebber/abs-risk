@@ -262,8 +262,70 @@ def scout_autos():
 
 
 def is_ex102(name: str) -> bool:
+    """Fallback name test only; prefer exhibit_files_by_type (CarMax names its EX-102 'cart20262.xml')."""
     n = name.lower()
     return n.endswith(".xml") and ("102" in n) and not n.endswith("_htm.xml")
+
+
+def exhibit_files_by_type(cik10: str, acc: str, dest_dir: Path) -> dict[str, list[str]]:
+    """Map exhibit TYPE (EX-102, EX-103, ...) to file names, from the filing's index-headers page."""
+    acc_nd = acc.replace("-", "")
+    url = f"https://www.sec.gov/Archives/edgar/data/{int(cik10)}/{acc_nd}/{acc}-index-headers.html"
+    dest = dest_dir / f"{acc}-index-headers.html"
+    if not get(url, dest):
+        return {}
+    text = dest.read_text(encoding="utf-8", errors="replace")
+    out: dict[str, list[str]] = {}
+    for m in re.finditer(r"<TYPE>([^<\s]+).*?<FILENAME>([^<\s]+)", text, re.S):
+        out.setdefault(m.group(1).upper(), []).append(m.group(2))
+    return out
+
+
+def download_ex102(cik10: str, acc: str, dest_dir: Path) -> list[Path]:
+    """Download the EX-102 asset-level XML of one ABS-EE filing, identified by exhibit type."""
+    types = exhibit_files_by_type(cik10, acc, dest_dir)
+    names = types.get("EX-102", [])
+    if not names:
+        return download_filing(cik10, acc, dest_dir, name_filter=is_ex102, stream=True)
+    got = []
+    for name in names:
+        if get(folder_url(cik10, acc) + name, dest_dir / name, stream=True):
+            got.append(dest_dir / name)
+    return got
+
+
+def second_pass(spec_path: Path):
+    """Fetch an explicit list of ABS-EE filings and profile them; compare listed pairs.
+
+    spec: {"fetch": [{"slug": ..., "cik": ..., "accession": ..., "note": ...}],
+           "pairs": [{"slug": ..., "earlier": accession, "later": accession}]}
+    """
+    spec = json.loads(spec_path.read_text())
+    base = OUT / "autos"
+    results: dict = {"fetched": [], "pairs": []}
+    paths: dict[str, Path] = {}
+    for item in spec.get("fetch", []):
+        cik10, acc, slug = str(item["cik"]).zfill(10), item["accession"], item["slug"]
+        try:
+            files_ = download_ex102(cik10, acc, base / slug / acc)
+            if files_:
+                prof = base / slug / acc / "profile.json"
+                run([sys.executable, str(HERE / "analyze_ex102.py"), str(files_[0]), str(prof)])
+                paths[acc] = files_[0]
+                results["fetched"].append({**item, "file": str(files_[0].relative_to(OUT)), "profile": str(prof.relative_to(OUT))})
+            else:
+                results["fetched"].append({**item, "file": None})
+        except Exception:  # noqa: BLE001
+            MANIFEST["errors"].append({"step": f"second_pass/{slug}/{acc}", "trace": traceback.format_exc()})
+    for pair in spec.get("pairs", []):
+        a, b = paths.get(pair["earlier"]), paths.get(pair["later"])
+        if a and b:
+            cmp = base / pair["slug"] / f"persistence_{pair['earlier']}_{pair['later']}.json"
+            run([sys.executable, str(HERE / "compare_assets.py"), str(a), str(b), str(cmp)])
+            results["pairs"].append({**pair, "compare": str(cmp.relative_to(OUT))})
+        else:
+            results["pairs"].append({**pair, "compare": None})
+    (base / "second_pass_results.json").write_text(json.dumps(results, indent=1, default=str))
 
 
 def scout_one_auto(segment: str, name: str, info: dict, base: Path, want_prior: bool) -> dict | None:
@@ -280,7 +342,7 @@ def scout_one_auto(segment: str, name: str, info: dict, base: Path, want_prior: 
                  "n_ABSEE_recent_page": len(absee), "absee_range": [absee[-1]["filingDate"], absee[0]["filingDate"]],
                  "older_pages": sub["filings"].get("files", [])}
     acc = absee[0]["accessionNumber"]
-    files_ = download_filing(cik10, acc, base / slug / acc, name_filter=is_ex102, stream=True)
+    files_ = download_ex102(cik10, acc, base / slug / acc)
     if not files_:
         idx_path = base / slug / acc / "index.json"
         idx = json.loads(idx_path.read_text()) if idx_path.exists() else None
@@ -292,7 +354,7 @@ def scout_one_auto(segment: str, name: str, info: dict, base: Path, want_prior: 
     res["latest"]["profile"] = str(prof.relative_to(OUT))
     if want_prior and len(absee) > 1:
         acc2 = absee[1]["accessionNumber"]
-        files2 = download_filing(cik10, acc2, base / slug / acc2, name_filter=is_ex102, stream=True)
+        files2 = download_ex102(cik10, acc2, base / slug / acc2)
         if files2:
             res["prior"] = {"accession": acc2, "filingDate": absee[1]["filingDate"], "file": str(files2[0].relative_to(OUT))}
             cmp = base / slug / "asset_persistence.json"
@@ -314,8 +376,11 @@ def main():
     probe = OUT / "probe_submissions.json"
     ok = get("https://data.sec.gov/submissions/CIK0001163321.json", probe)
     MANIFEST["notes"].append(f"probe data.sec.gov ok={ok}")
+    mode = os.environ.get("SCOUT_MODE", "full")
     if not ok:
         MANIFEST["notes"].append("EDGAR blocked from this runner too; aborting after probe")
+    elif mode == "second_pass":
+        second_pass(HERE / "second_pass.json")
     else:
         scout_cards()
         scout_autos()
