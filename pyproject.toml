@@ -13,6 +13,11 @@ dependencies = [
     "lxml>=5.3",
     "beautifulsoup4>=4.12",
     "pyarrow>=17.0",
+    "openpyxl>=3.1.5",
+    "statsmodels>=0.14.4",
+    "scipy>=1.18.1",
+    "rdrobust>=2.0.0",
+    "rddensity>=3.0",
 ]
 
 [project.scripts]

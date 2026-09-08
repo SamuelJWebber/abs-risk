@@ -65,7 +65,15 @@ def density_test(score: pd.Series | np.ndarray, c: float, h: float = 25.0, bin_w
         import rddensity  # type: ignore
 
         r = rddensity.rddensity(x, c=c)
-        return {"method": "rddensity", "t": float(r.test.iloc[0, 0]), "p": float(r.test.iloc[1, 0]), "n": int(len(x))}
+        test = r.test  # Series: t_asy, t_jk, p_asy, p_jk; the asymptotic pair is NaN when scores have mass points
+        t = test.get("t_asy")
+        p = test.get("p_asy")
+        which = "asymptotic"
+        if t is None or not np.isfinite(t):
+            t, p, which = test.get("t_jk"), test.get("p_jk"), "jackknife"
+        if t is not None and np.isfinite(t):
+            return {"method": f"rddensity-{which}", "t": float(t), "p": float(p), "n": int(len(x)),
+                    "mass_points": bool(getattr(r, "massPoints_flag", False))}
     except Exception:  # noqa: BLE001
         pass
     # one histogram over the whole window so every bin is half-open [a, b) and the cutoff value sits on the
