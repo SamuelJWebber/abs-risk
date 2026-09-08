@@ -1,0 +1,33 @@
+[project]
+name = "absrisk"
+version = "0.1.0"
+description = "Consumer credit risk from public SEC filings: card master trust pools and loan-level auto ABS"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "pandas>=2.2",
+    "duckdb>=1.1",
+    "requests>=2.32",
+    "pyyaml>=6.0",
+    "lxml>=5.3",
+    "beautifulsoup4>=4.12",
+    "pyarrow>=17.0",
+]
+
+[project.scripts]
+absrisk = "absrisk.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/absrisk"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
