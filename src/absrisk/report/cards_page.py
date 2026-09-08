@@ -56,19 +56,26 @@ def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> lis
             keep = ", ".join(f"{t} ({res.loc[t].min():+.2%} to {res.loc[t].max():+.2%})" for t in sorted(same.index))
             line += f" Only {escape(keep)} keeps the same sign under all {n_shapes}, so it is the one trust whose gap does not depend on the assumption."
         out.append(line)
+    act = rank.groupby("trust")["mean_actual"].first()
+    act_spread = act.max() / max(act.min(), 1e-9)
+    predsp = rank.pivot_table(index="trust", columns="shape_source", values="mean_predicted")
+    spreads = (predsp.max() / predsp.min()).sort_values()
+    if len(spreads) >= 2:
+        lo_s, hi_s = spreads.index[0], spreads.index[-1]
+        out.append(f"<b>How much of the spread is score mix depends entirely on the shape.</b> Charge-off across these trusts spans "
+                   f"{act.min():.2%} to {act.max():.2%}, a factor of {act_spread:.1f}. The mix alone predicts a spread of only "
+                   f"{spreads[lo_s]:.1f} times under {escape(lo_s)} and {spreads[hi_s]:.1f} times under {escape(hi_s)}. On the flatter "
+                   f"card-level curves the pools look nearly identical and almost none of the difference is composition; on the steeper "
+                   f"consumer curves most of it is. Public data does not settle which curve a card portfolio actually follows.")
     if not mix.empty and "deep_subprime" in mix:
         m = mix.dropna(subset=["deep_subprime"]).copy()
         m["below_prime"] = m[["deep_subprime", "subprime", "near_prime"]].sum(axis=1)
         m = m[m["trust"].isin(set(rank["trust"]))]
         if not m.empty:
             hi, lo = m.loc[m["below_prime"].idxmax()], m.loc[m["below_prime"].idxmin()]
-            act = rank.groupby("trust")["mean_actual"].first()
-            mix_ratio = hi["below_prime"] / max(lo["below_prime"], 1e-9)
-            out.append(f"<b>The pools differ less than the losses do.</b> Below-prime receivables run from {lo['below_prime']:.1%} at "
-                       f"{lo['trust']} to {hi['below_prime']:.1%} at {hi['trust']}, a spread of {mix_ratio:.1f} times, while the "
-                       f"charge-off rates themselves run from {act.min():.2%} to {act.max():.2%}, a spread of "
-                       f"{act.max() / max(act.min(), 1e-9):.1f} times. Score mix is real but it is not the whole story, and the pool "
-                       f"tables cannot say what the rest is.")
+            out.append(f"For scale, below-prime receivables run from {lo['below_prime']:.1%} at {lo['trust']} to "
+                       f"{hi['below_prime']:.1%} at {hi['trust']}. Every one of these pools is overwhelmingly prime and above, which is "
+                       f"what a public card trust is: the securitised, seasoned end of an issuer's book, not the book.")
     return out
 
 
