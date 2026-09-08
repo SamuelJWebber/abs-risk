@@ -1,0 +1,33 @@
+name: scout-edgar
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Scout EDGAR (cards 10-D + prospectus; autos ABS-EE)
+        env:
+          ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
+          SCOUT_OUT: scout_out
+        run: uv run python scripts/scout/edgar_scout.py
+      - name: Sizes
+        if: always()
+        run: |
+          du -sh scout_out/* 2>/dev/null || true
+          find scout_out -type f | wc -l
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scout-edgar
+          path: scout_out
+          retention-days: 14
+          compression-level: 6
