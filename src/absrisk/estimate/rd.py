@@ -38,13 +38,19 @@ def _local_linear(x: np.ndarray, y: np.ndarray, c: float, h: float, side: str) -
 
 
 def find_cutoffs(df: pd.DataFrame, running: str = "score", var: str = "orig_apr", lo: int = 500, hi: int = 800,
-                 step: int = 5, h: float = 25.0, k: float = 3.0, min_n: int = 200) -> pd.DataFrame:
-    """Candidate cutoffs where `var` jumps at a score threshold. Returns every candidate with its statistics."""
+                 step: int = 5, h: float = 25.0, k: float = 3.0, min_n: int = 200,
+                 min_jump: float | None = None) -> pd.DataFrame:
+    """Candidate cutoffs where `var` jumps at a score threshold. Returns every candidate with its statistics.
+
+    A candidate is flagged when |jump| > k * se and, if `min_jump` is given, |jump| > min_jump as well (so a
+    statistically sharp but economically trivial step is not a cutoff). The grid is aligned to multiples of `step`.
+    """
     x = df[running].to_numpy(dtype=float)
     y = df[var].to_numpy(dtype=float)
     ok = np.isfinite(x) & np.isfinite(y)
     x, y = x[ok], y[ok]
     rows = []
+    lo = int(np.ceil(lo / step) * step)
     for c in range(lo, hi + 1, step):
         fl, sl, nl = _local_linear(x, y, c, h, "left")
         fr, sr, nr = _local_linear(x, y, c, h, "right")
@@ -52,8 +58,9 @@ def find_cutoffs(df: pd.DataFrame, running: str = "score", var: str = "orig_apr"
             continue
         jump = fr - fl
         se = np.sqrt(sl**2 / nl + sr**2 / nr)
+        flag = bool(abs(jump) > k * se) and (min_jump is None or abs(jump) > min_jump)
         rows.append({"cutoff": c, "left": fl, "right": fr, "jump": jump, "se": se, "t": jump / se if se > 0 else np.nan,
-                     "n_left": nl, "n_right": nr, "flag": abs(jump) > k * se})
+                     "n_left": nl, "n_right": nr, "flag": flag})
     return pd.DataFrame(rows)
 
 
