@@ -7,9 +7,9 @@ Status: `todo` | `doing` | `done YYYY-MM-DD` | `blocked (why)`.
 
 | # | Task | Pass condition | Status |
 |---|------|----------------|--------|
-| 0.1 | EDGAR access from a runner | `scout.yml` probe returns 200 from data.sec.gov with ABSRISK_CONTACT set | blocked (needs a contact address the SEC can be given; home ISP is blocked regardless, see PLAN §5) |
-| 0.2 | Card trust scouting | design/scout-cards.md has, per live trust, the charge-off row labels and the FICO and credit-limit tables copied from a downloaded prospectus | doing (labels and CIKs found via a rendered fetch; raw files and annex tables wait on 0.1) |
-| 0.3 | Auto ABS-EE scouting | design/scout-autos.md has, for three issuers across the spectrum, the field list, score distribution, delinquency and charge-off shares from a downloaded EX-102, and an asset-number persistence check across two months | blocked (0.1) |
+| 0.1 | EDGAR access from a runner | `scout.yml` probe returns 200 from data.sec.gov with ABSRISK_CONTACT set | done 2026-09-08 (plain `abs-risk contact` User-Agent; any URL in the UA is refused; home ISP blocked regardless, PLAN §5; runs 34190694825 diag, 34190842910 full) |
+| 0.2 | Card trust scouting | design/scout-cards.md has, per live trust, the charge-off row labels and the FICO and credit-limit tables copied from a downloaded prospectus | done 2026-09-08 (all seven trusts from raw 10-D exhibits and prospectus annexes; Discover defeased; Synchrony is VantageScore; Chase FICO is a 5% sample; Amex buckets do not map) |
+| 0.3 | Auto ABS-EE scouting | design/scout-autos.md has, for three issuers across the spectrum, the field list, score distribution, delinquency and charge-off shares from a downloaded EX-102, and an asset-number persistence check across two months | doing (nine loan files from seven issuers profiled; same-deal pairs show full persistence at CarMax and Capital One and survivor persistence at Santander; write-up in progress) |
 | 0.4 | CFPB tier data | design/scout-ccmr-tiers.md has the tier definitions and every by-tier series the CCMR publishes, with workbook citations | done 2026-09-08 (finding: no loss by tier exists; utilization, lines, balances, late-fee incidence by tier do; workbooks for 2021, 2023, 2025 saved) |
 
 ## A. Cards, pool level
