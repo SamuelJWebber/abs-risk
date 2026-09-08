@@ -85,10 +85,15 @@ def run_b2(loans: pd.DataFrame, out: Path):
     keep = ["deal", "lender", "score_b", "cohort_q", "amount_q", "pti_q", "ltv_q", "apr_q"]
     keep = [k for k in keep if k in df]
     lm = hazard.expand_loan_months(df, keep=keep)
+    # A ladder, in the order a reader should think about it. `price` conditions on the lender's own APR, which the
+    # lender set from its view of the borrower's risk: that is a mediator, not a confounder, so it is reported last
+    # and labelled. Adding it flattens the score gradient, which is itself a result (see the page).
+    structure = [k for k in ("amount_q", "pti_q", "ltv_q") if k in df]
     specs = {
         "raw": ["age_b", "lender"],
-        "score_only": ["age_b", "score_b", "lender"],
-        "full": ["age_b", "score_b", "lender", "cohort_q"] + [k for k in ("amount_q", "pti_q", "ltv_q", "apr_q") if k in df],
+        "score": ["age_b", "score_b", "lender"],
+        "terms": ["age_b", "score_b", "lender", "cohort_q"] + structure,
+        "price": ["age_b", "score_b", "lender", "cohort_q"] + structure + (["apr_q"] if "apr_q" in df else []),
     }
     rows, meta = [], {}
     # baselines with mass: the 660 score bucket (the prime boundary), the 7-9 month age bin, and the largest lender
@@ -106,6 +111,14 @@ def run_b2(loans: pd.DataFrame, out: Path):
                 hr.insert(0, "spec", name)
                 rows.append(hr)
     meta["baseline"] = baseline
+    meta["spec_notes"] = {
+        "raw": "loan age only: the gap as it appears in the data, composition included",
+        "score": "adds the bureau score bucket: same score, different lender",
+        "terms": "adds origination quarter, loan amount, payment-to-income and loan-to-value quintiles: same score and same loan structure",
+        "price": "adds the lender's own APR quintile. APR is set by the lender from its private view of the borrower, so it is a"
+                 " mediator of lender differences, not a confounder; conditioning on it answers a narrower question and absorbs"
+                 " most of the score gradient. Reported for that reason, not as the preferred specification.",
+    }
     pd.concat(rows, ignore_index=True).to_csv(out / "b2_hazard_ratios.csv", index=False)
     (out / "b2_fit.json").write_text(json.dumps(meta, indent=1, default=str))
 

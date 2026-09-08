@@ -42,11 +42,19 @@ jobs:
         run: uv run absrisk cards composition --raw raw/cards --out data/cards_composition.csv
       - name: Tests
         run: uv run pytest -q
+      - name: Upload raw filings for local parser work
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cards-raw-${{ github.run_id }}
+          path: raw/cards
+          retention-days: 7
+          compression-level: 6
       - name: Commit
         run: |
           git config user.name "abs-risk bot"
           git config user.email "abs-risk-bot@users.noreply.github.com"
-          git add data/cards_monthly.csv data/cards_composition.csv
+          git add data/cards_monthly.csv data/cards_composition.csv data/cards_parse_failures.csv
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m "cards-refresh: monthly rows and composition from run ${{ github.run_id }}"
           git pull --rebase origin main

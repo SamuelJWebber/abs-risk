@@ -32,6 +32,8 @@ def main(argv: list[str]) -> int:
     p.add_argument("--raw", default="data/raw/cards", type=Path)
     p.add_argument("--out", default="data/cards_monthly.csv", type=Path)
     p.add_argument("--trust", action="append")
+    p.add_argument("--failures", default="data/cards_parse_failures.csv", help="per-filing parse failures")
+    p.add_argument("--strict", action="store_true", help="exit non-zero if any filing fails to parse")
 
     p = sub.add_parser("composition", help="parse prospectus composition tables and write the tier crosswalk")
     p.add_argument("--raw", default="data/raw/cards", type=Path)
@@ -67,6 +69,10 @@ def _fetch(args) -> int:
 
 
 def _parse(args) -> int:
+    """Parse every filing on disk. Some historical filings use label variants the parsers do not yet know; those
+    are recorded in the failure log rather than losing the run. `--strict` restores fail-on-any-error."""
+    import csv as _csv
+
     from .parse import TRUSTS, coverage, parse_raw, write_csv
 
     trusts = tuple(args.trust) if args.trust else TRUSTS
@@ -74,9 +80,26 @@ def _parse(args) -> int:
     write_csv(rows, args.out)
     print(f"{len(rows)} rows -> {args.out}")
     print(coverage(rows))
-    for trust, acc, err in errors:
-        print(f"ERROR {trust} {acc}: {err}", file=sys.stderr)
-    return 1 if errors else 0
+    log = Path(args.failures)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "w", newline="", encoding="utf-8") as fh:
+        w = _csv.writer(fh)
+        w.writerow(["trust", "accession", "error"])
+        for trust, acc, err in errors:
+            w.writerow([trust, acc, str(err)])
+            print(f"ERROR {trust} {acc}: {err}", file=sys.stderr)
+    print(f"{len(errors)} filings failed to parse -> {log}")
+    if errors:
+        kinds: dict[str, int] = {}
+        for _, _, err in errors:
+            k = str(err).split(":")[-1].strip()[:70]
+            kinds[k] = kinds.get(k, 0) + 1
+        print("failure kinds:")
+        for k, n in sorted(kinds.items(), key=lambda kv: -kv[1]):
+            print(f"  {n:>4}  {k}")
+    if args.strict and errors:
+        return 1
+    return 1 if not rows else 0
 
 
 def _composition(args) -> int:

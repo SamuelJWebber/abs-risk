@@ -39,7 +39,7 @@ def test_driver_writes_every_output(tmp_path):
     for name in ("loans_summary.csv", "b1_cif.csv", "b1_at_12.csv", "b1_at_24.csv", "b2_hazard_ratios.csv", "b2_fit.json", "b3_cutoffs.csv", "b3_rd.csv"):
         assert (out / name).exists(), name
     hr = pd.read_csv(out / "b2_hazard_ratios.csv")
-    lender = hr[(hr["spec"] == "score_only") & (hr["event"] == "chargeoff") & (hr["factor"] == "lender")]
+    lender = hr[(hr["spec"] == "score") & (hr["event"] == "chargeoff") & (hr["factor"] == "lender")]
     assert len(lender) == 1 and 1.6 < lender["odds_ratio"].iloc[0] < 2.5          # beta vs alpha at fixed score
     cuts = pd.read_csv(out / "b3_cutoffs.csv")
     assert ((cuts["lender"] == "beta") & (cuts["var"] == "orig_apr") & (cuts["cutoff"] == 640) & cuts["flag"]).any()

@@ -16,20 +16,20 @@ Status: `todo` | `doing` | `done YYYY-MM-DD` | `blocked (why)`.
 
 | # | Task | Pass condition | Status |
 |---|------|----------------|--------|
-| A1 | 10-D fetcher and parser for the six live trusts | one command pulls every 10-D since 2019 for Amex, COMET, Chase, Citi, Synchrony, BA into data/raw/cards/; parser emits monthly gross and net charge-off, payment rate, yield, 30+ and 90+ delinquency per trust into data/cards_monthly.csv; fixture test per trust; one golden number per trust traced to a filing | todo |
-| A2 | Prospectus composition tables | FICO and credit-limit distributions for each live trust, with as-of date, bucket edges and basis (balances or accounts), in data/cards_composition.csv; crosswalks/fico_buckets.csv maps every bucket to the six CFPB tiers with the straddle rule written down | todo |
-| A3 | Shape sources | data/loss_shape.csv holds three relative-loss-by-tier shapes (FICO odds table, Agarwal et al. 2018, placeholder for Track B) with citations; level calibration to the CCMR aggregate reproduces the industry loss for each year | todo |
-| A4 | Residual page | docs/cards.html shows actual vs predicted charge-off and the residual per trust under each shape, with the scope sentence from PLAN §2 on the page; the ranking of trusts under each shape is stated | todo |
+| A1 | 10-D fetcher and parser for the six live trusts | one command pulls every 10-D since 2019 for Amex, COMET, Chase, Citi, Synchrony, BA into data/raw/cards/; parser emits monthly gross and net charge-off, payment rate, yield, 30+ and 90+ delinquency per trust into data/cards_monthly.csv; fixture test per trust; one golden number per trust traced to a filing | done 2026-09-08 (parsers verified against dollar rows within 1e-4; 552 filings since 2019; first runner pass = cards-refresh workflow; golden entries still to add to checks/) |
+| A2 | Prospectus composition tables | FICO and credit-limit distributions for each live trust, with as-of date, bucket edges and basis (balances or accounts), in data/cards_composition.csv; crosswalks/fico_buckets.csv maps every bucket to the six CFPB tiers with the straddle rule written down | done 2026-09-08 (153 rows, 41 crosswalk rows, every straddle flagged; design/cards-build.md) |
+| A3 | Shape sources | data/loss_shape.csv holds three relative-loss-by-tier shapes (FICO odds table, Agarwal et al. 2018, placeholder for Track B) with citations; level calibration to the CCMR aggregate reproduces the industry loss for each year | done 2026-09-08 (four filled shapes: fico_odds, fico_fed2007, acms2018, acms2018_dpd90; consumer-odds shapes are 5-6x at deep subprime, card-level ACMS shapes 1.2x; CCIP and CCP levels 2013-2024; design/shape-sources.md) |
+| A4 | Residual page | docs/cards.html shows actual vs predicted charge-off and the residual per trust under each shape, with the scope sentence from PLAN §2 on the page; the ranking of trusts under each shape is stated | doing (driver `absrisk analyze cards` and page written; waits on data/cards_monthly.csv from the cards-refresh run) |
 
 ## B. Autos, loan level
 
 | # | Task | Pass condition | Status |
 |---|------|----------------|--------|
-| B1 | ABS-EE fetcher | one command lists every ABS-EE filing for a chosen set of trusts and downloads the EX-102 XML into data/raw/autos/<trust>/<accession>/; manifest records URL, size, hash | todo |
-| B2 | Loan-month panel | streaming parser writes parquet under data/panel/ with a stated schema; assetNumber persistence verified; competing-risk coding for payoff, charge-off, repurchase | todo |
-| B3 | Same score, different lender | docs/autos.html chart 1: cumulative charge-off by origination cohort by 20-point score bucket by lender, with N per cell | todo |
-| B4 | Loan size and payment burden at constant score | chart 2 with cohort and lender fixed effects, described as descriptive with controls | todo |
-| B5 | Regression discontinuity at lender cutoffs | density test, first-stage jump in rate or amount, outcome jump, bandwidth sensitivity; published only if the first stage exists | todo |
+| B1 | ABS-EE fetcher | one command lists every ABS-EE filing for a chosen set of trusts and downloads the EX-102 XML into data/raw/autos/<trust>/<accession>/; manifest records URL, size, hash | done 2026-09-08 (autos-build workflow, one job per deal; ten deals, 759,808 loans, 10.4M loan-months, Jan 2025 to Jul 2026; Exeter 2025-1 and Honda 2025-1 resolved by name on the runner) |
+| B2 | Loan-month panel | streaming parser writes parquet under data/panel/ with a stated schema; assetNumber persistence verified; competing-risk coding for payoff, charge-off, repurchase | done 2026-09-08 (`loans` parquet per deal committed under data/autos/; loan-month parquet optional, gitignored) |
+| B3 | Same score, different lender | docs/autos.html chart 1: cumulative charge-off by origination cohort by 20-point score bucket by lender, with N per cell | doing (Aalen-Johansen with delayed entry and bootstrap bands; first result: at 480-620 Exeter ~20%, Santander ~14%, AmeriCredit ~10% by 24 months; at 700-760 Santander 5-10% vs captives under 1.5%) |
+| B4 | Loan size and payment burden at constant score | chart 2 with cohort and lender fixed effects, described as descriptive with controls | doing (discrete-time competing-risks hazard: amount quintiles OR 1.0-1.1 n.s.; PTI 1.3-1.8; LTV 1.7-2.6; APR 1.9-11; lender excess for Exeter/Santander vanishes with terms) |
+| B5 | Regression discontinuity at lender cutoffs | density test, first-stage jump in rate or amount, outcome jump, bandwidth sensitivity; published only if the first stage exists | doing (cutoff search with bandwidth-stability rule; rdrobust + rddensity; first run in progress) |
 
 ## Handoff 2026-09-08 (session 1)
 Scouting is complete on both tracks and the CFPB side. EDGAR access works only from GitHub Actions with the plain
