@@ -38,9 +38,13 @@ class _ThrottledAdapter(HTTPAdapter):
 
 
 def user_agent() -> str:
-    ua = f"absrisk/{__version__} research (+https://github.com/SamuelJWebber/abs-risk)"
-    contact = os.environ.get("ABSRISK_CONTACT", "")
-    return f"{ua} {contact}".strip()
+    """SEC format only: `<name> <contact>`. Verified 2026-09-08 on a GitHub runner (scripts/scout/ua_diag.py):
+    any User-Agent carrying a URL in parentheses is refused as an "Undeclared Automated Tool" on every SEC
+    host; `abs-risk contact@example.com` and `Name abs-risk contact@example.com` are accepted everywhere.
+    Without ABSRISK_CONTACT the string still names the project, and EDGAR will refuse it."""
+    name = os.environ.get("ABSRISK_NAME", "").strip()
+    contact = os.environ.get("ABSRISK_CONTACT", "").strip()
+    return " ".join(p for p in (name, f"abs-risk/{__version__}", contact) if p)
 
 
 def make_session() -> requests.Session:
