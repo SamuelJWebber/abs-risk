@@ -1,0 +1,31 @@
+{
+  "_purpose": "Second scouting pass, 2026-09-08. Same-deal month pairs for asset persistence, the issuers the first pass missed, and prospectuses for score models. From design/scout-autos.md section 9.",
+  "fetch": [
+    {"slug": "sdart-2026-1", "cik": "0001383094", "accession": "0001193125-26-303622", "note": "SDART 2026-1, period 2026-06-30, expected sdart261ex102.xml"},
+    {"slug": "sdart-2026-1", "cik": "0001383094", "accession": "0001193125-26-352879", "note": "SDART 2026-1, period 2026-07-31 (same file as first pass; re-fetched for the pair)"},
+    {"slug": "carmax-2026-2", "cik": "0002117307", "accession": "0002117307-26-000013", "note": "CarMax 2026-2, period 2026-06-30, expected cart20262.xml"},
+    {"slug": "carmax-2026-2", "cik": "0002117307", "accession": "0002117307-26-000018", "note": "CarMax 2026-2, period 2026-07-31"},
+    {"slug": "carmax-2026-2", "cik": "0002117307", "accession": "0001193125-26-173162", "kind": "primary", "primary": "d101943d424b5.htm", "note": "CarMax 2026-2 424B5 prospectus, 2026-04-23"},
+    {"slug": "copar-2025-1", "cik": "0001133438", "accession": "0001193125-26-304245", "note": "COPAR 2025-1, period 2026-06-30; opaque asset ids persistence test"},
+    {"slug": "copar-2025-1", "cik": "0001133438", "accession": "0001193125-26-353478", "note": "COPAR 2025-1, period 2026-07-31"},
+    {"slug": "exeter-2025-5", "cik": "0002092528", "accession": "0000929638-26-002770", "note": "Exeter 2025-5, period 2026-06-30, deep subprime"},
+    {"slug": "exeter-2026-2", "cik": "0002114382", "latest": 1, "note": "Exeter 2026-2, newest ABS-EE"},
+    {"slug": "exeter-2026-2", "cik": "0002114382", "latest": 1, "kind": "primary", "note": "Exeter 2026-2 prospectus (score model, WA score)"},
+    {"slug": "amcar-2024-1", "cik": "0002020251", "latest": 1, "note": "AmeriCredit 2024-1, newest ABS-EE"},
+    {"slug": "amcar-2023-1", "cik": "0001963240", "accession": "0001963240-26-000029", "note": "AmeriCredit 2023-1, period 2026-07-31, fallback"},
+    {"slug": "toyota-2025-a", "cik": "0002047571", "accession": "0001193125-26-370139", "note": "Toyota 2025-A, period 2026-07-31, captive prime"},
+    {"slug": "toyota-2025-a", "cik": "0002047571", "latest": 1, "kind": "primary", "note": "Toyota 2025-A prospectus"},
+    {"slug": "ford-2025-a", "cik": "0002057342", "latest": 1, "note": "Ford Credit 2025-A, newest ABS-EE, captive alternate"}
+  ],
+  "pairs": [
+    {"slug": "sdart-2026-1", "earlier": "0001193125-26-303622", "later": "0001193125-26-352879"},
+    {"slug": "carmax-2026-2", "earlier": "0002117307-26-000013", "later": "0002117307-26-000018"},
+    {"slug": "copar-2025-1", "earlier": "0001193125-26-304245", "later": "0001193125-26-353478"}
+  ],
+  "searches": [
+    {"name": "Honda Auto Receivables", "forms": "ABS-EE"},
+    {"name": "USAA Auto Owner", "forms": "ABS-EE"},
+    {"name": "AmeriCredit Automobile Receivables Trust 2025", "forms": "ABS-EE"},
+    {"name": "AmeriCredit Automobile Receivables Trust 2026", "forms": "ABS-EE"}
+  ]
+}

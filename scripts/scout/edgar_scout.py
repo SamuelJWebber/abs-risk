@@ -282,11 +282,19 @@ def exhibit_files_by_type(cik10: str, acc: str, dest_dir: Path) -> dict[str, lis
 
 
 def download_ex102(cik10: str, acc: str, dest_dir: Path) -> list[Path]:
-    """Download the EX-102 asset-level XML of one ABS-EE filing, identified by exhibit type."""
+    """Download the EX-102 asset-level XML of one ABS-EE filing.
+
+    Identified by exhibit type from the index-headers page; if that fails, by the size rule that held in
+    every folder seen so far: the largest .xml in the filing whose name does not contain '103'.
+    """
     types = exhibit_files_by_type(cik10, acc, dest_dir)
     names = types.get("EX-102", [])
     if not names:
-        return download_filing(cik10, acc, dest_dir, name_filter=is_ex102, stream=True)
+        idx = filing_index(cik10, acc, dest_dir / "index.json")
+        cands = [it for it in (idx or {}).get("directory", {}).get("item", [])
+                 if it["name"].lower().endswith(".xml") and "103" not in it["name"]]
+        if cands:
+            names = [max(cands, key=lambda it: int(it.get("size") or 0))["name"]]
     got = []
     for name in names:
         if get(folder_url(cik10, acc) + name, dest_dir / name, stream=True):
@@ -295,28 +303,61 @@ def download_ex102(cik10: str, acc: str, dest_dir: Path) -> list[Path]:
 
 
 def second_pass(spec_path: Path):
-    """Fetch an explicit list of ABS-EE filings and profile them; compare listed pairs.
+    """Fetch an explicit list of filings and profile them; compare listed pairs; rerun searches.
 
-    spec: {"fetch": [{"slug": ..., "cik": ..., "accession": ..., "note": ...}],
-           "pairs": [{"slug": ..., "earlier": accession, "later": accession}]}
+    spec keys:
+      fetch: [{slug, cik, accession, kind?: "ex102"|"primary", note?}]            explicit filing
+             [{slug, cik, latest: N, doc_prefix?: "copart251", kind?, note?}]     N newest ABS-EE for the CIK
+      pairs: [{slug, earlier: accession, later: accession}]                       asset persistence
+      searches: [{name, forms}]                                                   efts re-queries
     """
     spec = json.loads(spec_path.read_text())
     base = OUT / "autos"
-    results: dict = {"fetched": [], "pairs": []}
+    results: dict = {"fetched": [], "pairs": [], "searches": {}}
     paths: dict[str, Path] = {}
-    for item in spec.get("fetch", []):
-        cik10, acc, slug = str(item["cik"]).zfill(10), item["accession"], item["slug"]
+
+    def fetch_one(item: dict, cik10: str, acc: str, primary: str | None):
+        slug, kind = item["slug"], item.get("kind", "ex102")
         try:
+            if kind == "primary":
+                if not primary:
+                    idx = filing_index(cik10, acc, base / slug / acc / "index.json")
+                    htm = [it["name"] for it in (idx or {}).get("directory", {}).get("item", []) if it["name"].endswith(".htm")]
+                    primary = max(htm, key=len) if htm else None
+                ok = bool(primary) and get(folder_url(cik10, acc) + primary, base / slug / acc / primary, stream=True)
+                results["fetched"].append({**item, "accession": acc, "file": str((base / slug / acc / primary).relative_to(OUT)) if ok else None})
+                return
             files_ = download_ex102(cik10, acc, base / slug / acc)
             if files_:
                 prof = base / slug / acc / "profile.json"
                 run([sys.executable, str(HERE / "analyze_ex102.py"), str(files_[0]), str(prof)])
                 paths[acc] = files_[0]
-                results["fetched"].append({**item, "file": str(files_[0].relative_to(OUT)), "profile": str(prof.relative_to(OUT))})
+                results["fetched"].append({**item, "accession": acc, "file": str(files_[0].relative_to(OUT)),
+                                           "size": files_[0].stat().st_size, "profile": str(prof.relative_to(OUT))})
             else:
-                results["fetched"].append({**item, "file": None})
+                results["fetched"].append({**item, "accession": acc, "file": None})
         except Exception:  # noqa: BLE001
             MANIFEST["errors"].append({"step": f"second_pass/{slug}/{acc}", "trace": traceback.format_exc()})
+
+    for item in spec.get("fetch", []):
+        cik10 = str(item["cik"]).zfill(10)
+        if "accession" in item:
+            fetch_one(item, cik10, item["accession"], item.get("primary"))
+            continue
+        sub = submissions(cik10, base / item["slug"] / f"submissions_{cik10}.json")
+        if not sub:
+            results["fetched"].append({**item, "file": None, "note2": "submissions failed"})
+            continue
+        want_form = "424B5" if item.get("kind") == "primary" else "ABS-EE"
+        fl = [f for f in filings(sub) if f["form"] == want_form or (want_form == "424B5" and f["form"].startswith("424B"))]
+        pref = item.get("doc_prefix", "").lower()
+        if pref:
+            fl = [f for f in fl if f["primaryDocument"].lower().startswith(pref)]
+        for f in fl[: int(item.get("latest", 1))]:
+            fetch_one(item, cik10, f["accessionNumber"], f["primaryDocument"] if want_form == "424B5" else None)
+        if not fl:
+            results["fetched"].append({**item, "file": None, "note2": f"no {want_form} filings matched"})
+
     for pair in spec.get("pairs", []):
         a, b = paths.get(pair["earlier"]), paths.get(pair["later"])
         if a and b:
@@ -325,6 +366,23 @@ def second_pass(spec_path: Path):
             results["pairs"].append({**pair, "compare": str(cmp.relative_to(OUT))})
         else:
             results["pairs"].append({**pair, "compare": None})
+    # auto-pair: consecutive filings fetched via one "latest: N" item share a slug; compare each adjacent pair
+    by_slug: dict[str, list[dict]] = {}
+    for r in results["fetched"]:
+        if r.get("file") and r.get("latest"):
+            by_slug.setdefault(r["slug"], []).append(r)
+    for slug, rs in by_slug.items():
+        rs.sort(key=lambda r: r["accession"])
+        for e, l in zip(rs, rs[1:]):
+            cmp = base / slug / f"persistence_{e['accession']}_{l['accession']}.json"
+            run([sys.executable, str(HERE / "compare_assets.py"), str(paths[e["accession"]]), str(paths[l["accession"]]), str(cmp)])
+            results["pairs"].append({"slug": slug, "earlier": e["accession"], "later": l["accession"], "compare": str(cmp.relative_to(OUT)), "auto": True})
+
+    for s in spec.get("searches", []):
+        slug = re.sub(r"[^a-z0-9]+", "-", s["name"].lower()).strip("-")
+        d = fts(s["name"], s.get("forms", "ABS-EE"), base / "_search" / f"{slug}.json", startdt="2025-01-01")
+        results["searches"][s["name"]] = {"total": (d or {}).get("hits", {}).get("total", {}).get("value"),
+                                          "entities": entities_from_fts(d)[:6]}
     (base / "second_pass_results.json").write_text(json.dumps(results, indent=1, default=str))
 
 
