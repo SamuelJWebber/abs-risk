@@ -17,6 +17,13 @@ blocked, not just the current run.
 - Parse by row label or XML element name, **never by position**. Fail loudly on anything unexpected.
 - Before writing a parser: download the real file, print its structure, then write the parser and a fixture test.
 
+## What a fresh clone needs
+
+`uv sync` and nothing else, until something touches EDGAR. Then set **`ABSRISK_CONTACT`** to a reachable email
+address in the environment (optionally `ABSRISK_NAME` too) — there is no `.env` loader here, so it must be a
+real environment variable. Without it the User-Agent names the project but carries no contact, and the SEC
+refuses the request. CI already has it as the `ABSRISK_CONTACT` Actions secret.
+
 ## This repository is PUBLIC
 
 `SamuelJWebber/abs-risk` is public. Before committing anything under `design/` — especially anything an agent
