@@ -48,3 +48,5 @@ See `design/two-tests.html`. Do not re-run these tests; extend the auto track (B
 2019-10, comet 2019-02) — the same statement ingested from two filings, identical data, different
 `source_accession`. It does not move the headline ratios but it overstates coverage and breaks
 month-over-month operations. Needs a dedupe on ingest, with a test.
+
+After CLAUDE.md, read `HANDOFF.md` for what is true right now — and **rewrite HANDOFF.md before the session ends**, never append to it. It is the only channel Codex and Claude Code share.
