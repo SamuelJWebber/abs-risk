@@ -1,0 +1,247 @@
+{
+  "R1_ALL 660+": {
+    "label": "ALL 660+",
+    "controls": false,
+    "n": 560980,
+    "default_rate": 0.14007629505508218,
+    "auc_base": 0.6029181122403614,
+    "auc_plus_bankcard": 0.6109422116818336,
+    "auc_gain": 0.008024099441472199,
+    "coef_log_bc_limit_per_logunit": -0.17315386287929496,
+    "se": 0.005604948196470295,
+    "z": -30.893035369771706,
+    "odds_ratio_per_10pct_limit": 0.9836321080168078,
+    "std_coef_log_bc_limit": -0.17133545245013004,
+    "std_coef_fico": -0.35405024994012757,
+    "std_coef_log_inc": null
+  },
+  "R1_660-699": {
+    "label": "660-699",
+    "controls": false,
+    "n": 360449,
+    "default_rate": 0.16734961117939015,
+    "auc_base": 0.5480195168887176,
+    "auc_plus_bankcard": 0.5579321060704711,
+    "auc_gain": 0.009912589181753417,
+    "coef_log_bc_limit_per_logunit": -0.13294012494292096,
+    "se": 0.006465317972669082,
+    "z": -20.562039717907204,
+    "odds_ratio_per_10pct_limit": 0.9874093862155499,
+    "std_coef_log_bc_limit": -0.12378667695257191,
+    "std_coef_fico": -0.11075649057240645,
+    "std_coef_log_inc": null
+  },
+  "R1_700-739": {
+    "label": "700-739",
+    "controls": false,
+    "n": 150401,
+    "default_rate": 0.10255250962427112,
+    "auc_base": 0.5519266044210378,
+    "auc_plus_bankcard": 0.584718794167275,
+    "auc_gain": 0.03279218974623721,
+    "coef_log_bc_limit_per_logunit": -0.27831164628346156,
+    "se": 0.01225104073462922,
+    "z": -22.717388041717644,
+    "odds_ratio_per_10pct_limit": 0.9738227893140439,
+    "std_coef_log_bc_limit": -0.25890358736705593,
+    "std_coef_fico": -0.1452343207554023,
+    "std_coef_log_inc": null
+  },
+  "R1_740+": {
+    "label": "740+",
+    "controls": false,
+    "n": 50130,
+    "default_rate": 0.05655296229802514,
+    "auc_base": 0.5664365296399928,
+    "auc_plus_bankcard": 0.6384302726294069,
+    "auc_gain": 0.07199374298941408,
+    "coef_log_bc_limit_per_logunit": -0.45237893107953814,
+    "se": 0.027215328330938017,
+    "z": -16.622211041462243,
+    "odds_ratio_per_10pct_limit": 0.9577999749178513,
+    "std_coef_log_bc_limit": -0.4109499070243479,
+    "std_coef_fico": -0.292611685564612,
+    "std_coef_log_inc": null
+  },
+  "R2_ALL 660+": {
+    "label": "ALL 660+",
+    "controls": true,
+    "n": 560980,
+    "default_rate": 0.14007629505508218,
+    "auc_base": 0.6341073674806235,
+    "auc_plus_bankcard": 0.6390261427839068,
+    "auc_gain": 0.004918775303283329,
+    "coef_log_bc_limit_per_logunit": -0.18902283042028384,
+    "se": 0.006166174414130979,
+    "z": -30.65479789009885,
+    "odds_ratio_per_10pct_limit": 0.9821455143812897,
+    "std_coef_log_bc_limit": -0.1870377688081954,
+    "std_coef_fico": -0.36323247606430986,
+    "std_coef_log_inc": -0.21332466564906796
+  },
+  "R2_660-699": {
+    "label": "660-699",
+    "controls": true,
+    "n": 360449,
+    "default_rate": 0.16734961117939015,
+    "auc_base": 0.600257475515292,
+    "auc_plus_bankcard": 0.6053421823351121,
+    "auc_gain": 0.005084706819820095,
+    "coef_log_bc_limit_per_logunit": -0.1554007091352139,
+    "se": 0.007079641002198477,
+    "z": -21.95036571585431,
+    "odds_ratio_per_10pct_limit": 0.9852978777885695,
+    "std_coef_log_bc_limit": -0.14470076200229762,
+    "std_coef_fico": -0.12615719274302012,
+    "std_coef_log_inc": -0.19167154337153627
+  },
+  "R2_700-739": {
+    "label": "700-739",
+    "controls": true,
+    "n": 150401,
+    "default_rate": 0.10255250962427112,
+    "auc_base": 0.6012879065718961,
+    "auc_plus_bankcard": 0.6169304843226744,
+    "auc_gain": 0.015642577750778264,
+    "coef_log_bc_limit_per_logunit": -0.26714462357606666,
+    "se": 0.013606245007384367,
+    "z": -19.633971270624794,
+    "odds_ratio_per_10pct_limit": 0.9748598108099912,
+    "std_coef_log_bc_limit": -0.24851529683821033,
+    "std_coef_fico": -0.14205374948767302,
+    "std_coef_log_inc": -0.21397030041529588
+  },
+  "R2_740+": {
+    "label": "740+",
+    "controls": true,
+    "n": 50130,
+    "default_rate": 0.05655296229802514,
+    "auc_base": 0.6186893914166641,
+    "auc_plus_bankcard": 0.6525686114430703,
+    "auc_gain": 0.0338792200264062,
+    "coef_log_bc_limit_per_logunit": -0.42740128448038966,
+    "se": 0.029714850350461435,
+    "z": -14.38342375746653,
+    "odds_ratio_per_10pct_limit": 0.960082852773014,
+    "std_coef_log_bc_limit": -0.3882597222204001,
+    "std_coef_fico": -0.26889794057695765,
+    "std_coef_log_inc": -0.354172451876586
+  },
+  "grid": {
+    "660-699": {
+      "low inc|low lim": {
+        "co": 0.21104463648226113,
+        "n": 40617
+      },
+      "low inc|mid lim": {
+        "co": 0.2001532604933999,
+        "n": 40454
+      },
+      "low inc|high lim": {
+        "co": 0.19171624483210647,
+        "n": 39668
+      },
+      "mid inc|low lim": {
+        "co": 0.1734891830169683,
+        "n": 40723
+      },
+      "mid inc|mid lim": {
+        "co": 0.1658074298711145,
+        "n": 39570
+      },
+      "mid inc|high lim": {
+        "co": 0.15658184732518535,
+        "n": 39928
+      },
+      "high inc|low lim": {
+        "co": 0.15349441543189826,
+        "n": 40021
+      },
+      "high inc|mid lim": {
+        "co": 0.1318219560677352,
+        "n": 39743
+      },
+      "high inc|high lim": {
+        "co": 0.12050346129641284,
+        "n": 39725
+      }
+    },
+    "700-739": {
+      "low inc|low lim": {
+        "co": 0.14460942543576502,
+        "n": 17039
+      },
+      "low inc|mid lim": {
+        "co": 0.1256067597531012,
+        "n": 16687
+      },
+      "low inc|high lim": {
+        "co": 0.12411856101350544,
+        "n": 16734
+      },
+      "mid inc|low lim": {
+        "co": 0.11153983141398552,
+        "n": 16846
+      },
+      "mid inc|mid lim": {
+        "co": 0.09592212263310976,
+        "n": 16847
+      },
+      "mid inc|high lim": {
+        "co": 0.09026495980946711,
+        "n": 16795
+      },
+      "high inc|low lim": {
+        "co": 0.09485423358991454,
+        "n": 16499
+      },
+      "high inc|mid lim": {
+        "co": 0.0720261913423063,
+        "n": 16494
+      },
+      "high inc|high lim": {
+        "co": 0.06215066828675577,
+        "n": 16460
+      }
+    },
+    "740+": {
+      "low inc|low lim": {
+        "co": 0.10942520528382721,
+        "n": 5602
+      },
+      "low inc|mid lim": {
+        "co": 0.07376754228139619,
+        "n": 5558
+      },
+      "low inc|high lim": {
+        "co": 0.062162162162162166,
+        "n": 5550
+      },
+      "mid inc|low lim": {
+        "co": 0.06276005547850208,
+        "n": 5768
+      },
+      "mid inc|mid lim": {
+        "co": 0.04661680292224735,
+        "n": 5749
+      },
+      "mid inc|high lim": {
+        "co": 0.037552155771905425,
+        "n": 5752
+      },
+      "high inc|low lim": {
+        "co": 0.04916512059369202,
+        "n": 5390
+      },
+      "high inc|mid lim": {
+        "co": 0.03665987780040733,
+        "n": 5401
+      },
+      "high inc|high lim": {
+        "co": 0.029477611940298507,
+        "n": 5360
+      }
+    }
+  },
+  "sample_n": 560980
+}

@@ -1,0 +1,12 @@
+Rows in sub_grade x year quintiles: 912,836 of 917,334
+
+CHARGE-OFF BY OTHER-LENDER LIMIT QUINTILE, CUT WITHIN SUB_GRADE x ISSUE YEAR
+quintile           n  median limit  charge-off %  mean APR %  mean FICO   SE pp
+Q1           184,826         4,000         16.82       12.06      690.4    0.09
+Q2           182,248         8,500         16.56       12.05      692.2    0.09
+Q3           181,832        13,500         16.50       12.06      695.5    0.09
+Q4           181,843        21,500         16.08       12.05      699.9    0.09
+Q5           182,087        43,100         14.94       12.05      707.2    0.08
+
+Q1 - Q5 = 1.88 pp (SE 0.12, t 15.6); APR diff +0.014 pp
+annualised loss gap 1.25 pp/yr; mispricing 124 bps/yr at 100% LGD, 80 bps/yr at 65% LGD

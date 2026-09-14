@@ -1,0 +1,80 @@
+==============================================================================
+VERDICT
+==============================================================================
+THIS IS A COARSE-GRADE FINDING, NOT A FREE-RIDING FINDING.
+
+The one-sentence answer: inside sub_grade x issue_year x 20-point FICO band, on
+realized cash, log(total_bc_limit) ranks 42nd of 47 bureau fields (Q5-Q1 =
++$0.254 per $100, clustered t = +2.25, ~+20 bps/yr, NOT monotone), the
+pre-registered "limits granted" sub-class it belongs to is the WORST of the four
+sub-kinds (median rank 38.5, mean |spread| $0.52 vs $0.99 for borrower's-own-state
+fields, and its four members split 2 positive / 2 negative), the strongest field on
+the file is acc_open_past_24mths at -$4.74 per $100 (t = -33.9, ~-371 bps/yr,
+perfectly monotone) with the sign OPPOSITE to free-riding, and applying the
+breakpoints ex ante buys +4 bps/yr with the sign flipping across vintages.
+
+--- HOW EACH REFEREE OBJECTION LANDED ---
+1. LGD. Settled and the referee is right. Realized LGD on this sample is 51.6% of
+   original principal, dollar-weighted, net of recoveries (51.7% simple mean over
+   82,728 charged-off loans). 100% LGD overstated loss by 1.94x. The referee's 57%
+   is the right order of magnitude; my 51.6% is on the mature 36-month 2012-2015
+   sample specifically. This run makes no LGD assumption at all - it uses cash.
+2. Annualisation divisor. Settled and the referee is right that 1.5 was wrong. The
+   MEASURED interest-earning life on this sample is 1.278 years
+   ($1,124,416,034 of interest received / $879,935,455 of principal-weighted APR
+   exposure), so 1.5 was 1.17x too large. Every annualised number here is labelled
+   as an approximation.
+3. Counts vs dollars. Settled and the referee is right about the magnitude:
+   Q1 median loan $7,650 vs Q5 median $17,350 - a 2.3x size difference. The outcome
+   here is dollars per $100 of original principal, so the two are commensurable.
+   Principal-weighting rather than loan-weighting moves Q1 from +7.94 to +7.43 and
+   Q5 from +8.18 to +8.46, i.e. it WIDENS the raw gap to +1.04/$100 - but that raw
+   gap is before any cell control; inside the cell it is +0.254.
+4. FICO balance. Settled. With the 20-point FICO band in the cell, the residual
+   Q5-Q1 FICO gap is +1.00 point (raw gap in this sample is +0.98 - the sample is
+   already close to balanced once mature vintages are used). The headline is
+   therefore FICO-balanced by construction.
+5. THE DECISIVE OBJECTION. Confirmed and stronger than the referee stated.
+   total_bc_limit is rank 42 of 47 by realized net-return spread, not 14th of 25.
+   Top five: acc_open_past_24mths (-$4.74/$100), num_tl_op_past_12m (-$3.72),
+   mths_since_recent_bc (+$2.68), mo_sin_rcnt_tl (+$2.68), inq_last_6mths (-$2.13).
+   The referee's specific numbers differ from mine (I get avg_cur_bal +$1.82,
+   mort_acc +$1.35, tot_hi_cred_lim +$1.22, annual_inc +$1.75, acc_open_past_24mths
+   -$4.74) because of the cell definition, but the ORDERING and the conclusion match.
+6. The internal contradiction. Confirmed. acc_open_past_24mths is #1 and its sign is
+   backwards for free-riding: Q1 (median 1 account opened) earns +$10.17 per $100,
+   Q5 (median 9) earns +$5.38, charge-off rises 11.6% to 17.3%, and the within-cell
+   logistic gives +0.586 log-odds top-vs-bottom at clustered z = +42.6. More recent
+   third-party approvals predicts MORE loss.
+7. Clustered SEs. Done throughout, clustered on the cell. 585 clusters at the
+   headline. Clustering inflates the headline SE by 1.22x (0.0921 to 0.1126), which
+   is enough to take the headline t from +2.75 to +2.25.
+8. Ex-ante implementability. The claim does NOT survive. Forward-applied
+   breakpoints: 2013 +$0.068 (t +0.26), 2014 +$0.767 (t +4.48), 2015 -$0.356
+   (t -2.50). N-weighted average +$0.054/$100 = +4 bps/yr against the in-sample
+   +$0.254 = +20 bps/yr. The sign flips. By contrast acc_open_past_24mths delivers
+   -$4.56/$100 = -357 bps/yr ex ante, essentially unchanged from in-sample.
+
+--- WHAT IS STILL TRUE AFTER ALL OF THIS ---
+(a) There IS residual, real, dollar-denominated risk ordering inside Lending Club's
+    35-notch grade x FICO band. Many bureau fields deliver 100-400 bps/yr of
+    realized net-return spread inside a cell. That is a coarse-grade finding:
+    LC's published grade is a lossy summary of LC's own model.
+(b) The strongest signals are credit-SEEKING intensity and recency - how many
+    accounts were opened lately and how recently - not the SIZE of the credit lines
+    other lenders granted. The mechanism is "this borrower is currently levering up",
+    not "other lenders vouched for this borrower".
+(c) The pre-registered class test superficially favours OTHER-LENDER fields (median
+    rank 19.5 vs 28.5 for borrower's-own-state, P(other-lender outranks borrower)
+    = 0.667), but that win is carried entirely by approval-COUNT and approval-TIMING
+    fields whose sign says more/recent approvals = worse. The LIMITS-GRANTED
+    sub-class, which is the actual free-riding construct, is the worst group in the
+    table. So the class test does not rescue the free-riding reading; it relocates
+    the signal to a construct with the opposite interpretation.
+(d) total_bc_limit is not zero. It is positive and significant at t = +2.25 in the
+    headline, it strengthens to +$0.631 (t = +6.74) once the cell also holds the
+    acc_open_past_24mths quintile fixed, it is +$0.575 (t +4.59) in grade A and
+    +$0.540 (t +3.25) in grade B, and it is +$2.42 (t +4.14, monotone) on the
+    60-month book. It is a small true effect concentrated in the best grades. It is
+    simply not a distinctive one - on the 60-month book it ranks 24th of 42, and
+    acc_open_past_24mths is again #1 at -$10.57/$100 with the same backwards sign.

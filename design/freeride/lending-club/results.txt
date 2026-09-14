@@ -1,0 +1,125 @@
+Reading C:\Users\samwe\AppData\Local\Temp\claude\c--Users-samwe-OneDrive-Documents-codex-projects-Job-autoapply\8b3ac5c3-74cb-44aa-9894-816ca22156c2\scratchpad\freeride-data\LendingClub_2007_to_2018Q4.csv
+Raw rows: 2,260,701
+After term==36 months: 1,609,754
+After issue 2012-2017: 1,233,549
+loan_status counts in this window:
+   Fully Paid: 795,818
+   Current: 270,645
+   Charged Off: 154,561
+   Late (31-120 days): 7,993
+   In Grace Period: 2,965
+   Late (16-30 days): 1,546
+   Default: 21
+After keeping Fully Paid / Charged Off: 950,379; charge-off rate 16.26%
+Missingness of bankcard fields in this window:
+   fico: 0.00% missing
+   total_bc_limit: 0.63% missing
+   bc_open_to_buy: 1.72% missing
+   num_bc_tl: 2.37% missing
+   tot_hi_cred_lim: 2.37% missing
+   total_cu_tl: 60.46% missing
+Missingness of total_bc_limit by issue year:
+   2012: 13.86% missing of 43,470; charge-off 13.58%
+   2013: 0.00% missing of 100,422; charge-off 12.33%
+   2014: 0.00% missing of 162,570; charge-off 13.73%
+   2015: 0.00% missing of 283,026; charge-off 14.89%
+   2016: 0.00% missing of 232,353; charge-off 19.85%
+   2017: 0.00% missing of 128,538; charge-off 20.01%
+After dropping rows missing bankcard fields: 917,712 (dropped 32,667)
+After requiring total_bc_limit>0: 917,334
+
+Descriptives (analysis sample):
+                fico  total_bc_limit  bc_open_to_buy      otb_share      num_bc_tl      loan_amnt
+count  917334.000000    9.173340e+05   917334.000000  917334.000000  917334.000000  917334.000000
+mean      696.900953    2.102311e+04     9887.166848       0.402320       8.053549   12716.095528
+std        31.501198    2.137041e+04    15096.811909       0.279081       4.774578    8174.017074
+min       662.000000    1.000000e+02        0.000000       0.000000       1.000000    1000.000000
+10%       667.000000    3.900000e+03      345.000000       0.051098       3.000000    4200.000000
+25%       672.000000    7.400000e+03     1393.000000       0.159600       5.000000    6500.000000
+50%       687.000000    1.430000e+04     4480.000000       0.366833       7.000000   10000.000000
+75%       712.000000    2.700000e+04    11902.000000       0.614471      10.000000   16950.000000
+90%       742.000000    4.610000e+04    25555.700000       0.813038      14.000000   25000.000000
+max       847.500000    1.105500e+06   497445.000000       1.000000      70.000000   40000.000000
+
+Charge-off rate by other-lender bankcard limit QUINTILE, within FICO tier (quintiles cut within tier):
+  FICO 660-699 (n=576,517):
+     Q1: n=116,743, median limit $3,300, charge-off 21.71%
+     Q2: n=115,171, median limit $7,100, charge-off 20.27%
+     Q3: n=115,223, median limit $11,400, charge-off 19.53%
+     Q4: n=114,264, median limit $17,800, charge-off 18.59%
+     Q5: n=115,116, median limit $33,500, charge-off 17.19%
+  FICO 700-739 (n=248,749):
+     Q1: n=49,909, median limit $5,500, charge-off 15.64%
+     Q2: n=50,168, median limit $12,300, charge-off 13.14%
+     Q3: n=49,461, median limit $19,900, charge-off 12.24%
+     Q4: n=49,634, median limit $30,800, charge-off 11.21%
+     Q5: n=49,577, median limit $55,100, charge-off 9.71%
+  FICO 740+ (n=92,068):
+     Q1: n=18,468, median limit $8,900, charge-off 10.83%
+     Q2: n=18,429, median limit $19,800, charge-off 7.57%
+     Q3: n=18,440, median limit $31,300, charge-off 6.62%
+     Q4: n=18,338, median limit $47,100, charge-off 5.37%
+     Q5: n=18,393, median limit $80,000, charge-off 4.66%
+
+=================== LOGISTIC RESULTS (70/30 holdout, seed 42) ===================
+--- ALL FICO (660+) ---
+  n=917,334 (train 642,134 / test 275,200); default rate 16.30%
+  M1 (FICO only)              test AUC = 0.5995
+  M2 (FICO + other-lender bc) test AUC = 0.6046   gain = +0.0051
+  M3 (other-lender bc only)   test AUC = 0.5755
+  LR stat M2 vs M1 (3 df) = 1012.2
+  FICO per +10 pts: M1 -0.1341, M2 -0.1217 (log-odds)
+  log(total_bc_limit+1): -0.1195 per log unit (SE 0.0042, z=-28.8); odds ratio per +10% limit = 0.9887
+  bc_open_to_buy share (0-1): +0.0611 per unit (z=+4.5)
+  num_bc_tl: +0.0016 per account (z=+2.0)
+  standardized (per 1 SD) M2: fico -0.384, log_bc_limit -0.118, otb_share +0.017, num_bc_tl +0.008
+--- FICO 660-699 ---
+  n=576,517 (train 403,562 / test 172,955); default rate 19.47%
+  M1 (FICO only)              test AUC = 0.5389
+  M2 (FICO + other-lender bc) test AUC = 0.5455   gain = +0.0067
+  M3 (other-lender bc only)   test AUC = 0.5311
+  LR stat M2 vs M1 (3 df) = 363.4
+  FICO per +10 pts: M1 -0.1252, M2 -0.1120 (log-odds)
+  log(total_bc_limit+1): -0.0743 per log unit (SE 0.0049, z=-15.3); odds ratio per +10% limit = 0.9929
+  bc_open_to_buy share (0-1): -0.0461 per unit (z=-2.8)
+  num_bc_tl: -0.0024 per account (z=-2.5)
+  standardized (per 1 SD) M2: fico -0.126, log_bc_limit -0.070, otb_share -0.011, num_bc_tl -0.011
+--- FICO 700-739 ---
+  n=248,749 (train 174,124 / test 74,625); default rate 12.39%
+  M1 (FICO only)              test AUC = 0.5474
+  M2 (FICO + other-lender bc) test AUC = 0.5717   gain = +0.0243
+  M3 (other-lender bc only)   test AUC = 0.5567
+  LR stat M2 vs M1 (3 df) = 768.3
+  FICO per +10 pts: M1 -0.1473, M2 -0.1382 (log-odds)
+  log(total_bc_limit+1): -0.2278 per log unit (SE 0.0089, z=-25.6); odds ratio per +10% limit = 0.9785
+  bc_open_to_buy share (0-1): +0.2673 per unit (z=+9.4)
+  num_bc_tl: +0.0126 per account (z=+7.0)
+  standardized (per 1 SD) M2: fico -0.149, log_bc_limit -0.213, otb_share +0.070, num_bc_tl +0.061
+--- FICO 740+ ---
+  n=92,068 (train 64,448 / test 27,620); default rate 7.01%
+  M1 (FICO only)              test AUC = 0.5623
+  M2 (FICO + other-lender bc) test AUC = 0.6256   gain = +0.0634
+  M3 (other-lender bc only)   test AUC = 0.6085
+  LR stat M2 vs M1 (3 df) = 541.6
+  FICO per +10 pts: M1 -0.1017, M2 -0.1097 (log-odds)
+  log(total_bc_limit+1): -0.3774 per log unit (SE 0.0185, z=-20.4); odds ratio per +10% limit = 0.9647
+  bc_open_to_buy share (0-1): +0.8322 per unit (z=+10.4)
+  num_bc_tl: +0.0193 per account (z=+5.4)
+  standardized (per 1 SD) M2: fico -0.250, log_bc_limit -0.344, otb_share +0.177, num_bc_tl +0.101
+
+Robustness: seed 7 (ALL FICO):
+--- ALL FICO seed 7 ---
+  n=917,334 (train 642,134 / test 275,200); default rate 16.30%
+  M1 (FICO only)              test AUC = 0.6000
+  M2 (FICO + other-lender bc) test AUC = 0.6042   gain = +0.0042
+  M3 (other-lender bc only)   test AUC = 0.5752
+  LR stat M2 vs M1 (3 df) = 1099.9
+  FICO per +10 pts: M1 -0.1333, M2 -0.1206 (log-odds)
+  log(total_bc_limit+1): -0.1243 per log unit (SE 0.0042, z=-30.0); odds ratio per +10% limit = 0.9882
+  bc_open_to_buy share (0-1): +0.0691 per unit (z=+5.0)
+  num_bc_tl: +0.0017 per account (z=+2.1)
+  standardized (per 1 SD) M2: fico -0.380, log_bc_limit -0.123, otb_share +0.019, num_bc_tl +0.008
+
+Finance-trade (total_cu_tl) check on rows where it is populated: n=371,022
+  M2 AUC 0.6082 -> M2+total_cu_tl AUC 0.6089; total_cu_tl coef per finance trade -0.0186 (z=-9.5)
+  share of borrowers with >=1 finance trade: 45.9%; charge-off with 0 trades 20.47% vs >=1 18.87%

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free-riding and the hierarchy estimator</title>
+<style>
+  :root { --ink:#1b1b1b; --muted:#5d5d5d; --rule:#d9d9d9; --bg:#fbfaf7; --panel:#ffffff; --accent:#8a3b12; --ok:#2f6b3a; --warn:#9a6b00; --bad:#a13232; --code:#f1efe9; }
+  html { background: var(--bg); }
+  body { margin:0; font: 16px/1.55 Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 28px 80px; }
+  h1 { font-size: 30px; line-height:1.2; margin: 0 0 6px; font-weight: 600; }
+  h2 { font-size: 21px; margin: 44px 0 10px; font-weight: 600; border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+  h3 { font-size: 17px; margin: 24px 0 6px; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
+  .verdict { background: var(--panel); border-left: 5px solid var(--accent); padding: 14px 18px; margin: 18px 0 26px; }
+  .verdict p:last-child { margin-bottom:0; }
+  ul { margin: 0 0 12px 22px; padding:0; }
+  li { margin-bottom: 6px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; font-size: 14.5px; background: var(--panel); }
+  th, td { border: 1px solid var(--rule); padding: 7px 9px; vertical-align: top; text-align: left; }
+  th { background: #f3f1ec; font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .tag { display:inline-block; font: 12px/1 Arial, sans-serif; padding: 3px 7px; border-radius: 3px; color:#fff; margin-right:4px; }
+  .a { background: var(--ok); } .b { background: var(--warn); } .c { background: #666; } .x { background: var(--bad); }
+  .grade { font: 13px Arial, sans-serif; color: var(--muted); }
+  .note { font-size: 14px; color: var(--muted); }
+  .ex { background: var(--code); padding: 10px 14px; border-radius: 4px; margin: 10px 0 14px; }
+  .pending { border: 1px dashed var(--warn); padding: 10px 14px; color: var(--muted); background: #fffaf0; }
+  .src { font-size: 13.5px; }
+  .src li { margin-bottom: 3px; }
+  a { color: var(--accent); }
+  .wrap { overflow-x: auto; }
+  .kicker { font: 600 12px/1 Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<main>
+<div class="kicker">abs-risk design note · 10 September 2026</div>
+<h1>Free-riding and the hierarchy estimator</h1>
+<p class="sub">Does other lenders' free-riding on issuer identity spoil the payment-hierarchy estimate? Two independent formalizations, each attacked by a hostile referee; four evidence sweeps; one public-data test on 917,334 Lending Club loans; a simulation; three referee votes per claim. Grades: <span class="tag a">A</span> proven by logic, <span class="tag b">B</span> published evidence with numbers, <span class="tag c">C</span> plausible, unmeasured.</p>
+
+<div class="verdict">
+<p><b>The claim as stated is not established.</b> Free-riding is real and measured: scores and lenders read the type and labels of other tradelines, and change credit supply because of them. But that force lands on the person, not on one card, so a within-person, within-month comparison of cards absorbs it. What free-riding does spoil is the reading of every comparison across people: trust pools, with-and-without-Amex cross-sections, portfolio transfers. Those were already unreadable as "selection" or "priority"; free-riding adds a third unnamed term. The abs-risk sentence "selection, and it is not close" should be withdrawn, but on the earlier ground that entry fits both stories, not on free-riding grounds. In a simulation calibrated to the published line elasticities, free-riding adds about one percent to the Amex-style pool gap for prime holders, selection adds about fifty percent, and when the badge holders include subprime borrowers the channel runs the wrong way for a halo.</p>
+<p><b>What did get shown, with public data:</b> other lenders' line decisions carry repayment information beyond FICO, and more of it at the top of the score range. Inside the 740-plus tier of Lending Club, charge-off falls from 10.8% to 4.7% across quintiles of the bankcard limit other lenders had granted, and the limit keeps its coefficient after income and debt-to-income controls. That is the free-rider signal, and it has content. It is not brand-specific (no public data carries issuer names on tradelines), it is not causal, and part of it is wealth the bureau sees and Lending Club does not.</p>
+<p><b>One correction to the premise.</b> The abs-risk ratios this whole discussion leans on (entry 0.29 to 1, conversion 1.38 to 1) are raw pool ratios. The trusts' FICO mixes are in the repo but were never applied: Amex's pool is 56% of receivables at 760 and above with 6% below 660; Synchrony's is 24% at or below 659 including no-score. Until the mix is applied, "at the same FICO" describes the intent, not the number, and the residual that selection, priority, or free-riding would have to explain is smaller than 0.29 suggests.</p>
+</div>
+
+<h2>Three things called "hierarchy"</h2>
+<p>The question has been drifting between three different quantities. They need three names.</p>
+<table>
+<tr><th style="width:24%">Name</th><th>What it is</th><th style="width:30%">Who measures it</th></tr>
+<tr><td><b>H</b> · hierarchy</td><td>Same person, same month, two cards. Which one goes 30 days late first. A ranking inside one wallet.</td><td>TransUnion (product level), Andersson et al. 2013 (mortgage vs card). Nobody at the issuer level.</td></tr>
+<tr><td><b>B</b> · brand effect</td><td>One card's delinquency if the plastic said Amex instead of Synchrony, the person and the card's terms held fixed. Bundles the borrower's ranking with the issuer's servicing, due-date design, re-aging, and charge-off timing.</td><td>A portfolio transfer would, if the transfer changed only the brand. None does.</td></tr>
+<tr><td><b>&Delta;</b> · issuer gap at same FICO</td><td>Amex holders' losses minus Synchrony holders' losses at the same score. Different people. A description, not an effect.</td><td>abs-risk track A intends this, but its published ratios are raw pool ratios with no FICO-mix adjustment yet. Amex investor decks, also raw.</td></tr>
+</table>
+<div class="ex">Extreme case. A person is $300 short this month. They pay the Amex minimum and skip the store card. That is H, and it happens at the first missed payment, so it shows up as <i>entry</i>. The abs-risk page assigned priority to <i>conversion</i> (rescue after 90 days late). Both referees agree that assignment is not standard and does not identify anything: low entry fits selection, fits priority, and fits the third channel below.</div>
+
+<h2>The third channel, link by link</h2>
+<p>The user's proposed chain: a premium badge on the file &rarr; other lenders read it and raise their lines &rarr; the person has more room &rarr; fewer missed payments on every card, the Amex included. Each link has a different amount of evidence.</p>
+
+<h3>Link 1 · lenders read labels and move lines <span class="grade">B for labels and lender type · C for a premium brand</span></h3>
+<ul>
+<li><span class="tag b">B</span> FICO reason codes penalize the <i>type</i> of lender with no payment information at all: code 06 "too many consumer finance company accounts", plus codes A8, J2, B1, and the mirror-image credits for bank revolving history (F5, J1, G2). Bureau files carry an industry code on every tradeline.</li>
+<li><span class="tag b">B</span> Negative label, UK: a payday tradeline cuts the score 4.7% in the same quarter and about 10% after four quarters; same-quarter default falls 11% (not significant) and collection searches fall 16%. Banks then ration. The applicant at the lender's own cutoff, whose score does not move, shows neither effect. Liberman, Paravisini, Pathania.</li>
+<li><span class="tag b">B</span> Positive direction, Chile: a retailer's card book was sold to a bank and 1.8 million good-standing borrowers became visible to other banks. Other banks raised those borrowers' limits by about $310, 6.7% of the mean, within three quarters. Foley, Hurtado, Liberman, Sepulveda. This is the closest published case of one lender's tradeline raising other lenders' lines, and it is a visibility shock, not a prestige signal.</li>
+<li><span class="tag b">B</span> US label removal: a bankruptcy flag coming off adds 10 score points and about $1,510 of card limits, a 50% rise, within three years. Dobbie, Goldsmith-Pinkham, Mahoney, Song.</li>
+<li><span class="tag b">B</span> Reverse direction on the UK multi-card panel: a default on one card cuts limits on the person's other cards by about &pound;700. Antoniou, Lyman, Pagel, Stewart.</li>
+<li><span class="tag c">C</span> Not found anywhere: a measured effect of an Amex or Chase tradeline on other lenders' approvals or lines. Industry sources say "high limits beget high limits". Chase's 5/24 rule reads cross-issuer card <i>counts</i>, not brands. US payday loans are mostly not reported to the big three bureaus, so the UK stigma result does not transfer to US payday tradelines (Bhutta).</li>
+</ul>
+
+<h3>Link 2 · more credit elsewhere changes repayment <span class="grade">B, and the sign depends on the borrower</span></h3>
+<table>
+<tr><th>FICO at origination</th><th class="num">Balances across all cards, 12 months, per $1 of new limit</th><th class="num">90+ days late within 48 months, per $1,000 of limit</th><th class="num">60+ days late, same</th></tr>
+<tr><td>660 and below</td><td class="num">+59 cents</td><td class="num">+1.16 pp on 14.5%</td><td class="num">+1.21 pp on 16.5%</td></tr>
+<tr><td>661 to 700</td><td class="num">+46 cents</td><td class="num">+0.80 pp</td><td class="num">+0.86 pp</td></tr>
+<tr><td>701 to 740</td><td class="num">+32 cents</td><td class="num">+0.74 pp</td><td class="num">+0.68 pp</td></tr>
+<tr><td>above 740</td><td class="num">&minus;5 cents (n.s.)</td><td class="num">&minus;0.17 pp (n.s.)</td><td class="num">&minus;0.32 pp [&minus;0.61, &minus;0.05]</td></tr>
+</table>
+<p class="note">Agarwal, Chomsisengphet, Mahoney, Stroebel, QJE 2018, Table V and Table VI: 743 credit-limit discontinuities on 8.5 million US cards. Outcomes are on the card whose limit moved. Nobody has published the cross-card version: delinquency on card B after an exogenous line change at lender A.</p>
+<ul>
+<li>Below 700, extra limit is new debt, and it raises delinquency on the receiving card. Above 740, it is pure balance shifting, and the delinquency effect is zero to slightly protective.</li>
+<li>A randomized line experiment on 45,307 Turkish accounts found no detectable delinquency effect at all. Aydin, AER 2022.</li>
+<li>Among already-distressed US card borrowers, immediate payment relief did nothing; only delayed interest write-downs helped. Dobbie and Song, AER 2020. Liquidity is not a cure once the spell has started.</li>
+<li>Less available card credit pushes a distressed borrower toward defaulting on the mortgage instead of the card, with a coefficient three times larger for low scores than high. Cohen-Cole and Morse. Available credit does shift the pecking order between products; nobody has measured it between cards.</li>
+</ul>
+<p><b>What this does to the claim.</b> The only population where the channel could lower Amex's entry rate is the prime one, and there the published per-dollar effect is small. Where the channel is large, below 700, it works in the <i>opposite</i> direction: extra lines raise delinquency. So "free-riding makes Amex look better selected than it is" has the sign right only for prime holders and the size unmeasured; for near-prime holders it makes Amex look worse. The first formalization asserted a protective sign for everyone and was refuted on exactly this point.</p>
+
+<h3>Link 3 · the same accounts under a new brand <span class="grade">C · exists in principle, no usable public outcome data</span></h3>
+<ul>
+<li>Costco, Amex to Citi, June 2016, about $10.6 billion and 11 million accounts. Citi booked zero credit losses on the book in its first full quarter (purchase accounting) and told investors to expect "normalization". Costco began accepting any Visa, so the card lost its must-have status. The Amex Lending Trust removed the Costco receivables and added $3.0 billion of other accounts, so the trust's 2016 break is a mix shift, not a behavior shift. Citi's trust received no lump addition until June 2017.</li>
+<li>Walmart, Synchrony to Capital One, October 2019. Capital One's reported charge-off rate <i>fell</i> 32 basis points on adding the book while its 30-plus delinquency rate rose, because partner loss-sharing suppresses charge-offs but not delinquency. When the loss-share ended in May 2024 the charge-off rate would have been 45 basis points higher, which by arithmetic is roughly 7 to 8% of the Walmart balances borne by Walmart each year.</li>
+<li>Apple Card, Goldman to JPMorgan, announced January 2026, about $20 billion, 24-month transition. Pre-transfer numbers are unusually well documented (Goldman card losses about double Chase's at a subprime share near Capital One's). No post-transfer data yet.</li>
+<li>Even a perfect same-account series would not isolate brand: the transfer changes the badge other lenders see, lets the new issuer reset the line, changes the card's usefulness, changes collections, and restarts the charge-off clock through fair-value marks.</li>
+</ul>
+
+<h2>Which estimators the channel touches</h2>
+<p>Verdicts after both referee rounds. "Absorbed" means a borrower-by-month fixed effect removes it; the assumption behind that is that liquidity enters every card's delinquency the same way, which is an assumption, not a theorem.</p>
+<div class="wrap">
+<table>
+<tr><th style="width:26%">Estimator</th><th style="width:14%">Free-riding</th><th>Why, and what is still mixed in</th></tr>
+<tr><td>(a) Trust pools at constant FICO mix <span class="note">(abs-risk track A)</span></td><td><span class="tag x">touched</span></td><td>Averages over different people, so every person-level term differs between pools, including badge-induced liquidity. It lands in "entry", the same place the page put selection. The page's decomposition has no transition structure, so it cannot say the channel leaves conversion alone either. Size for the prime Amex book: probably small, sign protective; for near-prime books: opposite sign. Still mixed in: selection, terms, product (charge cards), issuer charge-off and re-aging policy, seasoned securitized pools rather than the book.</td></tr>
+<tr><td>(b) People with vs without an Amex, delinquency on their other cards</td><td><span class="tag x">touched</span></td><td>Sum of selection on unobservables, badge-induced liquidity on the other cards, and the substitution the halo itself would create (if the Amex is protected the other cards slip <i>first</i>). The last two have opposite signs for prime borrowers. Even the sign of the total says nothing.</td></tr>
+<tr><td>(c) Within person, across cards, no time effects</td><td><span class="tag x">touched</span></td><td>Liquidity varies by month and the badge is acquired when the person is doing well; other lenders' line increases arrive after it. The issuer dummy picks up that timing. Plausible mechanism, unmeasured.</td></tr>
+<tr><td>(d) Within person, within month, issuer dummy</td><td><span class="tag a">person part absorbed</span></td><td>Anything indexed by person and month is removed, including the whole badge &rarr; lines &rarr; liquidity path. Two residues survive. First, the badge-induced line lands on a <i>specific</i> other card, which raises that card's room and lowers its balance share; if borrowers protect cards with room, that pushes the Amex to slip first, so free-riding biases the Amex "priority" coefficient toward zero or negative. For subprime wallets this card-level part is the main part, not a residue. Second, the sample: this needs spells where one card is late and another is not; the Antoniou et al. sample (all cards late in the same month) is exactly where "first" is a tie. No published paper has run this design with an issuer dummy.</td></tr>
+<tr><td>(e) Same, plus line and balance controls</td><td><span class="tag a">person part absorbed</span></td><td>Changes the estimand to "label at fixed terms". Contemporaneous lines are outcomes of the spell (other cards' limits fall about &pound;700 after a default), so use lines from months before the spell or the issuer's own line cutoffs.</td></tr>
+<tr><td>(f) Discontinuity at the premium issuer's approval cutoff, outcomes on other lenders' accounts</td><td><span class="tag a">measures it</span></td><td>The channel is the estimand here, not a nuisance. Needs a comparison cutoff at a non-premium lender with a similar line to separate "the name" from "any new $10,000 line lowers utilization". Amex's cutoff is internal.</td></tr>
+<tr><td>(g) Portfolio transfer, same accounts, new brand</td><td><span class="tag x">touched</span></td><td>The furnisher name changes on every other lender's screen the same day. Plus the five confounds under Link 3.</td></tr>
+</table>
+</div>
+
+<h2>What the referees cut</h2>
+<p>Both formalizations were marked refuted. The corrections that changed the verdict:</p>
+<ul>
+<li><b>Sign.</b> Both drafts assumed more available credit lowers delinquency for everyone. The only causal evidence says the opposite below 700 and roughly zero above 740. Dropped: "works in the same direction as selection" as a general statement.</li>
+<li><b>Type, not name.</b> Every measured label effect is a lender <i>type</i> (consumer finance, payday, a bankruptcy flag) or a visibility change. No evidence shows a model reading "American Express" as a name. Amex-to-Citi (Costco) was bankcard-to-bankcard with no type change, so the label channel in that transfer is plausibly nil.</li>
+<li><b>Estimand slippage.</b> A difference in means across people is not "biased" by one of its own components. The right sentence is that the abs-risk <i>interpretation</i> of the gap is unidentified, which was already true.</li>
+<li><b>Wrong sample.</b> The Antoniou et al. design was cited as if it measured which card slips first; it studies borrowers who go late on several cards in the same month, which is where "first" is a tie.</li>
+<li><b>Proof by construction.</b> "Absorbed exactly" holds only if liquidity enters every card the same way. A charge card that must be paid in full, or a card used for groceries, breaks that.</li>
+<li><b>Unanchored size.</b> The average borrower in the Agarwal et al. bureau sample holds 11 cards and $33,533 of limits. A badge that adds "a few thousand dollars" elsewhere is a small share of that, before multiplying by a near-zero prime elasticity.</li>
+</ul>
+
+<h2>A bound on the channel's size in the Amex gap</h2>
+<p>Illustrative only. It uses the Chile visibility effect as a stand-in for a premium badge, and Agarwal et al.'s own-card estimate as a stand-in for the cross-card effect. Both substitutions are generous to the channel.</p>
+<table>
+<tr><th>Step</th><th>Assumption</th><th class="num">Number</th></tr>
+<tr><td>Other lenders' lines for a prime badge holder</td><td>6.7% of mean total limits above 740 ($44,813)</td><td class="num">about $3,000</td></tr>
+<tr><td>Change in 60+ days late within 48 months</td><td>&minus;0.32 pp per $1,000, above 740</td><td class="num">about &minus;1.0 pp</td></tr>
+<tr><td>Same, using the 90+ estimate</td><td>&minus;0.17 pp per $1,000, not significant</td><td class="num">about &minus;0.5 pp, or nothing</td></tr>
+<tr><td>Observed entry gap in the trusts</td><td>30+ share of balances, mean of 92 months</td><td class="num">Amex 0.74% vs Synchrony 2.54%</td></tr>
+</table>
+<p class="note">Table VI, checked against the published paper: above 740, 60-plus at 48 months is &minus;0.32 [&minus;0.61, &minus;0.05] and 90-plus is &minus;0.17 [&minus;0.45, 0.07]; the authors describe the highest group's effect as "close to zero". Baseline rates are published only for the lowest group. Average total limits across all cards at the typical cutoff are $33,533, rising with FICO.</p>
+<p>The gap in the last row is raw. The trusts' own FICO tables (Amex 56% of receivables at 760 and above, Synchrony 24% at or below 659) have not been applied, so the residual the channel would need to explain is smaller than the 0.29 ratio and has not been computed. A one-point drop in four-year cumulative delinquency is a real number, but it is a fraction of a 71% relative gap in a monthly stock, and it applies only to the prime slice. Under the 90+ estimate it is not distinguishable from zero. So the channel can be part of the Amex entry advantage; it cannot be most of it. For a near-prime book the same arithmetic runs the other way.</p>
+
+<h2>The public-data test: other lenders' lines carry information beyond FICO</h2>
+<p>Lending Club accepted loans, 2007 to 2018Q4, downloaded without a login from a DePaul University mirror. Sample: 36-month loans issued 2012 to 2017 that ended Fully Paid or Charged Off, 917,334 loans, charge-off rate 16.3%. The regressor of interest is the total bankcard limit other lenders had granted the borrower, as recorded on the bureau file at origination. Held-out AUC on a 30% split; logistic regression by Newton steps.</p>
+<div class="wrap">
+<table>
+<tr><th>FICO tier</th><th class="num">Loans</th><th class="num">Charge-off</th><th class="num">AUC, FICO only</th><th class="num">AUC, FICO + other lenders' bankcard fields</th><th class="num">AUC, bankcard fields only</th><th class="num">Odds ratio per +10% limit</th></tr>
+<tr><td>All</td><td class="num">917,334</td><td class="num">16.3%</td><td class="num">0.600</td><td class="num">0.605</td><td class="num">0.576</td><td class="num">0.989</td></tr>
+<tr><td>660 to 699</td><td class="num">576,517</td><td class="num">19.5%</td><td class="num">0.539</td><td class="num">0.546</td><td class="num"></td><td class="num">0.993</td></tr>
+<tr><td>700 to 739</td><td class="num">248,749</td><td class="num">12.4%</td><td class="num">0.547</td><td class="num">0.572</td><td class="num"></td><td class="num">0.979</td></tr>
+<tr><td>740 and above</td><td class="num">92,068</td><td class="num">7.0%</td><td class="num">0.562</td><td class="num">0.626</td><td class="num">0.609</td><td class="num">0.965</td></tr>
+</table>
+</div>
+<p>The plain cross-tab says the same thing without a model. Charge-off rate by quintile of other lenders' bankcard limit, cut inside each tier:</p>
+<table>
+<tr><th>FICO tier</th><th class="num">Lowest limit quintile (median limit)</th><th class="num">Highest quintile (median limit)</th><th class="num">Spread</th></tr>
+<tr><td>660 to 699</td><td class="num">21.7% ($3,300)</td><td class="num">17.2% ($33,500)</td><td class="num">1.3&times;</td></tr>
+<tr><td>700 to 739</td><td class="num">15.6% ($5,500)</td><td class="num">9.7% ($55,100)</td><td class="num">1.6&times;</td></tr>
+<tr><td>740 and above</td><td class="num">10.8% ($8,900)</td><td class="num">4.7% ($80,000)</td><td class="num">2.3&times;</td></tr>
+</table>
+<ul>
+<li>Robust to restricting to fully matured 2012 to 2015 vintages with year dummies (740+: AUC 0.566 to 0.638), and to adding self-reported income, debt-to-income and loan size (740+: 0.619 to 0.653). The limit coefficient barely moves under those controls.</li>
+<li>Inside a tier FICO has little variance, so its within-tier AUC and coefficient are mechanically deflated; "the limit beats FICO within 740+" is not a fair reading. The quintile spread and the survival of the coefficient under income controls are the fair readings. The limit was also an input to Lending Club's own grade, so the direct free-riding test (does the grade load on other lenders' limits, and does the limit still predict default within grade) is available in this file and was not run.</li>
+<li>The sign is the "good signal" sign in every tier, including 660 to 699, where Agarwal et al. show an <i>exogenous</i> limit increase raises own-card default. In observational data the selection content of other lenders' lines swamps any causal harm from the credit itself.</li>
+<li>The outcome is on a different product from the signal (an installment loan; bankcard lines), which is the shape of the user's chain: lender A's decision carries information about repayment at lender B.</li>
+</ul>
+<p><b>What it does not show.</b> It is a cross-section, so it cannot separate three stories that all give this sign: other lenders screened on something the score misses; more available credit is a cushion; the limit proxies for wealth the bureau sees better than Lending Club does. It carries no issuer names, so it says nothing about "Amex" as a badge. FICO here is floored at 660 and banded, so FICO-only AUCs are low and the gains are flattered; the within-tier comparisons are the fair reading. Lending Club saw this field at underwriting, so this is not hidden information; it is what any model that free-rides would exploit. Scripts and results: <code>scratchpad/freeride-data/freeride_test.py</code>, <code>freeride_robust.py</code>, <code>results*.json</code>.</p>
+
+<h2>Simulation of the bias</h2>
+<p>Monte Carlo, 200,000 people, 12 months, two to four cards each, five seeds. The world contains: a FICO score; issuer selection on a private signal beyond FICO (switchable); a true brand-protection term (switchable, default zero); the free-riding channel, where other issuers raise lines by a set share when a premium badge is present (0.10, assumed; the Chile visibility effect is 0.067 and bankruptcy-flag removal is 0.50); line endogeneity between issuers; and delinquency that responds to liquidity and debt burden by FICO tier, calibrated so that a $1,000 line increase reproduces the Agarwal et al. pattern (large and harmful below 660, near zero above 740). Units: monthly 30-plus entry, percentage points; negative means the premium card or its holders' other cards look <i>less</i> delinquent.</p>
+<p><b>Spurious "brand effect" each estimator reports when the true brand effect is zero</b>, measured as the shift against the same estimator in a clean world:</p>
+<div class="wrap">
+<table>
+<tr><th>Estimator</th><th class="num">Free-riding only, prime holders (cutoff 680, share 0.10)</th><th class="num">Free-riding only, holders include subprime (cutoff 620, share 0.25)</th><th class="num">Selection only, no free-riding</th></tr>
+<tr><td>(a) pool-level at constant FICO mix</td><td class="num">&minus;0.009</td><td class="num">&minus;0.017</td><td class="num"><b>&minus;0.330</b></td></tr>
+<tr><td>(b) with vs without badge, other cards, FICO-controlled</td><td class="num">&minus;0.001</td><td class="num"><b>+0.039</b></td><td class="num"><b>&minus;0.420</b></td></tr>
+<tr><td>(c) within person, no time effects</td><td class="num">&minus;0.008</td><td class="num">&minus;0.041</td><td class="num">&minus;0.033</td></tr>
+<tr><td>(d) person &times; month fixed effects, issuer dummy <span class="note">(hierarchy-sample scale)</span></td><td class="num">&minus;0.50</td><td class="num">&minus;1.64</td><td class="num">&minus;0.92</td></tr>
+<tr><td>(e) same, plus pre-spell line and balance controls</td><td class="num">&minus;0.03</td><td class="num">+0.12</td><td class="num">&minus;1.00</td></tr>
+<tr><td>(f) approval-cutoff discontinuity, other cards</td><td class="num">+0.017</td><td class="num"><b>+0.164</b></td><td class="num">+0.057</td></tr>
+</table>
+</div>
+<p class="note">Base rates in the clean world: premium cards 0.66% per month, non-holders 1.60%. Monte Carlo standard errors: 0.002 to 0.006 for (a) to (c), about 0.06 to 0.15 for (f), 0.2 to 0.6 for (d) and (e). Rows (d) and (e) are on the "share of late cards in a mixed month" scale and are not comparable to the other rows. Files: <code>freeride-sim/freeride_sim.py</code>, <code>results.csv</code>, <code>results.md</code>.</p>
+<ul>
+<li><b>Free-riding adds almost nothing to the pool and cross-section gaps for prime holders.</b> Under 0.01 point on a 0.66 point base, about one percent. Selection alone adds a third of a point, roughly half the base. Selection is the contaminant, and it is fifty to a hundred times larger.</li>
+<li><b>Where the channel is nonzero it has the wrong sign for a halo.</b> Let subprime borrowers hold the badge and free-riding <i>raises</i> their other cards' delinquency (the extra lines become debt), so the badge holders look worse, not better. The cross-section flips sign and the cutoff discontinuity widens the wrong way.</li>
+<li><b>The within-person estimator is protected.</b> Without time effects the shift is under 0.01 point against a true brand effect of 0.34 points; with person-by-month effects the person-level path is gone by construction. What survives in (d) is the card-level footprint, half a point to a point and a half on the hierarchy scale, and pre-spell line and balance controls take it out.</li>
+<li><b>The biggest thing in a raw hierarchy estimate is not brand and not free-riding.</b> With every channel off and a zero brand term, estimator (d) still reports that the premium card slips first 3.3 points more often, because it carries the largest balance share and repayments follow balance share. That is the difference between the raw ranking and the brand ranking, and it exists in every world.</li>
+<li><b>Assumed, not measured:</b> the free-riding share, the inter-issuer line response, the borrower's weight on spare room versus balance share, and an additive index with the same liquidity coefficient on every card. The cross-card liquidity effect is borrowed from own-card estimates. Post-spell line cuts are not simulated. So the simulation shows the channel is small <i>if</i> own-card effects transfer; it does not refute anything on its own. And "controls remove the residue to within noise" rests on Monte Carlo errors of 0.4 to 0.9 against residues of 0.5 to 1.0, which is low power, not demonstrated removal.</li>
+</ul>
+
+<h2>Referee votes on the four synthesized claims</h2>
+<p>Four claims were synthesized from the formalizations, the evidence and the computations, and each was put to three referees with different lenses (identification, credit-risk practice, sign and magnitude). <b>All twelve votes were "refuted", in every case for overstatement rather than direction.</b> The corrected statements, which are what this memo now stands on:</p>
+<table>
+<tr><th style="width:34%">As first written</th><th>As corrected by the referees</th></tr>
+<tr><td>Free-riding creates a third channel that biases pool-level and cross-sectional issuer comparisons, including the abs-risk residual.</td><td>If other lenders read a premium tradeline and raise lines, which is unmeasured for any positive brand and documented only for lender type and negative labels, the resulting person-level liquidity term enters every card's delinquency and is indistinguishable from selection in pool and FICO-controlled cross-section comparisons. It names one more component of an identification failure that already existed. Calibrated to Agarwal et al., it is below 0.02 points for prime holders against about 0.3 from selection.</td></tr>
+<tr><td>A within-person, within-month design is immune to the channel, so the user's claim is false for that design.</td><td>A borrower-by-month first-to-30-plus estimator (not the Antoniou et al. design, whose sample is months when all cards go late together and so cannot rank them) absorbs the person-month liquidity level only under an additive index with the same coefficient on every card and a brand effect that is the same for everyone. If the halo differs by borrower, the channel still changes who enters the mixed-month sample. The badge's effect on other cards' lines and balance shares is not absorbed, and it biases the measured premium-card priority toward zero.</td></tr>
+<tr><td>Even the within-person design leaves brand and line entangled because every lender reads every other lender; only approval discontinuities plus portfolio transfers separate them.</td><td>The within-person design identifies the raw ranking cleanly. What stays entangled is the split of that ranking into brand and terms, an ordinary mediator problem that would exist without free-riding: lines carry the issuer's private signal and respond to the spell itself. Pre-spell controls make the brand coefficient a bound of unmeasured width, not a point estimate. Line-cutoff discontinuities inside one issuer are the tool; portfolio transfers do not hold the line fixed.</td></tr>
+<tr><td>The channel's magnitude cannot be established from public data.</td><td>One parameter is unmeasured: how much other lenders raise lines for a positive premium badge. Everything else is published, so the channel can be bounded without new data. At the largest documented positive label effect ($1,510 of limits from bankruptcy-flag removal) times the prime line effect (&minus;0.32 points per $1,000 over 48 months), the channel is about half a point of cumulative 60-plus delinquency. A point estimate needs a tradeline panel with lender identity or an approval-cutoff design at a premium issuer.</td></tr>
+</table>
+
+<h3>What the completeness critic found missing or overclaimed</h3>
+<ul>
+<li><b>The FICO-mix adjustment was never done, and the inputs are in the repo.</b> Every part of the argument says "at the same FICO"; the abs-risk ratios are raw. The prospectus FICO tables per trust are in the composition file, and public Y-14M aggregates from the Philadelphia Fed give 30-plus delinquency by score band. Expected-versus-actual per trust is an afternoon's work and may move the Amex-to-Synchrony ratio from 0.29 toward 0.6 or 0.8, in which case most of the "issuer effect" was never there to explain.</li>
+<li><b>The transition data exist and were not used.</b> The monthly file carries dollar delinquency buckets per trust. Stock-to-stock roll rates by rung and by year would show whether Amex's advantage is only at entry (selection and priority stay tied) or at every rung, and whether the gap compressed in the 2020 to 2021 stimulus period and re-widened after, which is what a liquidity story predicts.</li>
+<li><b>"Conversion" is not a cure rate.</b> Charge-off flow over 90-plus stock moves with bankruptcy write-offs that bypass the ladder, with charge-off timing policy, and with bucket edges that differ by trust (Citi's start at 31 days; Amex's top bucket is an open 120-plus while others carry 180-plus). The sign argument against priority is unearned until roll rates are built.</li>
+<li><b>Forty-two percent of Amex trust receivables are "no pre-set spending limit" pay-over-time balances.</b> Whether those tradelines enter other lenders' utilization and total-limit attributes at all was asserted from memory and never checked. It bears directly on the first leg for the largest premium issuer, in either direction.</li>
+<li><b>Walmart moved from Synchrony to Capital One inside the sample window</b> (October 2019). Nobody checked whether those accounts sat in either trust; a break in principal receivables would show it.</li>
+<li><b>The direct free-riding test on Lending Club was not run</b> (grade on other lenders' limits, then default on limits within grade). Home Credit's monthly other-lender status file, 27 million rows, would support a within-person, within-month first-to-late estimator by tradeline type, a public feasibility test of the design that has no published instance.</li>
+<li><b>Two mis-statements in the packet.</b> Gathergood et al. 2019 is a within-person, within-month, across-card estimator (of repayment allocation); the missing object is narrower: first-to-30-plus with an issuer term. And "Costco carried no free-riding change" was asserted; the furnisher, limit reporting and product all changed on one day for eleven million accounts, so the direction is unknown, not plausibly zero.</li>
+<li><b>A modest purchase was never priced.</b> A custom bureau aggregate cut (30-plus rate on bankcard tradelines by lender type, score band, and "also holds a national-bank charge or premium tradeline") is a standard product from any of the three bureaus. Subscriber names would still be withheld; type-level is what money can buy.</li>
+</ul>
+
+<h2>What would settle it</h2>
+<ul>
+<li><b>First, on the repo's own data, no purchase.</b> Mix-adjust each trust's 30-plus share using its prospectus FICO table and the Philadelphia Fed's public Y-14M delinquency by score band, and build roll-rate ladders per trust by year from the bucket data. Those two scripts decide whether there is an issuer residual worth attributing to anything.</li>
+<li><b>Leg 1, the free-riding coefficient.</b> Cleanest and available to any issuer today: score the applicant book with the live model, then again with lender-type and lender-name attributes neutralized; the change in approvals and assigned lines, by FICO band, is the coefficient by construction. Otherwise: an approval-cutoff discontinuity at a premium issuer with other lenders' lines as the outcome, against the same design at a non-premium issuer with a similar line. Or a portfolio transfer with the same people's <i>other</i> tradelines observed before and after in a bureau archive.</li>
+<li><b>Leg 2, the cross-card elasticity.</b> Agarwal et al.'s line discontinuities with outcomes read on the person's other tradelines. Needs a bureau or consortium panel with lender identity: Argus/TransUnion "full wallet", Experian, or the UK FCA panel behind Gathergood et al.</li>
+<li><b>Hierarchy proper.</b> Design (d) on such a panel with the outcome "which card went 30 days late first" in spells where at least one card stayed current, an issuer label, and lines and balance shares from three to six months before the spell. The gap between the label coefficient with and without those pre-spell controls is the free-riding residue; the coefficient with them is the brand ranking.</li>
+<li><b>For abs-risk now.</b> Reword the conclusions page: "the advantage sits at entry; entry cannot tell selection, priority, terms, or other lenders' reactions apart." Keep the conversion table as a bound on the rescue story only. Add the Costco 2016 mix shift as a scope note on the Amex series.</li>
+</ul>
+
+<h2>Sources</h2>
+<ul class="src">
+<li>Agarwal, Chomsisengphet, Mahoney, Stroebel, "Do Banks Pass Through Credit Expansions to Consumers Who Want to Borrow?", QJE 2018. <a href="https://pages.stern.nyu.edu/~jstroebe/PDF/ACMS_Passthrough.pdf">PDF</a></li>
+<li>Liberman, Paravisini, Pathania, "High-Cost Debt and Perceived Creditworthiness: Evidence from the UK", JFE 2021. <a href="https://files.consumerfinance.gov/f/documents/100_Liberman_HighCostCreditAndBorrowerReputation....pdf">working paper</a> · <a href="https://www.sciencedirect.com/science/article/abs/pii/S0304405X21003299">journal</a></li>
+<li>Foley, Hurtado, Liberman, Sepulveda, "The Effects of Information on Credit Market Competition: Evidence from Credit Cards". <a href="https://www.aeaweb.org/conference/2019/preliminary/paper/rsHZaEYz">AEA 2019</a></li>
+<li>Dobbie, Goldsmith-Pinkham, Mahoney, Song, "Bad Credit, No Problem?", J. Finance 2020. <a href="https://www.newyorkfed.org/medialibrary/media/research/staff_reports/sr795.pdf">NY Fed staff report</a></li>
+<li>Antoniou, Lyman, Pagel, Stewart, "Opportunistic Borrowing in the Credit Card Market", Nov 2025. <a href="https://www.aeaweb.org/conference/2026/program/paper/GSdFHD5h">AEA 2026</a></li>
+<li>Gathergood, Mahoney, Stewart, Weber, "How Do Individuals Repay Their Debt? The Balance-Matching Heuristic", AER 2019. <a href="https://www.aeaweb.org/articles?id=10.1257%2Faer.20180288">AEA</a></li>
+<li>Andersson, Chomsisengphet, Glennon, Li, "The Changing Pecking Order of Consumer Defaults", JMCB 2013. <a href="https://ideas.repec.org/a/wly/jmoncb/v45y2013i2-3p251-275.html">RePEc</a></li>
+<li>Aydin, "Consumption Response to Credit Expansions", AER 2022. <a href="https://www.aeaweb.org/articles?id=10.1257%2Faer.20191178">AEA</a></li>
+<li>Dobbie and Song, "Targeted Debt Relief and the Origins of Financial Distress", AER 2020. <a href="https://www.aeaweb.org/articles?id=10.1257%2Faer.20171541">AEA</a></li>
+<li>Cohen-Cole and Morse, "Your House or Your Credit Card, Which Would You Choose?", Boston Fed 2009. <a href="https://www.bostonfed.org/-/media/Documents/Workingpapers/PDF/qau0905.pdf">PDF</a></li>
+<li>Bhutta, "Payday Loans and Consumer Financial Health", FEDS 2013-81. <a href="https://www.federalreserve.gov/pubs/feds/2013/201381/201381pap.pdf">PDF</a></li>
+<li>Hertzberg, Liberti, Paravisini, "Public Information and Coordination", J. Finance 2011. <a href="https://web-docs.stern.nyu.edu/salomon/docs/conferences/Hertzberg-Liberti-Paravisini.pdf">PDF</a></li>
+<li>Bord, Kovacs, Moran, "Automated Credit Limit Increases and Consumer Welfare", FEDS 2025-088. <a href="https://www.federalreserve.gov/econres/feds/files/2025088pap.pdf">PDF</a></li>
+<li>FICO reason codes (Fair Isaac). <a href="https://www.trudiligence.com/docs/ficoscorefactors.pdf">PDF</a></li>
+<li>Amex Fixed Income Presentation, July 2016 (Costco trust removal, $3.0B additions). <a href="https://s26.q4cdn.com/747928648/files/doc_presentations/989817db-4a5e-e66f-16fd-391fe8a22d31.pdf">PDF</a></li>
+<li>Citigroup Q3 2016 10-Q (Costco: zero losses in first quarter). <a href="https://www.citigroup.com/rcs/citigpa/storage/public/q1603c.pdf">PDF</a></li>
+<li>Capital One Q4 2019 call (Walmart loss-share and charge-off rate). <a href="https://www.fool.com/earnings/call-transcripts/2020/01/21/capital-one-financial-corp-cof-q4-2019-earnings-ca.aspx">transcript</a> · <a href="https://www.paymentsdive.com/news/walmart-capital-one-credit-card-discover-payments/717135/">May 2024 termination</a></li>
+<li>Lending Club data (DePaul mirror). <a href="https://bigblue.depaul.edu/jlee141/econdata/LendingClub_LoanData/">directory</a></li>
+<li>Philadelphia Fed Large Bank Credit Card data (public Y-14M aggregates; delinquency by score band, no bank breakouts). <a href="https://www.philadelphiafed.org/surveys-and-data/large-bank-credit-card-and-mortgage-data">page</a></li>
+<li>Bhutta, Skiba, Tobacman on US payday loans and credit scores; Musto 2004; Bos and Nakamura; Garmaise and Natividad; Sutherland 2018; Foley et al. Chile; Bonomo et al. Brazil: cited in the evidence sweep files under <code>abs-risk/design/freeride/</code>.</li>
+<li>Gibbs, Guttman-Kenney, Lee, Nelson, "A Guide to Consumer Credit Reporting Data", AEA 2023 (which panels carry lender keys). <a href="https://bguttmankenney.github.io/Public/AEA23Guide.pdf">PDF</a></li>
+<li>abs-risk conclusions page and methods: <code>C:/Users/samwe/code/abs-risk/docs/conclusions.html</code>, <code>design/methods.md</code>.</li>
+</ul>
+</main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+Sample N = 917,334, charge-off 16.30%
+
+A. HOW MUCH OF THE SIGNAL DID LC'S GRADE ABSORB?
+   coefficient on log(total_bc_limit+1), controlling FICO + year FE  : -0.1556 (SE 0.0035)
+   same, controlling 35 sub_grade dummies + year FE (residual)       : -0.0879 (SE 0.0035)
+   => share of the FICO-conditional signal absorbed by the grade     : 43.5%   (left unpriced: 56.5%)
+
+B. BREAK-EVEN ARITHMETIC, PER DOUBLING OF OTHER-LENDER BANKCARD LIMIT
+   (evaluated at the sample charge-off rate 16.30%; annualised = cumulative / 1.5 years)
+   total loss gap  (FICO-conditional): -1.418 pp cumulative -> required APR spread 95 bps/yr
+   residual loss gap (within sub_grade): -0.815 pp cumulative -> still-required APR spread 54 bps/yr
+   APR spread LC actually charged (coef -0.5240 pp/doubling)        : 52 bps/yr
+   => LC priced 55% of what the loss gap required; shortfall 42 bps/yr per doubling
+
+   LGD sensitivity (share of original principal actually lost per charge-off):
+     LGD 1.00: required total 95 bps, still-required residual 54 bps, charged 52 bps -> shortfall +42 bps/yr
+     LGD 0.75: required total 71 bps, still-required residual 41 bps, charged 52 bps -> shortfall +19 bps/yr
+     LGD 0.65: required total 61 bps, still-required residual 35 bps, charged 52 bps -> shortfall +9 bps/yr
+     LGD 0.50: required total 47 bps, still-required residual 27 bps, charged 52 bps -> shortfall -5 bps/yr
+
+C. HEADLINE CROSS-TAB WITH STANDARD ERRORS (Q1 vs Q5 within letter grade)
+grade      n Q1    n Q5   Q1 CO%   Q5 CO%  diff pp   SE pp      t   dAPR pp   gap bps   gap SE
+A        40,052  39,782     7.46     4.72     2.74    0.17   16.2      0.64       118       11
+B        62,792  62,205    13.79    11.55     2.24    0.19   11.9      0.39       110       13
+C        51,107  50,424    21.28    19.43     1.85    0.25    7.3      0.11       112       17
+D        22,958  22,509    27.12    27.00     0.12    0.42    0.3     -0.12        20       28
+E         6,712   6,514    33.19    32.79     0.40    0.82    0.5     -0.67        94       55
+F         1,362   1,338    38.03    37.82     0.21    1.87    0.1     -1.25       139      125
+G           278     276    52.52    39.86    12.66    4.20    3.0     -1.25       969      280
+
+D. WHERE THE MONEY IS (grades A-C = the investment-grade part of the book)
+   A-C principal $9.75bn of $11.66bn total (83.6%)
+   bottom-limit quintile inside A-C: n=153,951, $1.33bn, charge-off 14.63% vs top quintile 12.37%
+   principal-weighted shortfall on the A-C bottom quintile: 113 bps/yr on $1.33bn
+   annual dollar value at 100% LGD: $15m per year; at 65% LGD: $10m per year
+   (over the ~1.5y average life that is $23m / $15m of lifetime value on this vintage set)
+
+E. COARSENESS PROBE: replace 35 sub_grade dummies with a smooth quadratic in
+   the actual APR (a finer, continuous read of LC's own price)
+   log_bc coefficient = -0.0944 (z -27.1) vs -0.0879 with sub_grade dummies

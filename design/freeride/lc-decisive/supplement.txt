@@ -1,0 +1,45 @@
+==============================================================================
+SUPPLEMENT 1 - the pre-registered OTHER-LENDER class split into its three named
+sub-kinds. Only LIMITS-GRANTED is the free-riding construct ('other lenders
+extended this person a big line, so they vouched for him').
+==============================================================================
+sub-kind               n  median rank  mean |Q5-Q1|                  signs
+APPROVAL-TIMING        5          7.0         1.997          5 up / 0 down
+ACCOUNTS-APPROVED     11         19.0         1.865         1 up / 10 down
+BORROWER-OWN-STATE    26         28.5         0.994         17 up / 9 down
+LIMITS-GRANTED         4         38.5         0.520          2 up / 2 down
+
+LIMITS-GRANTED fields, individually (this is the free-riding construct):
+field                           rank     Q5-Q1    clSE        t   bps/yr
+tot_hi_cred_lim                   24    +1.215   0.109   +11.19      +95
+total_il_high_credit_limit        35    -0.453   0.102    -4.45      -35
+total_bc_limit                    42    +0.254   0.113    +2.25      +20
+total_rev_hi_lim                  44    -0.159   0.120    -1.33      -12
+
+==============================================================================
+SUPPLEMENT 2 - does total_bc_limit survive conditioning on acc_open_past_24mths?
+==============================================================================
+cells = sub_grade x year x FICO band                  : Q5-Q1(bc limit) +0.254 /$100 (cl SE 0.113, t +2.25), N=581,092, cells=585
+cells = ... x acc_open_past_24mths quintile           : Q5-Q1(bc limit) +0.631 /$100 (cl SE 0.094, t +6.74), N=570,874, cells=2,043
+-> 249% of the bankcard-limit spread remains once the cell also holds recent third-party approvals fixed.
+REVERSE: acc_open_past_24mths spread -4.740 -> -4.691 /$100 (cl SE 0.106, t -44.41) once the cell also holds the bankcard-limit quintile fixed (99% survives).
+
+==============================================================================
+SUPPLEMENT 3 - headline statistic by LETTER GRADE (the old claim was loudest in A)
+==============================================================================
+grade         N  cells  Q5-Q1 bc limit    clSE        t   bps/yr  | acc_open_24m Q5-Q1        t
+    A   130,858    161          +0.575   0.125    +4.59      +45                -2.509   -16.03
+    B   199,820    132          +0.540   0.166    +3.25      +42                -4.020   -23.07
+    C   154,611    110          +0.277   0.285    +0.97      +22                -5.720   -27.42
+    D    71,815     85          -0.729   0.355    -2.05      -57                -7.142   -22.43
+    E    20,025     59          -0.812   0.822    -0.99      -64                -8.892   -15.23
+
+==============================================================================
+SUPPLEMENT 4 - the same headline weighted by ORIGINAL PRINCIPAL, not by loan
+==============================================================================
+   Q1: loan-weighted mean +7.936 /$100, principal-weighted +7.430 /$100, principal $1.04bn
+   Q2: loan-weighted mean +8.160 /$100, principal-weighted +7.897 /$100, principal $1.20bn
+   Q3: loan-weighted mean +8.075 /$100, principal-weighted +7.957 /$100, principal $1.39bn
+   Q4: loan-weighted mean +8.057 /$100, principal-weighted +8.167 /$100, principal $1.64bn
+   Q5: loan-weighted mean +8.184 /$100, principal-weighted +8.464 /$100, principal $2.08bn
+   principal-weighted Q5-Q1 (NO cell FE, raw) = +1.035 /$100

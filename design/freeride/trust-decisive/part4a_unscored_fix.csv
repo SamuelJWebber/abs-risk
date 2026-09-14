@@ -1,0 +1,13 @@
+treatment,strip_unscored,shape,adj_ratio
+A. previous run (all of the bottom bucket treated as scored <=599),0.0,fico_odds,0.6203414478155113
+A. previous run (all of the bottom bucket treated as scored <=599),0.0,fico_fed2007,0.6407038264813818
+A. previous run (all of the bottom bucket treated as scored <=599),0.0,acms2018,0.34972628766445185
+A. previous run (all of the bottom bucket treated as scored <=599),0.0,acms2018_dpd90,0.3808130195965726
+B. FIX: strip the other-five mean unscored share (0.0030) from the bottom bucket,0.00296633527226754,fico_odds,0.6137313269812692
+B. FIX: strip the other-five mean unscored share (0.0030) from the bottom bucket,0.00296633527226754,fico_fed2007,0.6325507718190545
+B. FIX: strip the other-five mean unscored share (0.0030) from the bottom bucket,0.00296633527226754,acms2018,0.34931449115816543
+B. FIX: strip the other-five mean unscored share (0.0030) from the bottom bucket,0.00296633527226754,acms2018_dpd90,0.3801541890378093
+C. BOUND: strip Synchrony's own worst case - the largest unscored share printed by any other trust (0.0069),0.0068665831287636,fico_odds,0.604980002755413
+C. BOUND: strip Synchrony's own worst case - the largest unscored share printed by any other trust (0.0069),0.0068665831287636,fico_fed2007,0.6217567142563624
+C. BOUND: strip Synchrony's own worst case - the largest unscored share printed by any other trust (0.0069),0.0068665831287636,acms2018,0.3487693022225987
+C. BOUND: strip Synchrony's own worst case - the largest unscored share printed by any other trust (0.0069),0.0068665831287636,acms2018_dpd90,0.37928194479686095

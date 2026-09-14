@@ -1,0 +1,79 @@
+Reading C:\Users\samwe\AppData\Local\Temp\claude\c--Users-samwe-OneDrive-Documents-codex-projects-Job-autoapply\8b3ac5c3-74cb-44aa-9894-816ca22156c2\scratchpad\freeride-data\LendingClub_2007_to_2018Q4.csv
+36-month loans issued 2012-2015: 589,635
+   Fully Paid: 506,760
+   Charged Off: 82,728
+   Current: 72
+   Late (31-120 days): 61
+   In Grace Period: 9
+   Late (16-30 days): 5
+Analysis sample (mature, complete fields): 560,980; charge-off 14.01%
+Correlation log(total_bc_limit) with log(annual_inc): 0.383
+Correlation log(total_bc_limit) with fico: 0.377
+
+=========== R1: mature 2012-2015 + year dummies ===========
+--- ALL 660+ | controls=none | n=560,980, CO 14.01% ---
+   AUC base 0.6029 -> +bankcard 0.6109 (gain +0.0080)
+   log(total_bc_limit): -0.1732/log unit (z=-30.9); OR per +10% limit 0.9836
+   standardized: fico -0.354, log_bc_limit -0.171
+--- 660-699 | controls=none | n=360,449, CO 16.73% ---
+   AUC base 0.5480 -> +bankcard 0.5579 (gain +0.0099)
+   log(total_bc_limit): -0.1329/log unit (z=-20.6); OR per +10% limit 0.9874
+   standardized: fico -0.111, log_bc_limit -0.124
+--- 700-739 | controls=none | n=150,401, CO 10.26% ---
+   AUC base 0.5519 -> +bankcard 0.5847 (gain +0.0328)
+   log(total_bc_limit): -0.2783/log unit (z=-22.7); OR per +10% limit 0.9738
+   standardized: fico -0.145, log_bc_limit -0.259
+--- 740+ | controls=none | n=50,130, CO 5.66% ---
+   AUC base 0.5664 -> +bankcard 0.6384 (gain +0.0720)
+   log(total_bc_limit): -0.4524/log unit (z=-16.6); OR per +10% limit 0.9578
+   standardized: fico -0.293, log_bc_limit -0.411
+
+=========== R2: mature 2012-2015 + year dummies + income/dti/loan controls ===========
+--- ALL 660+ | controls=income+dti+loan | n=560,980, CO 14.01% ---
+   AUC base 0.6341 -> +bankcard 0.6390 (gain +0.0049)
+   log(total_bc_limit): -0.1890/log unit (z=-30.7); OR per +10% limit 0.9821
+   standardized: fico -0.363, log_bc_limit -0.187, log_inc -0.213
+--- 660-699 | controls=income+dti+loan | n=360,449, CO 16.73% ---
+   AUC base 0.6003 -> +bankcard 0.6053 (gain +0.0051)
+   log(total_bc_limit): -0.1554/log unit (z=-22.0); OR per +10% limit 0.9853
+   standardized: fico -0.126, log_bc_limit -0.145, log_inc -0.192
+--- 700-739 | controls=income+dti+loan | n=150,401, CO 10.26% ---
+   AUC base 0.6013 -> +bankcard 0.6169 (gain +0.0156)
+   log(total_bc_limit): -0.2671/log unit (z=-19.6); OR per +10% limit 0.9749
+   standardized: fico -0.142, log_bc_limit -0.249, log_inc -0.214
+--- 740+ | controls=income+dti+loan | n=50,130, CO 5.66% ---
+   AUC base 0.6187 -> +bankcard 0.6526 (gain +0.0339)
+   log(total_bc_limit): -0.4274/log unit (z=-14.4); OR per +10% limit 0.9601
+   standardized: fico -0.269, log_bc_limit -0.388, log_inc -0.354
+
+Charge-off by other-lender bankcard limit tercile, within FICO tier x income tercile (mature sample):
+  FICO 660-699:
+     low inc  low lim : CO 21.10% (n=40,617.0)
+     low inc  mid lim : CO 20.02% (n=40,454.0)
+     low inc  high lim: CO 19.17% (n=39,668.0)
+     mid inc  low lim : CO 17.35% (n=40,723.0)
+     mid inc  mid lim : CO 16.58% (n=39,570.0)
+     mid inc  high lim: CO 15.66% (n=39,928.0)
+     high inc low lim : CO 15.35% (n=40,021.0)
+     high inc mid lim : CO 13.18% (n=39,743.0)
+     high inc high lim: CO 12.05% (n=39,725.0)
+  FICO 700-739:
+     low inc  low lim : CO 14.46% (n=17,039.0)
+     low inc  mid lim : CO 12.56% (n=16,687.0)
+     low inc  high lim: CO 12.41% (n=16,734.0)
+     mid inc  low lim : CO 11.15% (n=16,846.0)
+     mid inc  mid lim : CO 9.59% (n=16,847.0)
+     mid inc  high lim: CO 9.03% (n=16,795.0)
+     high inc low lim : CO 9.49% (n=16,499.0)
+     high inc mid lim : CO 7.20% (n=16,494.0)
+     high inc high lim: CO 6.22% (n=16,460.0)
+  FICO 740+:
+     low inc  low lim : CO 10.94% (n=5,602.0)
+     low inc  mid lim : CO 7.38% (n=5,558.0)
+     low inc  high lim: CO 6.22% (n=5,550.0)
+     mid inc  low lim : CO 6.28% (n=5,768.0)
+     mid inc  mid lim : CO 4.66% (n=5,749.0)
+     mid inc  high lim: CO 3.76% (n=5,752.0)
+     high inc low lim : CO 4.92% (n=5,390.0)
+     high inc mid lim : CO 3.67% (n=5,401.0)
+     high inc high lim: CO 2.95% (n=5,360.0)

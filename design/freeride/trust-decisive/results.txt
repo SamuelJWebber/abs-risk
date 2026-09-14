@@ -1,0 +1,705 @@
+
+========================================================================================================
+PART 1 - DEDUPLICATE AND RE-BASELINE
+========================================================================================================
+
+Raw file: 554 rows, 6 trusts, 2018-12 .. 2026-07.
+
+(1a) Duplicate trust-months. Every one is an EXACT duplicate on all 13 data columns; the pairs
+     differ ONLY in source_accession / source_file, i.e. the same monthly pool report was filed
+     twice under two accession numbers. Nothing is lost by keeping one of each pair.
+
+     data columns identical within every duplicate pair: True
+
+trust      ym  recv_$bn  delinq_30plus_share  payment_rate     source_accession                   source_file
+ bofa 2018-12 29.034122             0.016799      0.186100 0001128250-19-000003                    ex99_1.htm
+ bofa 2018-12 29.034122             0.016799      0.186100 0001128250-19-000007                    ex99_1.htm
+ bofa 2020-05 22.861825             0.014623      0.170700 0001128250-20-000080                    ex99_1.htm
+ bofa 2020-05 22.861825             0.014623      0.170700 0001140361-20-015938       brhc10013466_ex99-1.htm
+ citi 2019-09 37.241400             0.015301      0.269600 0001193125-19-267586              d781375dex99.htm
+ citi 2019-09 37.241400             0.015301      0.269600 0001193125-19-302272              d681201dex99.htm
+ citi 2019-10 37.081955             0.015932      0.295800 0001193125-19-293243              d823059dex99.htm
+ citi 2019-10 37.081955             0.015932      0.295800 0001193125-19-302274              d833768dex99.htm
+comet 2019-02 24.201932             0.021602      0.309900 0001163321-19-000011  exhibit9912002-ccfeb2019.htm
+comet 2019-02 24.201932             0.021602      0.309900 0001163321-19-000015 exhibit991a2002-ccfeb2019.htm
+
+(1b) Rows dropped (the SECOND filing of each pair): 5. 554 -> 549 rows.
+       dropped  bofa       2018-12  accession 0001128250-19-000007  file ex99_1.htm
+       dropped  bofa       2020-05  accession 0001140361-20-015938  file brhc10013466_ex99-1.htm
+       dropped  citi       2019-09  accession 0001193125-19-302272  file d681201dex99.htm
+       dropped  citi       2019-10  accession 0001193125-19-302274  file d833768dex99.htm
+       dropped  comet      2019-02  accession 0001163321-19-000015  file exhibit991a2002-ccfeb2019.htm
+
+     Rows KEPT for those same months:
+       kept     bofa       2018-12  accession 0001128250-19-000003  file ex99_1.htm
+       kept     bofa       2020-05  accession 0001128250-20-000080  file ex99_1.htm
+       kept     citi       2019-09  accession 0001193125-19-267586  file d781375dex99.htm
+       kept     citi       2019-10  accession 0001193125-19-293243  file d823059dex99.htm
+       kept     comet      2019-02  accession 0001163321-19-000011  file exhibit9912002-ccfeb2019.htm
+
+(1c) Per-trust month counts after dedupe:
+    trust  months   first    last  span_months  missing
+     amex      92 2018-12 2026-07           92        0
+     bofa      92 2018-12 2026-07           92        0
+    chase      92 2018-12 2026-07           92        0
+     citi      92 2018-12 2026-07           92        0
+    comet      89 2018-12 2026-07           92        3
+synchrony      92 2018-12 2026-07           92        0
+
+     Calendar span 2018-12..2026-07 = 92 months.
+     comet missing: 2019-05, 2019-06, 2019-07
+     Months with all six trusts present (the aligned panel used everywhere below): 89  (2018-12 .. 2026-07)
+
+     THE '87 vs 90' CONTRADICTION, RESOLVED - and the referee's diagnosis of it is WRONG.
+       aligned months that fall inside one of the four regime windows: 87
+         (the aligned panel is 89; 2018-12 and 2020-03 fall in no window; 89 - 2 = 87.)
+       per-trust regime-window row counts, with duplicates and after dedupe:
+         amex       with dups  90   deduped  90
+         bofa       with dups  91   deduped  90
+         chase      with dups  90   deduped  90
+         citi       with dups  92   deduped  90
+         comet      with dups  88   deduped  87
+         synchrony  with dups  90   deduped  90
+       So the 87 was the ALIGNED (all-six-present) count and the 90 was a SINGLE TRUST'S row
+       count. They differ because COMET IS MISSING 2019-05, 2019-06 AND 2019-07 - not because
+       of the duplicates. Referee item 7 is right that the duplicates exist and right that they
+       double-weight five months; it is wrong that they explain the 87-vs-90 gap. Deduping
+       moves bofa 91->90, citi 92->90 and comet 88->87; it leaves 87 and 90 exactly where they
+       were.
+
+--------------------------------------------------------------------------------------------------------
+(1d) Which previous-run headline numbers move, and by how much
+--------------------------------------------------------------------------------------------------------
+
+     Full-sample mean 30+ share per trust:
+    trust  with_dups    deduped  abs_change  pct_change
+     amex 0.00738394 0.00738394  0.00000000  0.00000000
+     bofa 0.01312435 0.01306812 -0.00005623 -0.42843298
+    chase 0.00901536 0.00901536  0.00000000  0.00000000
+     citi 0.01302734 0.01297105 -0.00005629 -0.43206761
+    comet 0.01595428 0.01589082 -0.00006346 -0.39777822
+synchrony 0.02544742 0.02544742  0.00000000  0.00000000
+
+     RAW amex/synchrony 30+ ratio: with dups 0.290165, deduped 0.290165.
+     UNCHANGED TO ALL PRINTED DIGITS, and this is arithmetic, not luck: none of the five
+     duplicated trust-months belongs to amex or to synchrony (they are bofa x2, citi x2, comet x1).
+
+     MIX-ADJUSTED amex/synchrony ratio: also EXACTLY unchanged, provably. The adjusted ratio is
+       (a_amex / (L * S_amex)) / (a_sync / (L * S_sync)) = (a_amex / a_sync) * (S_sync / S_amex).
+     The pinning level L cancels, so the only inputs are the two unduplicated trust means and the
+     two mix-dot-shape scalars. Dedupe moves L (through bofa/citi/comet) but not the ratio.
+     Verified numerically in PART 4 below.
+
+     What DOES move: anything that averages across trusts or across months within a regime.
+   regime trust  n_with_dups  n_deduped  mean_with_dups  mean_deduped  pct_change
+pre_covid  citi           16         14      0.01573198    0.01574848  0.10483478
+pre_covid comet           12         11      0.02002234    0.01987869 -0.71743621
+ stimulus  bofa           22         21      0.01206152    0.01193956 -1.01116751
+
+     Largest absolute move in any regime x trust cell: 1.0112% (comet, pre_covid). No sign flips anywhere.
+     Roll ladder: the roll code requires (ym_t - ym_{t-1}).n == 1, so the SECOND row of each
+     duplicate pair simply produced a NaN roll and was dropped by .dropna(). The roll MEANS and
+     n's in the previous run were therefore already correct; only the level means and the month
+     counts were contaminated.
+
+========================================================================================================
+PART 2 - THE PAYMENT-RATE TEST  (the direct measure; never run before)
+========================================================================================================
+
+--------------------------------------------------------------------------------------------------------
+(2b) THE CONFOUND, STATED FIRST
+--------------------------------------------------------------------------------------------------------
+
+     Amex's payment rate is ~0.447 and Synchrony's is ~0.233. Almost none of that gap is
+     priority. It is PRODUCT DESIGN:
+       - Amex's securitised pool is dominated by charge-card-like and pay-in-full revolving
+         behaviour; a transactor repays ~100% of the balance every month by contract, not by
+         choice under stress.
+       - Synchrony is private-label/retail with deferred-interest promotional balances that are
+         DESIGNED not to amortise until the promo window ends.
+     A level difference of 2x in payment rate is therefore uninformative about priority. Every
+     test below is on CHANGES (elasticities of log payment rate to the common cycle), which
+     differences out any time-invariant product feature. A trust-specific TREND in product mix
+     is NOT differenced out; that is the residual threat and it is not testable here.
+
+     Quantifying the level confound directly is not possible from these files: no trust prints a
+     transactor/revolver split, a pay-in-full share, or a promotional-balance share. The best
+     available proxy is portfolio yield (finance charge income / receivables): a pool of
+     transactors earns little interest.
+
+    trust  mean_payment_rate  mean_yield  yield_per_unit_pr
+     amex             0.4474      0.2773             0.6199
+     bofa             0.2451      0.1878             0.7661
+    chase             0.4515      0.2244             0.4970
+     citi             0.3421      0.2071             0.6054
+    comet             0.4351      0.2610             0.5999
+synchrony             0.2332      0.2726             1.1690
+
+     Amex has the HIGHEST payment rate and a yield (0.277) barely below Synchrony's (0.273).
+     If Amex's pool were mostly transactors its yield would be far lower. So the Amex payment
+     rate is high for reasons the yield does not explain, and 'transactor mix' is a partial, not
+     a complete, account of the level. Either way the level is not evidence of priority.
+
+--------------------------------------------------------------------------------------------------------
+(2e) DENOMINATORS - what each trust's printed payment rate actually divides by
+--------------------------------------------------------------------------------------------------------
+
+     amex       principal collections / MONTHLY PAYMENT RATE implies BEGINNING TOTAL RECEIVABLES (principal + finance charge). Denominator NOT printed; inferred.
+     bofa       Collections of Principal Receivables / PRIOR MONTH PRINCIPAL RECEIVABLES.
+     chase      Principal Payment Rate: principal collections / AVERAGE POOL BALANCE (printed, verified).
+     citi       4. Principal Payment Rate, on AVERAGE PRINCIPAL over the due period (due-period days vary; trust also prints a separate Total Payment Rate).
+     comet      principal collections / ADJUSTED BEGINNING PRINCIPAL, which INCLUDES additional principal receivables added that month (an inflow in the denominator).
+     synchrony  principal collections / BOP PRINCIPAL RECEIVABLES.
+
+     CROSS-DENOMINATOR FLAGS:
+       amex vs everyone: amex is the ONLY trust whose denominator is TOTAL receivables rather
+         than PRINCIPAL receivables. Total > principal, so amex's printed rate is biased DOWN
+         relative to a principal-basis rate by roughly the finance-charge share of receivables
+         (~3% of the balance). This makes amex's LEVEL understated, not overstated - it does not
+         manufacture the amex/synchrony level gap, it shrinks it.
+       amex denominator is not printed at all; it is inferred from collections / printed rate.
+       citi's due period is not a calendar month (due_period_days varies), so citi's rate has a
+         day-count wobble the others do not.
+       comet's denominator includes same-month additions, so a month with a big pool addition
+         mechanically DEPRESSES comet's payment rate. Same denominator-dilution mechanism the
+         referee flagged for Synchrony's Dec-2019 delinquency share.
+       LEVEL comparisons across trusts are therefore not interpretable. ELASTICITIES are, so
+         long as the denominator definition is constant within a trust over time - which the
+         row labels confirm it is (identical label in the first and last month for all six).
+       Residual caveat: a denominator that is constant in DEFINITION can still move for
+         mechanical reasons (comet's additions), which is noise in that trust's elasticity.
+
+--------------------------------------------------------------------------------------------------------
+(2a) PAYMENT RATE - levels, full panel and by regime
+--------------------------------------------------------------------------------------------------------
+
+     Mean monthly payment rate:
+     regime   amex   bofa  chase   citi  comet  synchrony
+  pre_covid 0.3630 0.1917 0.3511 0.2787 0.3376     0.2109
+   stimulus 0.4045 0.2293 0.4160 0.3084 0.4224     0.2335
+normalising 0.4846 0.2654 0.4845 0.3598 0.4730     0.2460
+    squeeze 0.4909 0.2674 0.4989 0.3802 0.4581     0.2367
+ FULL PANEL 0.4474 0.2451 0.4515 0.3421 0.4351     0.2332
+
+     Same thing in logs, differenced from each trust's own pre_covid mean (so the product-feature
+     level is removed and only the CHANGE is shown). Negative = payment rate fell.
+     regime    amex    bofa   chase    citi   comet  synchrony
+  pre_covid +0.0000 +0.0000 +0.0000 +0.0000 +0.0000    +0.0000
+   stimulus +0.1084 +0.1788 +0.1696 +0.1014 +0.2243    +0.1018
+normalising +0.2891 +0.3252 +0.3220 +0.2555 +0.3374    +0.1539
+    squeeze +0.3020 +0.3328 +0.3512 +0.3108 +0.3054    +0.1152
+
+     Read the squeeze row: every trust's payment rate is ABOVE its pre-covid level in the
+     2023-07..2026-07 squeeze, and AMEX IS NOT DISTINCTIVE: amex +0.302, bofa +0.333,
+     chase +0.351, citi +0.311, comet +0.305 in logs. The odd trust out is SYNCHRONY at
+     +0.115 - the only one whose payment rate barely recovered. A priority story wants AMEX
+     to stand apart from the pack; instead the pack is tight and SYNCHRONY trails it, which
+     is equally consistent with Synchrony's promotional-balance mix being sticky (a product
+     fact, not a borrower choice). Descriptive only - the test is (2c).
+
+--------------------------------------------------------------------------------------------------------
+(2c) THE TEST - elasticity of each trust's log payment rate to the common stressor
+--------------------------------------------------------------------------------------------------------
+
+     PRE-SPECIFIED SPECIFICATION:
+       log(payment_rate_{i,t}) = a_i + b_i * X_t + e_{i,t},
+       X_t = the six-trust mean of log(30+ share) in month t  (the common stressor),
+       Newey-West Bartlett standard errors, 6 lags, one regression per trust.
+     PRIORITY predicts b_amex > b_synchrony (Amex's payment rate holds up better when stress rises).
+     SELECTION predicts b_amex = b_synchrony (only the intercepts a_i differ).
+     n = 89 aligned months, 2018-12 .. 2026-07.
+
+    trust  n    beta     se       z      p   ci_lo   ci_hi     r2
+     amex 89 -0.2285 0.1220 -1.8730 0.0611 -0.4676  0.0106 0.1296
+     bofa 89 -0.3118 0.1258 -2.4782 0.0132 -0.5584 -0.0652 0.2187
+    chase 89 -0.2687 0.1333 -2.0162 0.0438 -0.5299 -0.0075 0.1583
+     citi 89 -0.2033 0.1240 -1.6404 0.1009 -0.4463  0.0396 0.0867
+    comet 89 -0.3725 0.1110 -3.3564 0.0008 -0.5900 -0.1550 0.3753
+synchrony 89 -0.2567 0.0407 -6.3071 0.0000 -0.3364 -0.1769 0.4779
+
+     beta is d log(payment rate) / d log(common 30+ level). A NEGATIVE beta means the trust's
+     payment rate falls when the market's delinquency rises.
+
+     ROBUSTNESS (not the headline) - same regression against two other cycle definitions:
+    trust  five-trust log30 (leave-one-out)  six_mean_log30 (headline)  six_mean_logPR (leave-one-out)
+     amex                           -0.2050                    -0.2285                          1.0212
+     bofa                           -0.2997                    -0.3118                          1.1608
+    chase                           -0.2143                    -0.2687                          1.1709
+     citi                           -0.2035                    -0.2033                          1.1392
+    comet                           -0.4088                    -0.3725                          0.9982
+synchrony                           -0.2681                    -0.2567                          0.4719
+
+     Note the third column and do not skip past it. Against the leave-one-out mean PAYMENT RATE
+     cycle, Amex loads at 1.02 and Synchrony at 0.47 - Synchrony's payment rate is the LEAST
+     cyclical of the six and Amex's is middling. That is the ANTI-priority direction: if Amex
+     were protected, its payment rate would be the one that moves least with the herd. It is
+     also only a scaling statement (Synchrony's log payment rate has the smallest variance of
+     the six, so it loads low on any common factor) and I am not resting anything on it.
+
+--------------------------------------------------------------------------------------------------------
+(2d) THE DIFFERENCE REGRESSIONS - is anything AMEX-SPECIFIC there?
+--------------------------------------------------------------------------------------------------------
+
+     Regressing the DIFFERENCE directly is the right way to test b_i = b_j: it carries the
+     covariance between the two trusts' residuals, which a naive comparison of two separate
+     standard errors throws away (and, because the residuals are strongly positively correlated,
+     the naive comparison is far too conservative).
+
+       log(PR_i,t) - log(PR_synchrony,t) = a + d * X_t + e_t,  NW 6 lags.
+       d = b_i - b_synchrony.  PRIORITY (for amex) predicts d > 0.
+
+             spec  n    beta     se       z      p   ci_lo  ci_hi     r2
+ amex - synchrony 89  0.0281 0.0870  0.3236 0.7463 -0.1423 0.1986 0.0039
+ bofa - synchrony 89 -0.0551 0.0892 -0.6182 0.5365 -0.2300 0.1197 0.0178
+chase - synchrony 89 -0.0121 0.0967 -0.1247 0.9007 -0.2016 0.1775 0.0008
+ citi - synchrony 89  0.0533 0.0876  0.6086 0.5428 -0.1184 0.2250 0.0124
+comet - synchrony 89 -0.1159 0.0736 -1.5739 0.1155 -0.2601 0.0284 0.1198
+
+     AMEX minus SYNCHRONY: d = +0.0281 (se 0.0870, z = +0.32, p = 0.746),
+     95% CI [-0.1423, +0.1986].
+
+     Is Amex an outlier among the five non-Synchrony trusts? Rank of d:
+trust    beta      se       z
+ citi +0.0533 +0.0876 +0.6086
+ amex +0.0281 +0.0870 +0.3236
+chase -0.0121 +0.0967 -0.1247
+ bofa -0.0551 +0.0892 -0.6182
+comet -0.1159 +0.0736 -1.5739
+
+     Amex against every other trust one at a time (d = b_amex - b_other):
+            spec  n    beta      se       z       p
+     amex - bofa 89 +0.0833 +0.0189 +4.4041 +0.0000
+    amex - chase 89 +0.0402 +0.0242 +1.6583 +0.0972
+     amex - citi 89 -0.0252 +0.0161 -1.5661 +0.1173
+    amex - comet 89 +0.1440 +0.0271 +5.3113 +0.0000
+amex - synchrony 89 +0.0281 +0.0870 +0.3236 +0.7463
+
+--------------------------------------------------------------------------------------------------------
+(2f) ROBUSTNESS ON THE AMEX-MINUS-SYNCHRONY DIFFERENCE (never promoted to the headline)
+--------------------------------------------------------------------------------------------------------
+
+     The headline in (2c)/(2d) is a LEVELS regression on trending series. Four alternatives:
+       R1 add a linear time trend      (kills any common drift in product mix)
+       R2 first differences            (d log PR difference on d X; no trend can survive)
+       R3 squeeze window only          (2023-07..end, the regime referee item 1 says is flat)
+       R4 drop the stimulus window     (2020-04..2021-12 removed entirely)
+
+                                   spec  n    beta      se       z       p   ci_lo   ci_hi
+ R0 headline levels                | PR 89 +0.0281 +0.0870 +0.3236 +0.7463 -0.1423 +0.1986
+ R1 levels + linear trend          | PR 89 +0.0121 +0.0320 +0.3794 +0.7044 -0.0506 +0.0749
+R0 headline levels                | 30+ 89 +0.0813 +0.1495 +0.5436 +0.5867 -0.2118 +0.3744
+R1 levels + linear trend          | 30+ 89 +0.1025 +0.1145 +0.8953 +0.3706 -0.1219 +0.3268
+ R2 first differences              | PR 88 +0.5769 +0.1736 +3.3224 +0.0009 +0.2366 +0.9173
+R2 first differences              | 30+ 88 -0.5221 +0.1890 -2.7621 +0.0057 -0.8925 -0.1516
+ R3 squeeze window only            | PR 37 +0.3208 +0.1102 +2.9096 +0.0036 +0.1047 +0.5368
+R3 squeeze window only            | 30+ 37 +0.2844 +0.1571 +1.8095 +0.0704 -0.0236 +0.5924
+ R4 drop the stimulus window       | PR 68 -0.0557 +0.1043 -0.5337 +0.5936 -0.2601 +0.1488
+R4 drop the stimulus window       | 30+ 68 +0.2017 +0.1134 +1.7790 +0.0752 -0.0205 +0.4239
+
+     TWO OF THESE ARE SIGNIFICANT AND BOTH POINT THE PRIORITY WAY. I am not going to bury them,
+     and I am not going to promote them either - the headline is pre-specified. They are
+     dissected in (2g). The headline levels specification and the trend-adjusted version are
+     both flat zeros; the signs across variants do not agree; and note that R2 on the payment
+     rate (+0.58) and R2 on 30+ (-0.52) BOTH read as priority while the LEVELS versions of the
+     same two regressions (+0.03, +0.08) do not. A relationship that exists at one-month
+     frequency and vanishes in levels is the signature of a TIMING artefact, not a cycle.
+
+     REFEREE ITEM 1, QUANTIFIED: how much common-stressor variation does each window actually
+     contain? sd of X within window, and the within-window OLS trend in X:
+            window  n    sd_X  range_X  trend_per_month  trend_over_window
+         pre_covid 11 +0.0337  +0.1042          -0.0061            -0.0614
+          stimulus 21 +0.2397  +0.7519          -0.0358            -0.7151
+       normalising 18 +0.1369  +0.3707          +0.0230            +0.3918
+           squeeze 37 +0.0500  +0.1815          -0.0013            -0.0466
+FULL ALIGNED PANEL 89 +0.2211  +0.7751              NaN                NaN
+
+     The squeeze window's sd of X is a fraction of the full panel's, and its within-window
+     trend is near zero. The referee is right: a between-regime step comparison had almost no
+     stressor variation to work with. That is exactly why every test above uses the CONTINUOUS
+     monthly stressor over the whole panel instead of regime bins.
+
+--------------------------------------------------------------------------------------------------------
+(2g) CHASING THE ONE SIGNIFICANT RESULT - is the first-difference effect a cycle or a calendar?
+--------------------------------------------------------------------------------------------------------
+
+     The candidate finding: in month-to-month changes, when the market's 30+ rises, Amex's
+     payment rate falls LESS than Synchrony's (+0.58, z 3.3) and Amex's 30+ rises LESS than
+     Synchrony's (-0.52, z -2.8). Both are the priority direction. Three ways it could be fake:
+       (i)  SEASONALITY / DAY COUNT. February has 28 days and fewer collection days, so every
+            trust's payment rate dips and its 30+ jumps in a fixed monthly pattern. Trusts with
+            different due-period conventions get hit by different amounts, so a seasonal
+            difference would load onto the differenced regressor with no behaviour involved.
+       (ii) TIMING / LEAD-LAG. The six trusts do not close their due periods on the same day.
+            If Amex's series is half a month out of phase with the common series, the
+            contemporaneous difference regression picks up the phase, and the SUM of the
+            coefficients on the lead, the contemporaneous term and the lag goes back to zero.
+       (iii) A REAL short-run priority response that genuinely dies out within a year.
+     Tests: add month-of-year dummies; run the distributed lag and report the SUM; and run the
+     12-month difference, which is immune to fixed seasonality but keeps cyclical movement.
+
+                                  spec  n    beta      se       z       p
+S1 1st diff + month dummies      | PR  88 +0.2170 +0.1134 +1.9138 +0.0556
+S2 dist-lag lead  (dx_t+1)       | PR  86 -0.7991 +0.1495 -5.3433 +0.0000
+S2 dist-lag contemporaneous      | PR  86 +1.3993 +0.2256 +6.2027 +0.0000
+S2 dist-lag lag   (dx_t-1)       | PR  86 -0.6024 +0.1928 -3.1245 +0.0018
+S2 SUM of the three (long run)   | PR  86 -0.0022 +0.1056 -0.0210 +0.9833
+S3 12-month difference           | PR  77 -0.0112 +0.0453 -0.2469 +0.8050
+S1 1st diff + month dummies      | 30+ 88 -0.5113 +0.1795 -2.8487 +0.0044
+S2 dist-lag lead  (dx_t+1)       | 30+ 86 +0.3053 +0.2356 +1.2958 +0.1950
+S2 dist-lag contemporaneous      | 30+ 86 -0.8989 +0.2855 -3.1490 +0.0016
+S2 dist-lag lag   (dx_t-1)       | 30+ 86 +0.3268 +0.1635 +1.9987 +0.0456
+S2 SUM of the three (long run)   | 30+ 86 -0.2668 +0.1734 -1.5391 +0.1238
+S3 12-month difference           | 30+ 77 +0.1611 +0.2214 +0.7276 +0.4669
+S4 squeeze only + linear trend   | PR  37 +0.4129 +0.1233 +3.3482 +0.0008
+S5 squeeze only + month dummies  | PR  37 +0.1593 +0.1248 +1.2761 +0.2019
+S6 squeeze + trend + month dums  | PR  37 +0.2788 +0.1348 +2.0675 +0.0387
+S4 squeeze only + linear trend   | 30+ 37 +0.2874 +0.1600 +1.7961 +0.0725
+S5 squeeze only + month dummies  | 30+ 37 +0.6919 +0.2239 +3.0905 +0.0020
+S6 squeeze + trend + month dums  | 30+ 37 +0.7347 +0.2454 +2.9933 +0.0028
+
+     VERDICT ON THE FIRST-DIFFERENCE RESULT: IT IS A PHASE ARTEFACT, CONCLUSIVELY.
+     Payment rate, distributed lag: lead -0.799, contemporaneous +1.399, lag -0.602. The
+     contemporaneous coefficient is enormous and it is flanked on BOTH sides by large negative
+     ones. Their SUM is -0.002 with se 0.106 - a zero to three decimal places. That is exactly
+     what you get when two series carry the same information a fraction of a month out of
+     phase. The 12-month difference, which is immune to fixed seasonality and to phase but
+     keeps every bit of cyclical movement, gives -0.011 (se 0.045, z -0.25). Dead.
+     30+ ratio, same story: contemporaneous -0.899 flanked by +0.305 and +0.327, sum -0.267
+     (se 0.173, z -1.54, p 0.12); the 12-month difference is +0.161 (se 0.221, z +0.73).
+     Nothing survives once you stop asking about a single month's timing.
+
+     THE SQUEEZE-ONLY RESULT DOES NOT COLLAPSE, BUT IT CONTRADICTS ITSELF.
+     Inside 2023-07..2026-07 the common stressor X has sd 0.0500, and a linear trend plus
+     eleven month-of-year dummies explain R2 = 0.605 of it - so roughly 61% of what
+     little variation there is is calendar, not credit. What is left gives:
+       payment rate: +0.159 (z 1.28, ns) with month dummies, +0.279 (z 2.07) adding a trend
+                     -> WEAK, PRIORITY DIRECTION (Amex's payment rate holds up better).
+       30+ ratio   : +0.692 (z 3.09) with month dummies, +0.735 (z 2.99) adding a trend
+                     -> AGAINST PRIORITY. A POSITIVE coefficient here means that when stress
+                        rises inside the squeeze, Amex's delinquency rises MORE than
+                        Synchrony's, i.e. the gap COMPRESSES - the opposite of protection.
+     THE TWO MEASURES POINT OPPOSITE WAYS IN THE SAME WINDOW. A real priority mechanism cannot
+     simultaneously make Amex pay better AND go delinquent faster. This is 37 monthly
+     observations with 13 regressors, leaving 24 degrees of freedom, and Newey-West 6-lag
+     standard errors are not trustworthy at that length. I read the pair as noise, and I would
+     read it as noise whichever way it had come out - which is the point of saying so here
+     rather than after seeing the sign I liked.
+
+========================================================================================================
+PART 3 - AN HONEST POWER STATEMENT
+========================================================================================================
+
+--------------------------------------------------------------------------------------------------------
+(3a) Cyclical betas: log(30+ level) on the six-trust mean log level
+--------------------------------------------------------------------------------------------------------
+
+       log(30+_{i,t}) = a_i + beta_i * X_t + e_{i,t},  X_t = six-trust mean log 30+, NW 6 lags.
+     Because X is the mean of the six left-hand variables, the six betas average to exactly 1
+     BY CONSTRUCTION. Only the SPREAD across trusts carries information.
+
+     full panel:
+    trust  n   beta     se       z  ci_lo  ci_hi     r2
+     amex 89 1.1284 0.0674 16.7486 0.9964 1.2605 0.8905
+     bofa 89 0.8774 0.0491 17.8521 0.7811 0.9738 0.9289
+    chase 89 0.7269 0.0769  9.4586 0.5763 0.8775 0.7533
+     citi 89 1.0320 0.0506 20.4077 0.9329 1.1311 0.9563
+    comet 89 1.1881 0.0466 25.5116 1.0968 1.2794 0.9271
+synchrony 89 1.0471 0.1023 10.2366 0.8467 1.2476 0.8346
+
+     ex Dec-2019 seasoning:
+    trust  n   beta     se       z  ci_lo  ci_hi     r2
+     amex 85 1.0973 0.0606 18.1017 0.9785 1.2161 0.8911
+     bofa 85 0.8733 0.0504 17.3194 0.7745 0.9722 0.9254
+    chase 85 0.7043 0.0829  8.5004 0.5419 0.8667 0.7411
+     citi 85 1.0385 0.0515 20.1519 0.9375 1.1395 0.9555
+    comet 85 1.1988 0.0515 23.2628 1.0978 1.2998 0.9260
+synchrony 85 1.0878 0.0956 11.3739 0.9004 1.2753 0.8583
+
+     Amex vs Synchrony is tested properly in (3c): the difference regression, which is exactly
+     beta_amex - beta_synchrony with the right covariance.
+
+--------------------------------------------------------------------------------------------------------
+(3c) THE SPECIFICATION WITH NO RESEARCHER DEGREES OF FREEDOM
+--------------------------------------------------------------------------------------------------------
+
+       log( 30+_amex,t / 30+_synchrony,t ) = a + beta * X_t + e_t,  NW 6 lags.
+     No regime bins. No baseline window. No event dates. One number.
+     PRIORITY predicts beta < 0: when market stress doubles, the protected card's delinquency
+     rises LESS than the unprotected one's, so the log ratio falls.
+
+                                             spec  n   beta     se      z      p   ci_lo  ci_hi     r2
+           log(amex30+/sync30+) ~ X  [full panel] 89 0.0813 0.1495 0.5436 0.5867 -0.2118 0.3744 0.0105
+            log(amexPR/syncPR)  ~ X  [full panel] 89 0.0281 0.0870 0.3236 0.7463 -0.1423 0.1986 0.0039
+log(amex30+/sync30+) ~ X  [ex Dec-2019 seasoning] 85 0.0095 0.1324 0.0716 0.9430 -0.2499 0.2689 0.0002
+ log(amexPR/syncPR)  ~ X  [ex Dec-2019 seasoning] 85 0.0595 0.0884 0.6731 0.5009 -0.1137 0.2327 0.0185
+
+     HEADLINE: beta = +0.0813, se = 0.1495, z = +0.54, p = 0.587, 95% CI [-0.2118, +0.3744].
+
+--------------------------------------------------------------------------------------------------------
+(3b) MINIMUM DETECTABLE EFFECT
+--------------------------------------------------------------------------------------------------------
+
+     MDE at 80% power and a 5% two-sided test = (1.960 + 0.842) * SE(beta) = 2.802 * SE(beta).
+     SE(beta) is the Newey-West SE actually produced by the panel, so it already contains the
+     panel's real stressor variation and its real (serially correlated) residual noise.
+
+     Common stressor X: sd = 0.2211 log points, peak-to-trough range = 0.7751 log points
+       (a factor of 2.17 between the calmest and the worst month of the panel).
+
+                                             spec  n  se_beta  mde_beta  mde_pct_per_doubling  mde_pct_over_observed_range
+           log(amex30+/sync30+) ~ X  [full panel] 89   0.1495    0.4190               33.6967                      38.3671
+            log(amexPR/syncPR)  ~ X  [full panel] 89   0.0870    0.2436               18.3957                      20.7833
+log(amex30+/sync30+) ~ X  [ex Dec-2019 seasoning] 85   0.1324    0.3708               29.3086                      33.2987
+ log(amexPR/syncPR)  ~ X  [ex Dec-2019 seasoning] 85   0.0884    0.2476               18.7207                      21.1541
+
+     PLAIN TERMS, delinquency ratio:
+       A priority mechanism that moves the Amex/Synchrony 30+ gap by less than 33.7% per
+       DOUBLING of market-wide delinquency is invisible to this design. Over the panel's entire
+       observed stress range (a 2.17x swing) the design cannot see an effect smaller than 38.4%.
+     PLAIN TERMS, payment rate:
+       A priority mechanism that moves the Amex/Synchrony payment-rate gap by less than 18.4%
+       per doubling of market-wide delinquency is invisible here.
+
+     Compare that against the size of the thing being explained: the raw Amex/Synchrony 30+ ratio
+     is 0.290, i.e. a gap of 71.0% below parity, 1.237 in logs.
+     So the MDE per doubling of stress is 23.5% of the whole gap. A priority effect
+     worth less than about 23% of the gap per doubling of stress cannot be seen.
+
+--------------------------------------------------------------------------------------------------------
+(3d) THE STIMULUS CONTRAST AGAINST ALL THREE DEFENSIBLE BASELINES
+--------------------------------------------------------------------------------------------------------
+
+     Referee objection 2: the previous run's 'stimulus widened the gap' result rested entirely on
+     using 2019-12..2020-03 as the baseline, and that window is contaminated by a Synchrony pool
+     addition. Here is the December-2019 arithmetic, from the file:
+       2019-10  recv $  5.450bn  30-59 $    52.26m  30+ share 0.03172
+       2019-11  recv $  5.459bn  30-59 $    51.88m  30+ share 0.03297
+       2019-12  recv $  7.565bn  30-59 $    50.94m  30+ share 0.02396
+       2020-01  recv $  7.187bn  30-59 $    55.80m  30+ share 0.02603
+       2020-02  recv $  6.957bn  30-59 $    59.20m  30+ share 0.02786
+       2020-03  recv $  6.777bn  30-59 $    57.08m  30+ share 0.02807
+       receivables jumped +38.6% in one month while the 30-59 DOLLAR balance moved much less: that is denominator dilution, not credit news.
+
+
+     NOTE ON SAMPLE: this contrast involves only amex and synchrony, so it uses every month in
+     which BOTH print (92 months), not the six-trust aligned panel. That is what makes the
+     'clean 12-month pre-break window' actually 12 months rather than 9.
+
+     SIGN CONVENTION, stated so it cannot be read backwards: the quantity is
+     log(amex 30+ / synchrony 30+). Amex is far BELOW Synchrony, so this log ratio is negative
+     (about -1.1, ratio ~0.33). A POSITIVE change means the ratio moves TOWARD 1, i.e. Amex's
+     advantage SHRINKS, i.e. THE GAP COMPRESSES. Stimulus = households flush = the priority
+     mechanism is not binding, so PRIORITY predicts the gap COMPRESSES in the stimulus window
+     (positive diff). SELECTION predicts no change, because the mix difference is permanent.
+
+                              baseline  n_base  base_mean_logratio  stim_mean_logratio  diff_log     se       z      p  pct_change_in_ratio  pct_change_ratio_of_means                           direction
+      clean_pre_break_2018-12..2019-11      12             -1.1867             -1.0910    0.0957 0.1128  0.8485 0.3962              10.0452                    13.4736 GAP COMPRESSED (priority direction)
+   prev_run_pre_covid_2019-01..2020-02      14             -1.1208             -1.0910    0.0298 0.1213  0.2453 0.8062               3.0203                     6.6129 GAP COMPRESSED (priority direction)
+contaminated_post_add_2019-12..2020-03       4             -0.9244             -1.0910   -0.1666 0.1072 -1.5534 0.1203             -15.3460                   -12.4840      GAP WIDENED (against priority)
+
+     THE SIGN OF THE STIMULUS CONTRAST IS A BASELINE CHOICE, NOT A FINDING. The two
+     uncontaminated baselines give GAP COMPRESSION (+10.0% and +3.0% on mean-of-logs, +13.5%
+     and +6.6% on ratio-of-means - the PRIORITY direction). The contaminated post-addition
+     window gives GAP WIDENING (-15.3% / -12.5%). NONE of the three is significant at any
+     conventional level: |z| <= 1.55, smallest p = 0.12.
+     REFEREE ITEM 2 IS CONFIRMED, including its magnitudes: they said 8.5-13.5% compression
+     against uncontaminated baselines and the ratio-of-means column here reads 6.6-13.5%.
+     The previous run's opposite conclusion came from the one contaminated window. But note
+     the symmetric point: the referee's preferred sign is not significant either. The correct
+     statement is that the stimulus episode carries NO usable information in either direction.
+
+     Referee objection 3: the 21-month stimulus window averages over a large hump. Monthly ratio:
+     ym  amex_over_sync_30plus
+2020-03                 0.3916
+2020-04                 0.4188
+2020-05                 0.4373
+2020-06                 0.4573
+2020-07                 0.5405
+2020-08                 0.5048
+2020-09                 0.4430
+2020-10                 0.3609
+2020-11                 0.3097
+2020-12                 0.2694
+2021-01                 0.2550
+2021-02                 0.2567
+2021-03                 0.2571
+2021-04                 0.2586
+2021-05                 0.2629
+2021-06                 0.2679
+2021-07                 0.3162
+2021-08                 0.3203
+2021-09                 0.3250
+2021-10                 0.3489
+2021-11                 0.3341
+2021-12                 0.3129
+     peak 0.5405 in 2020-07, trough 0.2550 in 2021-01.
+     A single window mean over a series that rises 38% and then falls 50% is not a summary of
+     anything; the hump peaks in 2020-07, the month the $600/week supplement expired.
+
+--------------------------------------------------------------------------------------------------------
+(3e) Referee objection 5: the 2019->2020 compression ordering, checked
+--------------------------------------------------------------------------------------------------------
+
+     Two different things get called 'compression'. Both, so nothing hides:
+       own_level_fall  = log(own 30+ in 2019) - log(own 30+ in 2020). Bigger = its own
+                         delinquency fell more.
+       gap_compression = log(i/synchrony) in 2020 minus in 2019. POSITIVE = the trust's ratio
+                         to Synchrony moved TOWARD 1, i.e. its advantage over Synchrony shrank.
+                         This is the referee's measure and it is the one a halo story speaks to:
+                         in a flush year the protected card should LOSE its advantage.
+
+trust  gap_compression_vs_sync_2019_to_2020  own_level_fall_in_logs
+ amex                               +0.2274                 +0.0710
+ citi                               +0.2188                 +0.0796
+chase                               +0.2015                 +0.0969
+ bofa                               +0.1402                 +0.1582
+comet                               +0.0371                 +0.2613
+
+     Synchrony's own level fell MOST in 2020 (+0.2984) and Amex's fell LEAST (+0.0710).
+     In ratio terms that means AMEX'S ADVANTAGE OVER SYNCHRONY SHRANK THE MOST of any trust.
+     The ordering amex > citi > chase > bofa > comet reproduces the referee's ordering exactly;
+     my magnitudes differ from theirs in the third decimal because I use mean-of-logs on the
+     deduplicated panel. Under a halo reading this is WEAKLY WITH priority, not against it, and
+     the previous run's verdict item 3 asserted the opposite while printing this same table.
+     It is also weak evidence in the pure statistical sense: 2020 is one year, the ordering is
+     driven by a single hump (see above), and Amex leads citi by 0.009 log points.
+
+========================================================================================================
+PART 4 - FIX THE MIX ADJUSTMENT'S TWO KNOWN BIASES
+========================================================================================================
+
+(4a) BIAS 1 - Synchrony's unscored are counted as deep subprime.
+     Synchrony's bottom row is labelled 'No score and/or less than or equal to 599*'. Every other
+     trust prints a separate unscored row which the crosswalk drops (weight 0) before
+     renormalising. So Synchrony's unscored population is forced into the worst tier while
+     everyone else's is removed. That pushes Synchrony's expected loss UP and therefore its
+     actual/expected DOWN, which makes the Amex/Synchrony adjusted ratio LOOK BIGGER (more of
+     the gap attributed to Amex, less to mix). The fix moves the ratio DOWN.
+
+     Unscored share printed by each of the other five trusts:
+       amex       0.000489
+       bofa       0.006867
+       chase      0.001439
+       citi       0.003875
+       comet      0.002162
+       mean of the five = 0.002966
+     Synchrony's combined bottom bucket share = 0.061681
+
+     sanity: my uniform-in-score rule reproduces the published synchrony crosswalk at offset 0 to max abs diff 5.90e-08
+
+     Mix-adjusted Amex/Synchrony ratio under three treatments of Synchrony's bottom bucket:
+
+                                                                                                  treatment  fico_odds  fico_fed2007  acms2018  acms2018_dpd90
+                                         A. previous run (all of the bottom bucket treated as scored <=599)     0.6203        0.6407    0.3497          0.3808
+                           B. FIX: strip the other-five mean unscored share (0.0030) from the bottom bucket     0.6137        0.6326    0.3493          0.3802
+C. BOUND: strip Synchrony's own worst case - the largest unscored share printed by any other trust (0.0069)     0.6050        0.6218    0.3488          0.3793
+
+     Change from the fix (B minus A), per shape:
+       fico_odds: -0.0066 (-1.07%), fico_fed2007: -0.0082 (-1.27%), acms2018: -0.0004 (-0.12%), acms2018_dpd90: -0.0007 (-0.17%)
+     The bias is REAL and it is in the direction the referee said (the fix lowers the ratio, i.e.
+     MORE of the gap is mix than the previous run reported), but it is SMALL: the other five
+     trusts' unscored shares average only 0.0030, so at most ~0.3pp of Synchrony's
+     6.17% bottom bucket is being misplaced. This objection is correct in kind, minor in size.
+     It is dwarfed by the VantageScore problem below.
+
+(4b) BIAS 2 - VANTAGESCORE vs FICO. HEADLINE RANGE, NOT A CAVEAT.
+     Synchrony's table is VantageScore 4.0; every other trust's is FICO. The scales share a
+     300-850 range and nothing else. offset = points ADDED to Synchrony's VantageScore to put it
+     on the FICO scale, so a POSITIVE offset means VantageScore reads LOW relative to FICO and
+     Synchrony's pool is really better than its table suggests.
+
+     Synchrony unscored treatment = unscored_fixed:
+ offset_points  fico_odds  fico_fed2007  acms2018  acms2018_dpd90  row_min  row_max
+           -40     0.9072        0.9762    0.3820          0.4326   0.3820   0.9762
+           -20     0.7193        0.7600    0.3669          0.4082   0.3669   0.7600
+             0     0.6137        0.6326    0.3493          0.3802   0.3493   0.6326
+            20     0.5206        0.5131    0.3298          0.3505   0.3298   0.5206
+            40     0.4268        0.4293    0.3096          0.3199   0.3096   0.4293
+
+     Synchrony unscored treatment = previous_run:
+ offset_points  fico_odds  fico_fed2007  acms2018  acms2018_dpd90  row_min  row_max
+           -40     0.9132        0.9836    0.3823          0.4331   0.3823   0.9836
+           -20     0.7260        0.7681    0.3673          0.4087   0.3673   0.7681
+             0     0.6203        0.6407    0.3497          0.3808   0.3497   0.6407
+            20     0.5273        0.5213    0.3303          0.3512   0.3303   0.5273
+            40     0.4334        0.4374    0.3102          0.3207   0.3102   0.4374
+
+     HONEST HEADLINE RANGE (unscored fixed, across 4 shapes x 5 offsets):
+       mix-adjusted Amex/Synchrony ratio runs 0.310 .. 0.976
+       low  at offset +40, shape acms2018
+       high at offset -40, shape fico_fed2007
+     RAW (unadjusted) ratio = 0.290.
+     Share of the raw gap-below-parity that SURVIVES mix adjustment, (1-adj)/(1-raw): 3% .. 97%.
+
+     Restricting to +/-20 points, the range the referee named, and the proportional straddle:
+       across shapes and +/-20: 0.330 .. 0.760
+       fico_odds shape only, +/-20: 0.521 .. 0.719
+
+     PLAIN STATEMENT OF THE UNCERTAINTY: the previous run reported the mix-adjusted Amex/Synchrony
+     ratio as roughly 0.60-0.71 across shapes, i.e. 'about 40% of the gap is mix'. Once the two
+     known biases are handled the honest interval is 0.31 to 0.98. The upper end says mix
+     explains almost none of the gap; the lower end says mix explains most of it. THIS RANGE IS
+     WIDE ENOUGH TO CONTAIN BOTH STORIES, and no pool-level datum narrows it, because no trust
+     publishes its score table on a common scale.
+
+========================================================================================================
+VERDICT
+========================================================================================================
+
+ONE SENTENCE: No - nothing in the pool-level data distinguishes priority from selection, because
+the only two tests with any direct power (the payment-rate elasticity and the no-degrees-of-freedom
+log-ratio regression) both return null differences between Amex and Synchrony with confidence
+intervals wide enough to contain effects several times larger than the entire gap being explained;
+what WOULD distinguish them is borrower-level data in which the same household holds both cards -
+a credit-bureau tradeline panel, the CFPB CCDB, or the NY Fed CCP - where you can watch which
+account a single squeezed borrower pays first.
+
+Supporting numbers, each labelled by what kind of claim it is:
+
+  (a) PROVEN BY ARITHMETIC ON THE DATA
+      - 5 duplicate trust-months, 10 rows, all identical on every data column; 554 -> 549 rows.
+      - The aligned panel is 89 months, not 87.
+      - Dedupe changes neither the raw nor the mix-adjusted Amex/Synchrony ratio, because the
+        duplicates are bofa/citi/comet only and the pinning level cancels out of the ratio.
+      - Synchrony's receivables rose +38.6% in Dec-2019; the pre-stimulus baseline is contaminated.
+      - The six cyclical betas average to exactly 1 by construction, so a flat log ratio is the
+        mechanical default under BOTH stories.
+
+  (b) ESTIMATED, WITH A MODEL AND UNCERTAINTY
+      - Payment-rate elasticity gap, Amex minus Synchrony: +0.0281 (se 0.0870, z +0.32, p 0.746).
+      - No-DoF delinquency-ratio elasticity: +0.0813 (se 0.1495, z +0.54, p 0.587).
+      - MDE: an effect smaller than 34% of the ratio per doubling of market stress is invisible.
+      - Honest mix-adjusted range: 0.31 .. 0.98.
+      - Stimulus contrast: sign flips with the baseline, none significant.
+
+      - First-difference 'finding' (PR +0.58 z 3.3, 30+ -0.52 z -2.8) dissolves: the
+        distributed-lag SUM is -0.002 (se 0.106) and the 12-month difference is -0.011
+        (se 0.045). A phase artefact.
+      - Squeeze-window-only regressions survive the calendar but CONTRADICT each other:
+        payment rate +0.159 (priority direction, ns), 30+ ratio +0.692 (against priority, z 3.1).
+
+  (c) SPECULATION, LABELLED AS SUCH
+      - That Amex's payment-rate level reflects transactor share rather than priority is a story
+        consistent with the yield numbers but not established by them.
+      - That a bureau-level test would find a halo is a hypothesis; this analysis cannot support it.
+
+WHAT WOULD ACTUALLY SETTLE IT, in descending order of decisiveness:
+  1. A borrower-level tradeline panel where the SAME household holds an Amex and a Synchrony
+     private-label card. Condition on the household, then watch which account goes 30 days late
+     first when income falls. Household fixed effects hold selection constant BY CONSTRUCTION,
+     which is the one thing six aggregate time series can never do. Sources: NY Fed CCP
+     (5% anonymised Equifax panel), Experian/TransUnion tradeline extracts, the CFPB CCDB.
+  2. Failing that, a within-trust event with borrower-level randomness in the STRESSOR but not
+     in the pool: e.g. the state-by-state expiry of pandemic UI supplements, or a
+     geographically concentrated layoff, compared across trusts whose pools are geographically
+     disclosed. The prospectuses do print state concentration; that is a real, un-run test on
+     data that exists, and it would need state-level unemployment merged in.
+  3. Failing that, a common score scale. If any one of these trusts published BOTH a FICO and a
+     VantageScore distribution for the same pool in the same month, the 0.31-0.98 mix range
+     would collapse to something narrow enough to be worth arguing about. Nothing in these
+     files does that, and no amount of re-analysis of these files can create it.
+
+WHAT WOULD NOT SETTLE IT: any further regression of these six monthly series on each other.
+The design is exhausted. The betas average to one by construction, the stressor's whole
+observed range is a 2.17x swing, and the minimum detectable effect is ~34% of the very gap
+under investigation. More specifications will only find more sign flips.

@@ -1,0 +1,50 @@
+==============================================================================
+60-MONTH BOOK, MATURE VINTAGES 2012-2013 - the full horse race, same design
+==============================================================================
+N = 44,279; charge-off 25.72%; measured interest-earning life 1.924y; mean net return +18.60 /$100
+  # field                        class               N     Q5-Q1    clSE        t   bps/yr  mono
+  1 acc_open_past_24mths         OTHER-LENDER   41,271   -10.573   0.609   -17.37     -549 False
+  2 num_tl_op_past_12m           OTHER-LENDER   37,574    -8.704   0.704   -12.37     -452 False
+  3 annual_inc                   BORROWER       42,811    +7.966   0.580   +13.73     +414  True
+  4 mths_since_recent_bc         OTHER-LENDER   41,040    +7.495   0.556   +13.49     +389  True
+  5 mo_sin_old_rev_tl_op         OTHER-LENDER   37,646    +7.204   0.671   +10.73     +374  True
+  6 revol_util                   BORROWER       42,792    +6.748   0.673   +10.02     +351  True
+  7 mo_sin_rcnt_tl               OTHER-LENDER   37,646    +6.548   0.587   +11.16     +340  True
+  8 mo_sin_rcnt_rev_tl_op        OTHER-LENDER   37,646    +6.094   0.581   +10.50     +317 False
+  9 bc_util                      BORROWER       40,982    +6.076   0.638    +9.52     +316  True
+ 10 revol_bal                    BORROWER       42,811    +4.847   0.600    +8.07     +252  True
+ 11 percent_bc_gt_75             BORROWER       17,853    +4.689   0.742    +6.32     +244  True
+ 12 inq_last_6mths               BORROWER       42,748    -4.623   0.621    -7.44     -240 False
+ 13 mo_sin_old_il_acct           OTHER-LENDER   36,912    +4.245   0.695    +6.10     +221 False
+ 14 mths_since_recent_inq        BORROWER       37,143    +3.730   0.648    +5.76     +194 False
+ 15 pub_rec_bankruptcies         BORROWER       39,715    -3.556   0.810    -4.39     -185 False
+ 16 avg_cur_bal                  BORROWER       37,644    +3.457   0.597    +5.79     +180 False
+ 17 delinq_2yrs                  BORROWER       42,363    +3.405   0.588    +5.79     +177  True
+ 18 bc_open_to_buy               MIXED          41,001    -3.297   0.588    -5.61     -171 False
+ 19 tax_liens                    BORROWER       30,416    +3.289   1.886    +1.74     +171  True
+ 20 tot_cur_bal                  BORROWER       37,646    +3.077   0.609    +5.05     +160 False
+ 21 tot_hi_cred_lim              OTHER-LENDER   37,646    +3.059   0.613    +4.99     +159 False
+ 22 pub_rec                      BORROWER       40,291    -2.726   0.701    -3.89     -142 False
+ 23 num_bc_tl                    OTHER-LENDER   37,646    -2.572   0.542    -4.74     -134 False
+ 24 total_bc_limit               OTHER-LENDER   41,271    +2.419   0.585    +4.14     +126  True
+ 25 total_bal_ex_mort            BORROWER       41,271    +2.085   0.604    +3.45     +108  True
+ 26 num_rev_tl_bal_gt_0          BORROWER       37,646    +1.891   0.602    +3.14      +98 False
+ 27 num_actv_rev_tl              BORROWER       37,646    +1.850   0.605    +3.06      +96 False
+ 28 total_acc                    OTHER-LENDER   42,811    -1.757   0.545    -3.22      -91 False
+ 29 num_rev_accts                OTHER-LENDER   37,646    -1.746   0.621    -2.81      -91 False
+ 30 mort_acc                     OTHER-LENDER   41,271    +1.697   0.512    +3.32      +88 False
+ 31 num_sats                     OTHER-LENDER   39,734    -1.616   0.604    -2.67      -84 False
+ 32 total_rev_hi_lim             OTHER-LENDER   37,646    +1.556   0.560    +2.78      +81 False
+ 33 num_actv_bc_tl               BORROWER       37,646    +1.484   0.648    +2.29      +77 False
+ 34 num_op_rev_tl                OTHER-LENDER   37,646    -1.277   0.652    -1.96      -66 False
+ 35 open_acc                     OTHER-LENDER   42,811    -1.106   0.606    -1.82      -57 False
+ 36 num_bc_sats                  OTHER-LENDER   39,705    -1.006   0.547    -1.84      -52 False
+ 37 num_il_tl                    OTHER-LENDER   37,646    -0.921   0.615    -1.50      -48 False
+ 38 num_accts_ever_120_pd        BORROWER       36,952    +0.843   0.641    +1.31      +44 False
+ 39 total_il_high_credit_limit   OTHER-LENDER   37,646    +0.786   0.586    +1.34      +41 False
+ 40 num_tl_90g_dpd_24m           BORROWER       35,270    +0.695   0.781    +0.89      +36  True
+ 41 tot_coll_amt                 BORROWER       36,860    -0.660   0.688    -0.96      -34 False
+ 42 dti                          BORROWER       42,811    -0.390   0.577    -0.68      -20 False
+
+total_bc_limit on the 60-month book: rank 24 of 42.
+TOP FIVE: acc_open_past_24mths (OTHER-LENDER, -10.57/$100); num_tl_op_past_12m (OTHER-LENDER, -8.70/$100); annual_inc (BORROWER, +7.97/$100); mths_since_recent_bc (OTHER-LENDER, +7.50/$100); mo_sin_old_rev_tl_op (OTHER-LENDER, +7.20/$100)

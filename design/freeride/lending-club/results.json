@@ -1,0 +1,356 @@
+{
+  "all": {
+    "label": "ALL FICO (660+)",
+    "n_total": 917334,
+    "n_train": 642134,
+    "n_test": 275200,
+    "default_rate": 0.16297880597470496,
+    "M1_auc_test": 0.5995294447648949,
+    "M2_auc_test": 0.6046288744927995,
+    "M3_bankcard_only_auc_test": 0.5755438884439781,
+    "auc_gain_M2_minus_M1": 0.005099429727904559,
+    "M1_loglik_train": -279577.31474219257,
+    "M2_loglik_train": -279071.23381260707,
+    "LR_stat_M2_vs_M1": 1012.1618591709994,
+    "M1_coef_fico_per10pts": -0.13411215530531434,
+    "M2_coef_fico_per10pts": -0.12169001827641907,
+    "M2_coef_log_total_bc_limit_per_logunit": -0.11953727143525439,
+    "M2_se_log_total_bc_limit_per_logunit": 0.004156119722614123,
+    "M2_z_log_total_bc_limit": -28.76174879776265,
+    "M2_odds_ratio_per_10pct_more_bc_limit": 0.9886715369678757,
+    "M2_coef_otb_share_per_unit": 0.061097415191291034,
+    "M2_z_otb_share": 4.457222629627749,
+    "M2_coef_num_bc_tl_per_account": 0.0016338924245700198,
+    "M2_z_num_bc_tl": 1.9509842121045842,
+    "M2_standardized_coefs": {
+      "fico": -0.383525578071927,
+      "log_total_bc_limit": -0.11841950146340857,
+      "otb_share": 0.017051502531712573,
+      "num_bc_tl": 0.007802761523917701
+    },
+    "M2_standardized_se": {
+      "fico": 0.004782347575664494,
+      "log_total_bc_limit": 0.004117256648615898,
+      "otb_share": 0.003825589150151257,
+      "num_bc_tl": 0.003999397573546037
+    },
+    "train_means": {
+      "fico": 696.9475919356396,
+      "log_total_bc_limit": 9.518721898056562,
+      "otb_share": 0.4023958334092713,
+      "num_bc_tl": 8.055679967109668
+    },
+    "train_sds": {
+      "fico": 31.516601238463785,
+      "log_total_bc_limit": 0.9906491928548725,
+      "otb_share": 0.27908713451012135,
+      "num_bc_tl": 4.775566253066569
+    }
+  },
+  "660-699": {
+    "label": "FICO 660-699",
+    "n_total": 576517,
+    "n_train": 403562,
+    "n_test": 172955,
+    "default_rate": 0.19465687915534147,
+    "M1_auc_test": 0.5388655105206795,
+    "M2_auc_test": 0.5455264044514548,
+    "M3_bankcard_only_auc_test": 0.5310688221857575,
+    "auc_gain_M2_minus_M1": 0.006660893930775291,
+    "M1_loglik_train": -198257.88981358582,
+    "M2_loglik_train": -198076.16545332823,
+    "LR_stat_M2_vs_M1": 363.4487205151818,
+    "M1_coef_fico_per10pts": -0.12522105078702173,
+    "M2_coef_fico_per10pts": -0.11201521039626569,
+    "M2_coef_log_total_bc_limit_per_logunit": -0.07428965165777004,
+    "M2_se_log_total_bc_limit_per_logunit": 0.004865405079609182,
+    "M2_z_log_total_bc_limit": -15.268955090526077,
+    "M2_odds_ratio_per_10pct_more_bc_limit": 0.9929444480496474,
+    "M2_coef_otb_share_per_unit": -0.046063041041769386,
+    "M2_z_otb_share": -2.844018619830906,
+    "M2_coef_num_bc_tl_per_account": -0.00244386328858004,
+    "M2_z_num_bc_tl": -2.4798267073400453,
+    "M2_standardized_coefs": {
+      "fico": -0.12603626227272083,
+      "log_total_bc_limit": -0.0695628477765496,
+      "otb_share": -0.011463379178349557,
+      "num_bc_tl": -0.011366811218314963
+    },
+    "M2_standardized_se": {
+      "fico": 0.004144517219448954,
+      "log_total_bc_limit": 0.0045558355083322784,
+      "otb_share": 0.004030697653811818,
+      "num_bc_tl": 0.004583711912074464
+    },
+    "train_means": {
+      "fico": 677.6264217146312,
+      "log_total_bc_limit": 9.278749941676816,
+      "otb_share": 0.3237163506755296,
+      "num_bc_tl": 7.868627373241286
+    },
+    "train_sds": {
+      "fico": 11.251709640758088,
+      "log_total_bc_limit": 0.9363733201631446,
+      "otb_share": 0.24886283925446234,
+      "num_bc_tl": 4.651164928673007
+    }
+  },
+  "700-739": {
+    "label": "FICO 700-739",
+    "n_total": 248749,
+    "n_train": 174124,
+    "n_test": 74625,
+    "default_rate": 0.12392813639451816,
+    "M1_auc_test": 0.5473775386438774,
+    "M2_auc_test": 0.5716622449281963,
+    "M3_bankcard_only_auc_test": 0.5566665857004518,
+    "auc_gain_M2_minus_M1": 0.02428470628431889,
+    "M1_loglik_train": -64908.51908505651,
+    "M2_loglik_train": -64524.39126572481,
+    "LR_stat_M2_vs_M1": 768.2556386634096,
+    "M1_coef_fico_per10pts": -0.14728052842149608,
+    "M2_coef_fico_per10pts": -0.1382359355694238,
+    "M2_coef_log_total_bc_limit_per_logunit": -0.22782445734091694,
+    "M2_se_log_total_bc_limit_per_logunit": 0.008900234115847292,
+    "M2_z_log_total_bc_limit": -25.597580285586492,
+    "M2_odds_ratio_per_10pct_more_bc_limit": 0.9785200615623826,
+    "M2_coef_otb_share_per_unit": 0.26734588458885883,
+    "M2_z_otb_share": 9.432550783109154,
+    "M2_coef_num_bc_tl_per_account": 0.012562493197382323,
+    "M2_z_num_bc_tl": 7.026077973430706,
+    "M2_standardized_coefs": {
+      "fico": -0.14925791575228545,
+      "log_total_bc_limit": -0.21298779791315287,
+      "otb_share": 0.07020871185736921,
+      "num_bc_tl": 0.06103235279033761
+    },
+    "M2_standardized_se": {
+      "fico": 0.007757256438778772,
+      "log_total_bc_limit": 0.008320622321988857,
+      "otb_share": 0.007443237091613838,
+      "num_bc_tl": 0.008686546466055888
+    },
+    "train_means": {
+      "fico": 715.3951953780065,
+      "log_total_bc_limit": 9.806105831841448,
+      "otb_share": 0.4619293314529897,
+      "num_bc_tl": 8.21746571408881
+    },
+    "train_sds": {
+      "fico": 10.79733103678575,
+      "log_total_bc_limit": 0.9348767924175828,
+      "otb_share": 0.26261377453159807,
+      "num_bc_tl": 4.858299370307725
+    }
+  },
+  "740+": {
+    "label": "FICO 740+",
+    "n_total": 92068,
+    "n_train": 64448,
+    "n_test": 27620,
+    "default_rate": 0.07012208367728201,
+    "M1_auc_test": 0.5622645371248862,
+    "M2_auc_test": 0.625632190284656,
+    "M3_bankcard_only_auc_test": 0.6085428090273401,
+    "auc_gain_M2_minus_M1": 0.06336765315976978,
+    "M1_loglik_train": -16192.50427400873,
+    "M2_loglik_train": -15921.693214997063,
+    "LR_stat_M2_vs_M1": 541.6221180233333,
+    "M1_coef_fico_per10pts": -0.10173868921186513,
+    "M2_coef_fico_per10pts": -0.10968608239783835,
+    "M2_coef_log_total_bc_limit_per_logunit": -0.3774095863983123,
+    "M2_se_log_total_bc_limit_per_logunit": 0.01852948182345287,
+    "M2_z_log_total_bc_limit": -20.36805939821927,
+    "M2_odds_ratio_per_10pct_more_bc_limit": 0.9646682920535385,
+    "M2_coef_otb_share_per_unit": 0.8321541597472901,
+    "M2_z_otb_share": 10.380746050171377,
+    "M2_coef_num_bc_tl_per_account": 0.019273876540388032,
+    "M2_z_num_bc_tl": 5.36685124108534,
+    "M2_standardized_coefs": {
+      "fico": -0.2503581069393115,
+      "log_total_bc_limit": -0.34430568170004167,
+      "otb_share": 0.17674576900893796,
+      "num_bc_tl": 0.10070571928013115
+    },
+    "M2_standardized_se": {
+      "fico": 0.018852160156966002,
+      "log_total_bc_limit": 0.016904196662453935,
+      "otb_share": 0.017026306987446248,
+      "num_bc_tl": 0.01876439550051054
+    },
+    "train_means": {
+      "fico": 767.6652805362463,
+      "log_total_bc_limit": 10.241433336988687,
+      "otb_share": 0.73047475746107,
+      "num_bc_tl": 8.78680486593843
+    },
+    "train_sds": {
+      "fico": 22.824965708160388,
+      "log_total_bc_limit": 0.9122865293004686,
+      "otb_share": 0.21239546415607943,
+      "num_bc_tl": 5.224985179764138
+    }
+  },
+  "all_seed7": {
+    "label": "ALL FICO seed 7",
+    "n_total": 917334,
+    "n_train": 642134,
+    "n_test": 275200,
+    "default_rate": 0.16297880597470496,
+    "M1_auc_test": 0.6000337277426161,
+    "M2_auc_test": 0.6042147709555469,
+    "M3_bankcard_only_auc_test": 0.5751669473567858,
+    "auc_gain_M2_minus_M1": 0.0041810432129307795,
+    "M1_loglik_train": -279739.90349138645,
+    "M2_loglik_train": -279189.9404381899,
+    "LR_stat_M2_vs_M1": 1099.9261063931044,
+    "M1_coef_fico_per10pts": -0.1332843963306859,
+    "M2_coef_fico_per10pts": -0.12060739783887253,
+    "M2_coef_log_total_bc_limit_per_logunit": -0.12434290835918822,
+    "M2_se_log_total_bc_limit_per_logunit": 0.004150940582472904,
+    "M2_z_log_total_bc_limit": -29.955357319307016,
+    "M2_odds_ratio_per_10pct_more_bc_limit": 0.9882188032703856,
+    "M2_coef_otb_share_per_unit": 0.06907478084569227,
+    "M2_z_otb_share": 5.041470875061564,
+    "M2_coef_num_bc_tl_per_account": 0.001731653770449423,
+    "M2_z_num_bc_tl": 2.0657170166301544,
+    "M2_standardized_coefs": {
+      "fico": -0.38024794666419726,
+      "log_total_bc_limit": -0.12329846212242672,
+      "otb_share": 0.01928706667399468,
+      "num_bc_tl": 0.008264416979170163
+    },
+    "M2_standardized_se": {
+      "fico": 0.004777345116617349,
+      "log_total_bc_limit": 0.004116073823060612,
+      "otb_share": 0.003825682454975832,
+      "num_bc_tl": 0.0040007498184103036
+    },
+    "train_means": {
+      "fico": 696.9236195248967,
+      "log_total_bc_limit": 9.518275572282302,
+      "otb_share": 0.4025623298899895,
+      "num_bc_tl": 8.051008045049787
+    },
+    "train_sds": {
+      "fico": 31.527746512879407,
+      "log_total_bc_limit": 0.9916002749932114,
+      "otb_share": 0.27922009216475835,
+      "num_bc_tl": 4.772557378502555
+    }
+  },
+  "finance_trades": {
+    "n": 371022,
+    "M2_auc": 0.6082323751570484,
+    "M2_plus_cu_auc": 0.6088809538858352,
+    "coef_total_cu_tl_per_trade": -0.018569888789421875,
+    "z": -9.49451912754833,
+    "share_with_finance_trade": 0.4586116187180275,
+    "co_rate_0_trades": 0.20469763574902797,
+    "co_rate_1plus_trades": 0.18866327759983545
+  },
+  "quintile_table": {
+    "660-699": [
+      {
+        "quintile": 1,
+        "n": 116743,
+        "median_total_bc_limit": 3300.0,
+        "charge_off_rate": 0.2170751137113146
+      },
+      {
+        "quintile": 2,
+        "n": 115171,
+        "median_total_bc_limit": 7100.0,
+        "charge_off_rate": 0.202663865035469
+      },
+      {
+        "quintile": 3,
+        "n": 115223,
+        "median_total_bc_limit": 11400.0,
+        "charge_off_rate": 0.19532558603750988
+      },
+      {
+        "quintile": 4,
+        "n": 114264,
+        "median_total_bc_limit": 17800.0,
+        "charge_off_rate": 0.1859115731989078
+      },
+      {
+        "quintile": 5,
+        "n": 115116,
+        "median_total_bc_limit": 33500.0,
+        "charge_off_rate": 0.17192223496299386
+      }
+    ],
+    "700-739": [
+      {
+        "quintile": 1,
+        "n": 49909,
+        "median_total_bc_limit": 5500.0,
+        "charge_off_rate": 0.1564046564747841
+      },
+      {
+        "quintile": 2,
+        "n": 50168,
+        "median_total_bc_limit": 12300.0,
+        "charge_off_rate": 0.13137856801148143
+      },
+      {
+        "quintile": 3,
+        "n": 49461,
+        "median_total_bc_limit": 19900.0,
+        "charge_off_rate": 0.1223590303471422
+      },
+      {
+        "quintile": 4,
+        "n": 49634,
+        "median_total_bc_limit": 30800.0,
+        "charge_off_rate": 0.11208042873836484
+      },
+      {
+        "quintile": 5,
+        "n": 49577,
+        "median_total_bc_limit": 55100.0,
+        "charge_off_rate": 0.09712164915182443
+      }
+    ],
+    "740+": [
+      {
+        "quintile": 1,
+        "n": 18468,
+        "median_total_bc_limit": 8900.0,
+        "charge_off_rate": 0.10829542993285683
+      },
+      {
+        "quintile": 2,
+        "n": 18429,
+        "median_total_bc_limit": 19800.0,
+        "charge_off_rate": 0.0756959140485105
+      },
+      {
+        "quintile": 3,
+        "n": 18440,
+        "median_total_bc_limit": 31300.0,
+        "charge_off_rate": 0.06616052060737528
+      },
+      {
+        "quintile": 4,
+        "n": 18338,
+        "median_total_bc_limit": 47100.0,
+        "charge_off_rate": 0.05365906860071982
+      },
+      {
+        "quintile": 5,
+        "n": 18393,
+        "median_total_bc_limit": 80000.0,
+        "charge_off_rate": 0.04659381286358941
+      }
+    ]
+  },
+  "sample": {
+    "n_final": 917334,
+    "charge_off_rate": 0.16297880597470496,
+    "years": "2012-2017",
+    "term": "36 months"
+  }
+}

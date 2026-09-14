@@ -1,0 +1,17 @@
+Rows in sub_grade-level quintiles: 916,765 of 917,334 (sub_grades with >=250 loans)
+
+CHARGE-OFF BY OTHER-LENDER BANKCARD-LIMIT QUINTILE, QUINTILES CUT WITHIN EACH
+OF THE 35 SUB-GRADES, THEN POOLED  (so every row faces the same LC price grid)
+quintile           n  median limit  charge-off %  mean APR %  mean FICO
+Q1           184,873         3,900         16.73       12.09      690.1
+Q2           183,693         8,300         16.44       12.10      692.0
+Q3           182,676        13,300         16.52       12.11      695.4
+Q4           182,676        21,200         16.34       12.13      699.9
+Q5           182,847        43,000         15.33       12.13      707.3
+
+Q1 - Q5 charge-off gap = 1.40 pp (SE 0.12, t 11.5) at the SAME sub_grade
+Annualised (cumulative / 1.5y)  = 0.93 pp/yr = 93 bps/yr
+APR difference LC charged Q1 vs Q5 within sub_grade = -0.035 pp = -4 bps
+=> residual mispricing = 97 bps/yr of extra yield LC
+   would have needed on the low-limit borrowers at the same sub_grade
+   (100% LGD; at 65% LGD: 64 bps/yr)

@@ -1,0 +1,361 @@
+scenario,seed,free_riding,brand,selection,gamma,cutoff,estimator,true,est,est_clean
+"free-riding off, brand zero, selection off",20260910,0,0,0,0.0,680,"(a) pool-level, constant FICO mix",0.0,0.021293980893161858,0.021293980893161858
+"free-riding off, brand zero, selection off",20260910,0,0,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.061373357353913444,-0.061373357353913444
+"free-riding off, brand zero, selection off",20260910,0,0,0,0.0,680,"(c) within-person, no time effects",0.0,0.043656507535099,0.043656507535099
+"free-riding off, brand zero, selection off",20260910,0,0,0,0.0,680,"(d) person x month FE, issuer dummy",0.0,2.9111338100102127,2.9111338100102127
+"free-riding off, brand zero, selection off",20260910,0,0,0,0.0,680,(e) person x month FE + line/balance controls,0.0,-0.3397676415754213,-0.3397676415754213
+"free-riding off, brand zero, selection off",20260910,0,0,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.12814206070079553,-0.12814206070079553
+"free-riding off, brand zero, selection ON",20260910,0,0,1,0.0,680,"(a) pool-level, constant FICO mix",0.0,-0.3125305273896935,0.021293980893161858
+"free-riding off, brand zero, selection ON",20260910,0,0,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.48971563034092724,-0.061373357353913444
+"free-riding off, brand zero, selection ON",20260910,0,0,1,0.0,680,"(c) within-person, no time effects",0.0,0.009459900274942853,0.043656507535099
+"free-riding off, brand zero, selection ON",20260910,0,0,1,0.0,680,"(d) person x month FE, issuer dummy",0.0,1.3929870308104033,2.9111338100102127
+"free-riding off, brand zero, selection ON",20260910,0,0,1,0.0,680,(e) person x month FE + line/balance controls,0.0,-1.9911224674057184,-0.3397676415754213
+"free-riding off, brand zero, selection ON",20260910,0,0,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.11623018654507886,-0.12814206070079553
+"free-riding off, brand POSITIVE, selection off",20260910,0,1,0,0.0,680,"(a) pool-level, constant FICO mix",-0.34126095490862846,-0.31996697401546786,-0.31996697401546786
+"free-riding off, brand POSITIVE, selection off",20260910,0,1,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.061373357353913444,-0.061373357353913444
+"free-riding off, brand POSITIVE, selection off",20260910,0,1,0,0.0,680,"(c) within-person, no time effects",-0.34126095490862846,-0.2910201743660852,-0.2910201743660852
+"free-riding off, brand POSITIVE, selection off",20260910,0,1,0,0.0,680,"(d) person x month FE, issuer dummy",-4.827984966753397,-23.408068400321113,-23.408068400321113
+"free-riding off, brand POSITIVE, selection off",20260910,0,1,0,0.0,680,(e) person x month FE + line/balance controls,-4.827984966753397,-24.091097274859553,-24.091097274859553
+"free-riding off, brand POSITIVE, selection off",20260910,0,1,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.12814206070079553,-0.12814206070079553
+"free-riding off, brand POSITIVE, selection ON",20260910,0,1,1,0.0,680,"(a) pool-level, constant FICO mix",-0.15968562759923075,-0.4722161549889239,-0.31996697401546786
+"free-riding off, brand POSITIVE, selection ON",20260910,0,1,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.48971563034092724,-0.061373357353913444
+"free-riding off, brand POSITIVE, selection ON",20260910,0,1,1,0.0,680,"(c) within-person, no time effects",-0.15968562759923075,-0.14520713919567466,-0.2910201743660852
+"free-riding off, brand POSITIVE, selection ON",20260910,0,1,1,0.0,680,"(d) person x month FE, issuer dummy",-3.8224813735017813,-26.270972093415313,-23.408068400321113
+"free-riding off, brand POSITIVE, selection ON",20260910,0,1,1,0.0,680,(e) person x month FE + line/balance controls,-3.8224813735017813,-28.438345832505334,-24.091097274859553
+"free-riding off, brand POSITIVE, selection ON",20260910,0,1,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.11623018654507886,-0.12814206070079553
+"free-riding ON, brand zero, selection off",20260910,1,0,0,0.1,680,"(a) pool-level, constant FICO mix",0.0,0.011294090543736923,0.021293980893161858
+"free-riding ON, brand zero, selection off",20260910,1,0,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.06256370936192264,-0.061373357353913444
+"free-riding ON, brand zero, selection off",20260910,1,0,0,0.1,680,"(c) within-person, no time effects",0.0,0.03372296940377396,0.043656507535099
+"free-riding ON, brand zero, selection off",20260910,1,0,0,0.1,680,"(d) person x month FE, issuer dummy",0.0,2.2648626741902276,2.9111338100102127
+"free-riding ON, brand zero, selection off",20260910,1,0,0,0.1,680,(e) person x month FE + line/balance controls,0.0,-0.42082617513016696,-0.3397676415754213
+"free-riding ON, brand zero, selection off",20260910,1,0,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.0908619416905838,-0.12814206070079553
+"free-riding ON, brand zero, selection ON",20260910,1,0,1,0.1,680,"(a) pool-level, constant FICO mix",0.0,-0.31818138345630115,0.021293980893161858
+"free-riding ON, brand zero, selection ON",20260910,1,0,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.49160318891234844,-0.061373357353913444
+"free-riding ON, brand zero, selection ON",20260910,1,0,1,0.1,680,"(c) within-person, no time effects",0.0,0.004869751619367128,0.043656507535099
+"free-riding ON, brand zero, selection ON",20260910,1,0,1,0.1,680,"(d) person x month FE, issuer dummy",0.0,0.7263249348392699,2.9111338100102127
+"free-riding ON, brand zero, selection ON",20260910,1,0,1,0.1,680,(e) person x month FE + line/balance controls,0.0,-2.0726991339485337,-0.3397676415754213
+"free-riding ON, brand zero, selection ON",20260910,1,0,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.08301539895997732,-0.12814206070079553
+"free-riding ON, brand POSITIVE, selection off",20260910,1,1,0,0.1,680,"(a) pool-level, constant FICO mix",-0.33486771170274526,-0.3235736211590097,-0.31996697401546786
+"free-riding ON, brand POSITIVE, selection off",20260910,1,1,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.06256370936192264,-0.061373357353913444
+"free-riding ON, brand POSITIVE, selection off",20260910,1,1,0,0.1,680,"(c) within-person, no time effects",-0.33486771170274526,-0.29443192694857306,-0.2910201743660852
+"free-riding ON, brand POSITIVE, selection off",20260910,1,1,0,0.1,680,"(d) person x month FE, issuer dummy",-4.868859585567309,-23.751216954991406,-23.408068400321113
+"free-riding ON, brand POSITIVE, selection off",20260910,1,1,0,0.1,680,(e) person x month FE + line/balance controls,-4.868859585567309,-24.083465644209006,-24.091097274859553
+"free-riding ON, brand POSITIVE, selection off",20260910,1,1,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.0908619416905838,-0.12814206070079553
+"free-riding ON, brand POSITIVE, selection ON",20260910,1,1,1,0.1,680,"(a) pool-level, constant FICO mix",-0.15551991557490297,-0.4737012990312038,-0.31996697401546786
+"free-riding ON, brand POSITIVE, selection ON",20260910,1,1,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.49160318891234844,-0.061373357353913444
+"free-riding ON, brand POSITIVE, selection ON",20260910,1,1,1,0.1,680,"(c) within-person, no time effects",-0.15551991557490297,-0.1457197446292922,-0.2910201743660852
+"free-riding ON, brand POSITIVE, selection ON",20260910,1,1,1,0.1,680,"(d) person x month FE, issuer dummy",-3.821032005225343,-26.59352808606532,-23.408068400321113
+"free-riding ON, brand POSITIVE, selection ON",20260910,1,1,1,0.1,680,(e) person x month FE + line/balance controls,-3.821032005225343,-28.05339369229471,-24.091097274859553
+"free-riding ON, brand POSITIVE, selection ON",20260910,1,1,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.08301539895997732,-0.12814206070079553
+"free-riding ON (gamma=0.25), brand zero, selection off",20260910,1,0,0,0.25,680,"(a) pool-level, constant FICO mix",0.0,0.002427147149797733,0.021293980893161858
+"free-riding ON (gamma=0.25), brand zero, selection off",20260910,1,0,0,0.25,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.06523378328418164,-0.061373357353913444
+"free-riding ON (gamma=0.25), brand zero, selection off",20260910,1,0,0,0.25,680,"(c) within-person, no time effects",0.0,0.02662095382390139,0.043656507535099
+"free-riding ON (gamma=0.25), brand zero, selection off",20260910,1,0,0,0.25,680,"(d) person x month FE, issuer dummy",0.0,1.806469902667967,2.9111338100102127
+"free-riding ON (gamma=0.25), brand zero, selection off",20260910,1,0,0,0.25,680,(e) person x month FE + line/balance controls,0.0,-0.2224590419879386,-0.3397676415754213
+"free-riding ON (gamma=0.25), brand zero, selection off",20260910,1,0,0,0.25,680,"(f) RD at approval cutoff, other cards",0.0,-0.05597746985346735,-0.12814206070079553
+"free-riding off, brand zero, selection off, cutoff 620",20260910,0,0,0,0.0,620,"(a) pool-level, constant FICO mix",0.0,0.17064999878151085,0.17064999878151085
+"free-riding off, brand zero, selection off, cutoff 620",20260910,0,0,0,0.0,620,"(b) cross-section, other cards, FICO-controlled",0.0,-0.0030578473111359636,-0.0030578473111359636
+"free-riding off, brand zero, selection off, cutoff 620",20260910,0,0,0,0.0,620,"(c) within-person, no time effects",0.0,0.16373770586698477,0.16373770586698477
+"free-riding off, brand zero, selection off, cutoff 620",20260910,0,0,0,0.0,620,"(d) person x month FE, issuer dummy",0.0,6.137014066815575,6.137014066815575
+"free-riding off, brand zero, selection off, cutoff 620",20260910,0,0,0,0.0,620,(e) person x month FE + line/balance controls,0.0,-0.5006656426198441,-0.5006656426198441
+"free-riding off, brand zero, selection off, cutoff 620",20260910,0,0,0,0.0,620,"(f) RD at approval cutoff, other cards",0.0,0.8042261622648955,0.8042261622648955
+"free-riding ON, brand zero, selection off, cutoff 620",20260910,1,0,0,0.1,620,"(a) pool-level, constant FICO mix",0.0,0.1618151508052172,0.17064999878151085
+"free-riding ON, brand zero, selection off, cutoff 620",20260910,1,0,0,0.1,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.013434325728919642,-0.0030578473111359636
+"free-riding ON, brand zero, selection off, cutoff 620",20260910,1,0,0,0.1,620,"(c) within-person, no time effects",0.0,0.14326811244833046,0.16373770586698477
+"free-riding ON, brand zero, selection off, cutoff 620",20260910,1,0,0,0.1,620,"(d) person x month FE, issuer dummy",0.0,5.330348413789184,6.137014066815575
+"free-riding ON, brand zero, selection off, cutoff 620",20260910,1,0,0,0.1,620,(e) person x month FE + line/balance controls,0.0,-0.5129330947425865,-0.5006656426198441
+"free-riding ON, brand zero, selection off, cutoff 620",20260910,1,0,0,0.1,620,"(f) RD at approval cutoff, other cards",0.0,0.8360864153735397,0.8042261622648955
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260910,1,0,0,0.25,620,"(a) pool-level, constant FICO mix",0.0,0.15223136462474704,0.17064999878151085
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260910,1,0,0,0.25,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.0379796678653686,-0.0030578473111359636
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260910,1,0,0,0.25,620,"(c) within-person, no time effects",0.0,0.11803814846719836,0.16373770586698477
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260910,1,0,0,0.25,620,"(d) person x month FE, issuer dummy",0.0,4.348375058747595,6.137014066815575
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260910,1,0,0,0.25,620,(e) person x month FE + line/balance controls,0.0,-0.49663967719822105,-0.5006656426198441
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260910,1,0,0,0.25,620,"(f) RD at approval cutoff, other cards",0.0,0.9887769640515417,0.8042261622648955
+"free-riding off, brand zero, selection off",20260911,0,0,0,0.0,680,"(a) pool-level, constant FICO mix",0.0,0.024474340898687733,0.024474340898687733
+"free-riding off, brand zero, selection off",20260911,0,0,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07057389059449398,-0.07057389059449398
+"free-riding off, brand zero, selection off",20260911,0,0,0,0.0,680,"(c) within-person, no time effects",0.0,0.051035185407661846,0.051035185407661846
+"free-riding off, brand zero, selection off",20260911,0,0,0,0.0,680,"(d) person x month FE, issuer dummy",0.0,3.4177905979574312,3.4177905979574312
+"free-riding off, brand zero, selection off",20260911,0,0,0,0.0,680,(e) person x month FE + line/balance controls,0.0,0.8454280128275636,0.8454280128275636
+"free-riding off, brand zero, selection off",20260911,0,0,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.0026224223879039547,0.0026224223879039547
+"free-riding off, brand zero, selection ON",20260911,0,0,1,0.0,680,"(a) pool-level, constant FICO mix",0.0,-0.3012226817886189,0.024474340898687733
+"free-riding off, brand zero, selection ON",20260911,0,0,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4861230807033374,-0.07057389059449398
+"free-riding off, brand zero, selection ON",20260911,0,0,1,0.0,680,"(c) within-person, no time effects",0.0,0.02428271518544422,0.051035185407661846
+"free-riding off, brand zero, selection ON",20260911,0,0,1,0.0,680,"(d) person x month FE, issuer dummy",0.0,3.5162979226482025,3.4177905979574312
+"free-riding off, brand zero, selection ON",20260911,0,0,1,0.0,680,(e) person x month FE + line/balance controls,0.0,-0.4376246862910106,0.8454280128275636
+"free-riding off, brand zero, selection ON",20260911,0,0,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.048540168400737334,0.0026224223879039547
+"free-riding off, brand POSITIVE, selection off",20260911,0,1,0,0.0,680,"(a) pool-level, constant FICO mix",-0.3424253772747448,-0.31795103637605715,-0.31795103637605715
+"free-riding off, brand POSITIVE, selection off",20260911,0,1,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07057389059449398,-0.07057389059449398
+"free-riding off, brand POSITIVE, selection off",20260911,0,1,0,0.0,680,"(c) within-person, no time effects",-0.3424253772747448,-0.28923818810190843,-0.28923818810190843
+"free-riding off, brand POSITIVE, selection off",20260911,0,1,0,0.0,680,"(d) person x month FE, issuer dummy",-5.173666618224095,-23.385791197620588,-23.385791197620588
+"free-riding off, brand POSITIVE, selection off",20260911,0,1,0,0.0,680,(e) person x month FE + line/balance controls,-5.173666618224095,-23.783307444103276,-23.783307444103276
+"free-riding off, brand POSITIVE, selection off",20260911,0,1,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.0026224223879039547,0.0026224223879039547
+"free-riding off, brand POSITIVE, selection ON",20260911,0,1,1,0.0,680,"(a) pool-level, constant FICO mix",-0.15667882577731457,-0.45790150756593334,-0.31795103637605715
+"free-riding off, brand POSITIVE, selection ON",20260911,0,1,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4861230807033374,-0.07057389059449398
+"free-riding off, brand POSITIVE, selection ON",20260911,0,1,1,0.0,680,"(c) within-person, no time effects",-0.15667882577731457,-0.1299743410310233,-0.28923818810190843
+"free-riding off, brand POSITIVE, selection ON",20260911,0,1,1,0.0,680,"(d) person x month FE, issuer dummy",-3.4072645451623274,-23.17225318140224,-23.385791197620588
+"free-riding off, brand POSITIVE, selection ON",20260911,0,1,1,0.0,680,(e) person x month FE + line/balance controls,-3.4072645451623274,-24.152267271092253,-23.783307444103276
+"free-riding off, brand POSITIVE, selection ON",20260911,0,1,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.048540168400737334,0.0026224223879039547
+"free-riding ON, brand zero, selection off",20260911,1,0,0,0.1,680,"(a) pool-level, constant FICO mix",0.0,0.017221804837284277,0.024474340898687733
+"free-riding ON, brand zero, selection off",20260911,1,0,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07189247791497343,-0.07057389059449398
+"free-riding ON, brand zero, selection off",20260911,1,0,0,0.1,680,"(c) within-person, no time effects",0.0,0.04400387792905149,0.051035185407661846
+"free-riding ON, brand zero, selection off",20260911,1,0,0,0.1,680,"(d) person x month FE, issuer dummy",0.0,2.9664275736505874,3.4177905979574312
+"free-riding ON, brand zero, selection off",20260911,1,0,0,0.1,680,(e) person x month FE + line/balance controls,0.0,0.6232391306894836,0.8454280128275636
+"free-riding ON, brand zero, selection off",20260911,1,0,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.005135675358555328,0.0026224223879039547
+"free-riding ON, brand zero, selection ON",20260911,1,0,1,0.1,680,"(a) pool-level, constant FICO mix",0.0,-0.30550876289398915,0.024474340898687733
+"free-riding ON, brand zero, selection ON",20260911,1,0,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4879044397626656,-0.07057389059449398
+"free-riding ON, brand zero, selection ON",20260911,1,0,1,0.1,680,"(c) within-person, no time effects",0.0,0.020877070212269522,0.051035185407661846
+"free-riding ON, brand zero, selection ON",20260911,1,0,1,0.1,680,"(d) person x month FE, issuer dummy",0.0,3.0637045151131352,3.4177905979574312
+"free-riding ON, brand zero, selection ON",20260911,1,0,1,0.1,680,(e) person x month FE + line/balance controls,0.0,-0.23388734983580606,0.8454280128275636
+"free-riding ON, brand zero, selection ON",20260911,1,0,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.04919313901734835,0.0026224223879039547
+"free-riding ON, brand POSITIVE, selection off",20260911,1,1,0,0.1,680,"(a) pool-level, constant FICO mix",-0.33895777851753217,-0.321735973680248,-0.31795103637605715
+"free-riding ON, brand POSITIVE, selection off",20260911,1,1,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07189247791497343,-0.07057389059449398
+"free-riding ON, brand POSITIVE, selection off",20260911,1,1,0,0.1,680,"(c) within-person, no time effects",-0.33895777851753217,-0.2928469717415926,-0.28923818810190843
+"free-riding ON, brand POSITIVE, selection off",20260911,1,1,0,0.1,680,"(d) person x month FE, issuer dummy",-5.197839100598627,-23.799432355723766,-23.385791197620588
+"free-riding ON, brand POSITIVE, selection off",20260911,1,1,0,0.1,680,(e) person x month FE + line/balance controls,-5.197839100598627,-24.01809585085765,-23.783307444103276
+"free-riding ON, brand POSITIVE, selection off",20260911,1,1,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.005135675358555328,0.0026224223879039547
+"free-riding ON, brand POSITIVE, selection ON",20260911,1,1,1,0.1,680,"(a) pool-level, constant FICO mix",-0.15337849574431128,-0.45888725863830027,-0.31795103637605715
+"free-riding ON, brand POSITIVE, selection ON",20260911,1,1,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4879044397626656,-0.07057389059449398
+"free-riding ON, brand POSITIVE, selection ON",20260911,1,1,1,0.1,680,"(c) within-person, no time effects",-0.15337849574431128,-0.13009097270818681,-0.28923818810190843
+"free-riding ON, brand POSITIVE, selection ON",20260911,1,1,1,0.1,680,"(d) person x month FE, issuer dummy",-3.4393251135626217,-23.429819770617076,-23.385791197620588
+"free-riding ON, brand POSITIVE, selection ON",20260911,1,1,1,0.1,680,(e) person x month FE + line/balance controls,-3.4393251135626217,-23.834325677330717,-23.783307444103276
+"free-riding ON, brand POSITIVE, selection ON",20260911,1,1,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.04919313901734835,0.0026224223879039547
+"free-riding ON (gamma=0.25), brand zero, selection off",20260911,1,0,0,0.25,680,"(a) pool-level, constant FICO mix",0.0,0.006697314993603708,0.024474340898687733
+"free-riding ON (gamma=0.25), brand zero, selection off",20260911,1,0,0,0.25,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07453494509152976,-0.07057389059449398
+"free-riding ON (gamma=0.25), brand zero, selection off",20260911,1,0,0,0.25,680,"(c) within-person, no time effects",0.0,0.03625081372250433,0.051035185407661846
+"free-riding ON (gamma=0.25), brand zero, selection off",20260911,1,0,0,0.25,680,"(d) person x month FE, issuer dummy",0.0,2.467707425311037,3.4177905979574312
+"free-riding ON (gamma=0.25), brand zero, selection off",20260911,1,0,0,0.25,680,(e) person x month FE + line/balance controls,0.0,0.5719576372414211,0.8454280128275636
+"free-riding ON (gamma=0.25), brand zero, selection off",20260911,1,0,0,0.25,680,"(f) RD at approval cutoff, other cards",0.0,0.038397509470425785,0.0026224223879039547
+"free-riding off, brand zero, selection off, cutoff 620",20260911,0,0,0,0.0,620,"(a) pool-level, constant FICO mix",0.0,0.1842848766203625,0.1842848766203625
+"free-riding off, brand zero, selection off, cutoff 620",20260911,0,0,0,0.0,620,"(b) cross-section, other cards, FICO-controlled",0.0,-0.0006541251154213816,-0.0006541251154213816
+"free-riding off, brand zero, selection off, cutoff 620",20260911,0,0,0,0.0,620,"(c) within-person, no time effects",0.0,0.1785229594327859,0.1785229594327859
+"free-riding off, brand zero, selection off, cutoff 620",20260911,0,0,0,0.0,620,"(d) person x month FE, issuer dummy",0.0,6.748978968940294,6.748978968940294
+"free-riding off, brand zero, selection off, cutoff 620",20260911,0,0,0,0.0,620,(e) person x month FE + line/balance controls,0.0,0.3053516017617533,0.3053516017617533
+"free-riding off, brand zero, selection off, cutoff 620",20260911,0,0,0,0.0,620,"(f) RD at approval cutoff, other cards",0.0,-0.05944365900695505,-0.05944365900695505
+"free-riding ON, brand zero, selection off, cutoff 620",20260911,1,0,0,0.1,620,"(a) pool-level, constant FICO mix",0.0,0.17658338045131217,0.1842848766203625
+"free-riding ON, brand zero, selection off, cutoff 620",20260911,1,0,0,0.1,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.0164876560724779,-0.0006541251154213816
+"free-riding ON, brand zero, selection off, cutoff 620",20260911,1,0,0,0.1,620,"(c) within-person, no time effects",0.0,0.1588194993898651,0.1785229594327859
+"free-riding ON, brand zero, selection off, cutoff 620",20260911,1,0,0,0.1,620,"(d) person x month FE, issuer dummy",0.0,5.965299889531469,6.748978968940294
+"free-riding ON, brand zero, selection off, cutoff 620",20260911,1,0,0,0.1,620,(e) person x month FE + line/balance controls,0.0,0.10613571602000343,0.3053516017617533
+"free-riding ON, brand zero, selection off, cutoff 620",20260911,1,0,0,0.1,620,"(f) RD at approval cutoff, other cards",0.0,0.010619922639466872,-0.05944365900695505
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260911,1,0,0,0.25,620,"(a) pool-level, constant FICO mix",0.0,0.1682797376574949,0.1842848766203625
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260911,1,0,0,0.25,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.0391747024329897,-0.0006541251154213816
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260911,1,0,0,0.25,620,"(c) within-person, no time effects",0.0,0.13615571461854445,0.1785229594327859
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260911,1,0,0,0.25,620,"(d) person x month FE, issuer dummy",0.0,5.071275658879195,6.748978968940294
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260911,1,0,0,0.25,620,(e) person x month FE + line/balance controls,0.0,0.19778155135114703,0.3053516017617533
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260911,1,0,0,0.25,620,"(f) RD at approval cutoff, other cards",0.0,0.14936689923525637,-0.05944365900695505
+"free-riding off, brand zero, selection off",20260912,0,0,0,0.0,680,"(a) pool-level, constant FICO mix",0.0,0.023765125056982004,0.023765125056982004
+"free-riding off, brand zero, selection off",20260912,0,0,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.048819447289476035,-0.048819447289476035
+"free-riding off, brand zero, selection off",20260912,0,0,0,0.0,680,"(c) within-person, no time effects",0.0,0.0429736264450227,0.0429736264450227
+"free-riding off, brand zero, selection off",20260912,0,0,0,0.0,680,"(d) person x month FE, issuer dummy",0.0,2.834144400575398,2.834144400575398
+"free-riding off, brand zero, selection off",20260912,0,0,0,0.0,680,(e) person x month FE + line/balance controls,0.0,1.1182449505239078,1.1182449505239078
+"free-riding off, brand zero, selection off",20260912,0,0,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.21586522104361525,0.21586522104361525
+"free-riding off, brand zero, selection ON",20260912,0,0,1,0.0,680,"(a) pool-level, constant FICO mix",0.0,-0.31770036268676155,0.023765125056982004
+"free-riding off, brand zero, selection ON",20260912,0,0,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.48830663651950507,-0.048819447289476035
+"free-riding off, brand zero, selection ON",20260912,0,0,1,0.0,680,"(c) within-person, no time effects",0.0,0.012646727612734792,0.0429736264450227
+"free-riding off, brand zero, selection ON",20260912,0,0,1,0.0,680,"(d) person x month FE, issuer dummy",0.0,1.8460076690759788,2.834144400575398
+"free-riding off, brand zero, selection ON",20260912,0,0,1,0.0,680,(e) person x month FE + line/balance controls,0.0,-0.8855968006120848,1.1182449505239078
+"free-riding off, brand zero, selection ON",20260912,0,0,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.32308694975365115,0.21586522104361525
+"free-riding off, brand POSITIVE, selection off",20260912,0,1,0,0.0,680,"(a) pool-level, constant FICO mix",-0.3379875886524823,-0.3142224635955,-0.3142224635955
+"free-riding off, brand POSITIVE, selection off",20260912,0,1,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.048819447289476035,-0.048819447289476035
+"free-riding off, brand POSITIVE, selection off",20260912,0,1,0,0.0,680,"(c) within-person, no time effects",-0.3379875886524823,-0.287914015620865,-0.287914015620865
+"free-riding off, brand POSITIVE, selection off",20260912,0,1,0,0.0,680,"(d) person x month FE, issuer dummy",-5.161382056021612,-22.636552705513218,-22.636552705513218
+"free-riding off, brand POSITIVE, selection off",20260912,0,1,0,0.0,680,(e) person x month FE + line/balance controls,-5.161382056021612,-22.42691187869863,-22.42691187869863
+"free-riding off, brand POSITIVE, selection off",20260912,0,1,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.21586522104361525,0.21586522104361525
+"free-riding off, brand POSITIVE, selection ON",20260912,0,1,1,0.0,680,"(a) pool-level, constant FICO mix",-0.14839470217044587,-0.46609506485720725,-0.3142224635955
+"free-riding off, brand POSITIVE, selection ON",20260912,0,1,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.48830663651950507,-0.048819447289476035
+"free-riding off, brand POSITIVE, selection ON",20260912,0,1,1,0.0,680,"(c) within-person, no time effects",-0.14839470217044587,-0.13176774284739137,-0.287914015620865
+"free-riding off, brand POSITIVE, selection ON",20260912,0,1,1,0.0,680,"(d) person x month FE, issuer dummy",-3.66008911521324,-23.228556206712774,-22.636552705513218
+"free-riding off, brand POSITIVE, selection ON",20260912,0,1,1,0.0,680,(e) person x month FE + line/balance controls,-3.66008911521324,-23.14876806461006,-22.42691187869863
+"free-riding off, brand POSITIVE, selection ON",20260912,0,1,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.32308694975365115,0.21586522104361525
+"free-riding ON, brand zero, selection off",20260912,1,0,0,0.1,680,"(a) pool-level, constant FICO mix",0.0,0.017227215520475198,0.023765125056982004
+"free-riding ON, brand zero, selection off",20260912,1,0,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.04944586897379724,-0.048819447289476035
+"free-riding ON, brand zero, selection off",20260912,1,0,0,0.1,680,"(c) within-person, no time effects",0.0,0.03712624314904768,0.0429736264450227
+"free-riding ON, brand zero, selection off",20260912,1,0,0,0.1,680,"(d) person x month FE, issuer dummy",0.0,2.4629404430214104,2.834144400575398
+"free-riding ON, brand zero, selection off",20260912,1,0,0,0.1,680,(e) person x month FE + line/balance controls,0.0,1.236411494185311,1.1182449505239078
+"free-riding ON, brand zero, selection off",20260912,1,0,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.2367431599551654,0.21586522104361525
+"free-riding ON, brand zero, selection ON",20260912,1,0,1,0.1,680,"(a) pool-level, constant FICO mix",0.0,-0.3216299372382861,0.023765125056982004
+"free-riding ON, brand zero, selection ON",20260912,1,0,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.49020425479833607,-0.048819447289476035
+"free-riding ON, brand zero, selection ON",20260912,1,0,1,0.1,680,"(c) within-person, no time effects",0.0,0.01011273255797727,0.0429736264450227
+"free-riding ON, brand zero, selection ON",20260912,1,0,1,0.1,680,"(d) person x month FE, issuer dummy",0.0,1.4964909866519893,2.834144400575398
+"free-riding ON, brand zero, selection ON",20260912,1,0,1,0.1,680,(e) person x month FE + line/balance controls,0.0,-0.9132760417331484,1.1182449505239078
+"free-riding ON, brand zero, selection ON",20260912,1,0,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.3390965242836532,0.21586522104361525
+"free-riding ON, brand POSITIVE, selection off",20260912,1,1,0,0.1,680,"(a) pool-level, constant FICO mix",-0.33660239361702127,-0.31937517809654586,-0.3142224635955
+"free-riding ON, brand POSITIVE, selection off",20260912,1,1,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.04944586897379724,-0.048819447289476035
+"free-riding ON, brand POSITIVE, selection off",20260912,1,1,0,0.1,680,"(c) within-person, no time effects",-0.33660239361702127,-0.2924851843085915,-0.287914015620865
+"free-riding ON, brand POSITIVE, selection off",20260912,1,1,0,0.1,680,"(d) person x month FE, issuer dummy",-5.3428571428571425,-23.09834893991316,-22.636552705513218
+"free-riding ON, brand POSITIVE, selection off",20260912,1,1,0,0.1,680,(e) person x month FE + line/balance controls,-5.3428571428571425,-22.69650863481824,-22.42691187869863
+"free-riding ON, brand POSITIVE, selection off",20260912,1,1,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.2367431599551654,0.21586522104361525
+"free-riding ON, brand POSITIVE, selection ON",20260912,1,1,1,0.1,680,"(a) pool-level, constant FICO mix",-0.14544761112266832,-0.46707754836095405,-0.3142224635955
+"free-riding ON, brand POSITIVE, selection ON",20260912,1,1,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.49020425479833607,-0.048819447289476035
+"free-riding ON, brand POSITIVE, selection ON",20260912,1,1,1,0.1,680,"(c) within-person, no time effects",-0.14544761112266832,-0.1313957802705462,-0.287914015620865
+"free-riding ON, brand POSITIVE, selection ON",20260912,1,1,1,0.1,680,"(d) person x month FE, issuer dummy",-3.7644787644787647,-23.412451845408167,-22.636552705513218
+"free-riding ON, brand POSITIVE, selection ON",20260912,1,1,1,0.1,680,(e) person x month FE + line/balance controls,-3.7644787644787647,-23.457573547855798,-22.42691187869863
+"free-riding ON, brand POSITIVE, selection ON",20260912,1,1,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.3390965242836532,0.21586522104361525
+"free-riding ON (gamma=0.25), brand zero, selection off",20260912,1,0,0,0.25,680,"(a) pool-level, constant FICO mix",0.0,0.008720415089078032,0.023765125056982004
+"free-riding ON (gamma=0.25), brand zero, selection off",20260912,1,0,0,0.25,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.05220658938299553,-0.048819447289476035
+"free-riding ON (gamma=0.25), brand zero, selection off",20260912,1,0,0,0.25,680,"(c) within-person, no time effects",0.0,0.03118604424520005,0.0429736264450227
+"free-riding ON (gamma=0.25), brand zero, selection off",20260912,1,0,0,0.25,680,"(d) person x month FE, issuer dummy",0.0,2.087345468099645,2.834144400575398
+"free-riding ON (gamma=0.25), brand zero, selection off",20260912,1,0,0,0.25,680,(e) person x month FE + line/balance controls,0.0,0.7830771150468931,1.1182449505239078
+"free-riding ON (gamma=0.25), brand zero, selection off",20260912,1,0,0,0.25,680,"(f) RD at approval cutoff, other cards",0.0,0.27342780559161445,0.21586522104361525
+"free-riding off, brand zero, selection off, cutoff 620",20260912,0,0,0,0.0,620,"(a) pool-level, constant FICO mix",0.0,0.16381599802653696,0.16381599802653696
+"free-riding off, brand zero, selection off, cutoff 620",20260912,0,0,0,0.0,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.008702928898426384,0.008702928898426384
+"free-riding off, brand zero, selection off, cutoff 620",20260912,0,0,0,0.0,620,"(c) within-person, no time effects",0.0,0.15425387072896599,0.15425387072896599
+"free-riding off, brand zero, selection off, cutoff 620",20260912,0,0,0,0.0,620,"(d) person x month FE, issuer dummy",0.0,5.7723081339026105,5.7723081339026105
+"free-riding off, brand zero, selection off, cutoff 620",20260912,0,0,0,0.0,620,(e) person x month FE + line/balance controls,0.0,0.49909740185762225,0.49909740185762225
+"free-riding off, brand zero, selection off, cutoff 620",20260912,0,0,0,0.0,620,"(f) RD at approval cutoff, other cards",0.0,0.15858730848360433,0.15858730848360433
+"free-riding ON, brand zero, selection off, cutoff 620",20260912,1,0,0,0.1,620,"(a) pool-level, constant FICO mix",0.0,0.15724136604528152,0.16381599802653696
+"free-riding ON, brand zero, selection off, cutoff 620",20260912,1,0,0,0.1,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.024086649045186526,0.008702928898426384
+"free-riding ON, brand zero, selection off, cutoff 620",20260912,1,0,0,0.1,620,"(c) within-person, no time effects",0.0,0.1375705207122827,0.15425387072896599
+"free-riding ON, brand zero, selection off, cutoff 620",20260912,1,0,0,0.1,620,"(d) person x month FE, issuer dummy",0.0,5.115990501116036,5.7723081339026105
+"free-riding ON, brand zero, selection off, cutoff 620",20260912,1,0,0,0.1,620,(e) person x month FE + line/balance controls,0.0,0.5133030166479485,0.49909740185762225
+"free-riding ON, brand zero, selection off, cutoff 620",20260912,1,0,0,0.1,620,"(f) RD at approval cutoff, other cards",0.0,0.2351489381858499,0.15858730848360433
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260912,1,0,0,0.25,620,"(a) pool-level, constant FICO mix",0.0,0.150005309775514,0.16381599802653696
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260912,1,0,0,0.25,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.047178589876783306,0.008702928898426384
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260912,1,0,0,0.25,620,"(c) within-person, no time effects",0.0,0.11547946413846756,0.15425387072896599
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260912,1,0,0,0.25,620,"(d) person x month FE, issuer dummy",0.0,4.247695226809422,5.7723081339026105
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260912,1,0,0,0.25,620,(e) person x month FE + line/balance controls,0.0,0.36205711201826174,0.49909740185762225
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260912,1,0,0,0.25,620,"(f) RD at approval cutoff, other cards",0.0,0.2957113510981053,0.15858730848360433
+"free-riding off, brand zero, selection off",20260913,0,0,0,0.0,680,"(a) pool-level, constant FICO mix",0.0,0.013267937256540553,0.013267937256540553
+"free-riding off, brand zero, selection off",20260913,0,0,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.08111912179619235,-0.08111912179619235
+"free-riding off, brand zero, selection off",20260913,0,0,0,0.0,680,"(c) within-person, no time effects",0.0,0.04979940156668464,0.04979940156668464
+"free-riding off, brand zero, selection off",20260913,0,0,0,0.0,680,"(d) person x month FE, issuer dummy",0.0,3.3354704530172468,3.3354704530172468
+"free-riding off, brand zero, selection off",20260913,0,0,0,0.0,680,(e) person x month FE + line/balance controls,0.0,-2.3252551125254453,-2.3252551125254453
+"free-riding off, brand zero, selection off",20260913,0,0,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.06590816169204118,-0.06590816169204118
+"free-riding off, brand zero, selection ON",20260913,0,0,1,0.0,680,"(a) pool-level, constant FICO mix",0.0,-0.3065999225578906,0.013267937256540553
+"free-riding off, brand zero, selection ON",20260913,0,0,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.48571353874954815,-0.08111912179619235
+"free-riding off, brand zero, selection ON",20260913,0,0,1,0.0,680,"(c) within-person, no time effects",0.0,0.016672037210866138,0.04979940156668464
+"free-riding off, brand zero, selection ON",20260913,0,0,1,0.0,680,"(d) person x month FE, issuer dummy",0.0,2.358381502890174,3.3354704530172468
+"free-riding off, brand zero, selection ON",20260913,0,0,1,0.0,680,(e) person x month FE + line/balance controls,0.0,-1.7204823698084601,-2.3252551125254453
+"free-riding off, brand zero, selection ON",20260913,0,0,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.06561141966793621,-0.06590816169204118
+"free-riding off, brand POSITIVE, selection off",20260913,0,1,0,0.0,680,"(a) pool-level, constant FICO mix",-0.34669337283620916,-0.33342543557966897,-0.33342543557966897
+"free-riding off, brand POSITIVE, selection off",20260913,0,1,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.08111912179619235,-0.08111912179619235
+"free-riding off, brand POSITIVE, selection off",20260913,0,1,0,0.0,680,"(c) within-person, no time effects",-0.34669337283620916,-0.2916054972188895,-0.2916054972188895
+"free-riding off, brand POSITIVE, selection off",20260913,0,1,0,0.0,680,"(d) person x month FE, issuer dummy",-5.247727939020815,-23.60478521346363,-23.60478521346363
+"free-riding off, brand POSITIVE, selection off",20260913,0,1,0,0.0,680,(e) person x month FE + line/balance controls,-5.247727939020815,-27.459547655241533,-27.459547655241533
+"free-riding off, brand POSITIVE, selection off",20260913,0,1,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.06590816169204118,-0.06590816169204118
+"free-riding off, brand POSITIVE, selection ON",20260913,0,1,1,0.0,680,"(a) pool-level, constant FICO mix",-0.16491822006743012,-0.4715181426253206,-0.33342543557966897
+"free-riding off, brand POSITIVE, selection ON",20260913,0,1,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.48571353874954815,-0.08111912179619235
+"free-riding off, brand POSITIVE, selection ON",20260913,0,1,1,0.0,680,"(c) within-person, no time effects",-0.16491822006743012,-0.14416408647043083,-0.2916054972188895
+"free-riding off, brand POSITIVE, selection ON",20260913,0,1,1,0.0,680,"(d) person x month FE, issuer dummy",-3.982439636249608,-25.016207455429416,-23.60478521346363
+"free-riding off, brand POSITIVE, selection ON",20260913,0,1,1,0.0,680,(e) person x month FE + line/balance controls,-3.982439636249608,-27.171670439650402,-27.459547655241533
+"free-riding off, brand POSITIVE, selection ON",20260913,0,1,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,-0.06561141966793621,-0.06590816169204118
+"free-riding ON, brand zero, selection off",20260913,1,0,0,0.1,680,"(a) pool-level, constant FICO mix",0.0,0.0014940343821868336,0.013267937256540553
+"free-riding ON, brand zero, selection off",20260913,1,0,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.08254656177992609,-0.08111912179619235
+"free-riding ON, brand zero, selection off",20260913,1,0,0,0.1,680,"(c) within-person, no time effects",0.0,0.03945662852681531,0.04979940156668464
+"free-riding ON, brand zero, selection off",20260913,1,0,0,0.1,680,"(d) person x month FE, issuer dummy",0.0,2.6638924354912428,3.3354704530172468
+"free-riding ON, brand zero, selection off",20260913,1,0,0,0.1,680,(e) person x month FE + line/balance controls,0.0,-1.9951723682882005,-2.3252551125254453
+"free-riding ON, brand zero, selection off",20260913,1,0,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.050493603492307956,-0.06590816169204118
+"free-riding ON, brand zero, selection ON",20260913,1,0,1,0.1,680,"(a) pool-level, constant FICO mix",0.0,-0.31220493549975054,0.013267937256540553
+"free-riding ON, brand zero, selection ON",20260913,1,0,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.487080974410958,-0.08111912179619235
+"free-riding ON, brand zero, selection ON",20260913,1,0,1,0.1,680,"(c) within-person, no time effects",0.0,0.012352251659031066,0.04979940156668464
+"free-riding ON, brand zero, selection ON",20260913,1,0,1,0.1,680,"(d) person x month FE, issuer dummy",0.0,1.76716218473359,3.3354704530172468
+"free-riding ON, brand zero, selection ON",20260913,1,0,1,0.1,680,(e) person x month FE + line/balance controls,0.0,-1.135371183650895,-2.3252551125254453
+"free-riding ON, brand zero, selection ON",20260913,1,0,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.061763699028810404,-0.06590816169204118
+"free-riding ON, brand POSITIVE, selection off",20260913,1,1,0,0.1,680,"(a) pool-level, constant FICO mix",-0.3399125094758219,-0.3384184750936355,-0.33342543557966897
+"free-riding ON, brand POSITIVE, selection off",20260913,1,1,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.08254656177992609,-0.08111912179619235
+"free-riding ON, brand POSITIVE, selection off",20260913,1,1,0,0.1,680,"(c) within-person, no time effects",-0.3399125094758219,-0.29548111871915655,-0.2916054972188895
+"free-riding ON, brand POSITIVE, selection off",20260913,1,1,0,0.1,680,"(d) person x month FE, issuer dummy",-5.172413793103448,-24.04803526639814,-23.60478521346363
+"free-riding ON, brand POSITIVE, selection off",20260913,1,1,0,0.1,680,(e) person x month FE + line/balance controls,-5.172413793103448,-27.347962059294385,-27.459547655241533
+"free-riding ON, brand POSITIVE, selection off",20260913,1,1,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.050493603492307956,-0.06590816169204118
+"free-riding ON, brand POSITIVE, selection ON",20260913,1,1,1,0.1,680,"(a) pool-level, constant FICO mix",-0.16160940678202235,-0.4738143422817727,-0.33342543557966897
+"free-riding ON, brand POSITIVE, selection ON",20260913,1,1,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.487080974410958,-0.08111912179619235
+"free-riding ON, brand POSITIVE, selection ON",20260913,1,1,1,0.1,680,"(c) within-person, no time effects",-0.16160940678202235,-0.1454716972320674,-0.2916054972188895
+"free-riding ON, brand POSITIVE, selection ON",20260913,1,1,1,0.1,680,"(d) person x month FE, issuer dummy",-3.925292814181703,-25.49204140922289,-23.60478521346363
+"free-riding ON, brand POSITIVE, selection ON",20260913,1,1,1,0.1,680,(e) person x month FE + line/balance controls,-3.925292814181703,-27.167747890952164,-27.459547655241533
+"free-riding ON, brand POSITIVE, selection ON",20260913,1,1,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,-0.061763699028810404,-0.06590816169204118
+"free-riding ON (gamma=0.25), brand zero, selection off",20260913,1,0,0,0.25,680,"(a) pool-level, constant FICO mix",0.0,-0.012203966253505932,0.013267937256540553
+"free-riding ON (gamma=0.25), brand zero, selection off",20260913,1,0,0,0.25,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.0857708864592702,-0.08111912179619235
+"free-riding ON (gamma=0.25), brand zero, selection off",20260913,1,0,0,0.25,680,"(c) within-person, no time effects",0.0,0.02846013619774428,0.04979940156668464
+"free-riding ON (gamma=0.25), brand zero, selection off",20260913,1,0,0,0.25,680,"(d) person x month FE, issuer dummy",0.0,1.9447679520109742,3.3354704530172468
+"free-riding ON (gamma=0.25), brand zero, selection off",20260913,1,0,0,0.25,680,(e) person x month FE + line/balance controls,0.0,-1.7730962171155198,-2.3252551125254453
+"free-riding ON (gamma=0.25), brand zero, selection off",20260913,1,0,0,0.25,680,"(f) RD at approval cutoff, other cards",0.0,-0.03580527427802236,-0.06590816169204118
+"free-riding off, brand zero, selection off, cutoff 620",20260913,0,0,0,0.0,620,"(a) pool-level, constant FICO mix",0.0,0.15305130356259056,0.15305130356259056
+"free-riding off, brand zero, selection off, cutoff 620",20260913,0,0,0,0.0,620,"(b) cross-section, other cards, FICO-controlled",0.0,-0.020335071894877314,-0.020335071894877314
+"free-riding off, brand zero, selection off, cutoff 620",20260913,0,0,0,0.0,620,"(c) within-person, no time effects",0.0,0.15699607653630593,0.15699607653630593
+"free-riding off, brand zero, selection off, cutoff 620",20260913,0,0,0,0.0,620,"(d) person x month FE, issuer dummy",0.0,5.961378828258103,5.961378828258103
+"free-riding off, brand zero, selection off, cutoff 620",20260913,0,0,0,0.0,620,(e) person x month FE + line/balance controls,0.0,-2.3905504508294766,-2.3905504508294766
+"free-riding off, brand zero, selection off, cutoff 620",20260913,0,0,0,0.0,620,"(f) RD at approval cutoff, other cards",0.0,0.34078596546423356,0.34078596546423356
+"free-riding ON, brand zero, selection off, cutoff 620",20260913,1,0,0,0.1,620,"(a) pool-level, constant FICO mix",0.0,0.14113740717474754,0.15305130356259056
+"free-riding ON, brand zero, selection off, cutoff 620",20260913,1,0,0,0.1,620,"(b) cross-section, other cards, FICO-controlled",0.0,-0.0059670297309806775,-0.020335071894877314
+"free-riding ON, brand zero, selection off, cutoff 620",20260913,1,0,0,0.1,620,"(c) within-person, no time effects",0.0,0.13638159232028918,0.15699607653630593
+"free-riding ON, brand zero, selection off, cutoff 620",20260913,1,0,0,0.1,620,"(d) person x month FE, issuer dummy",0.0,5.1547811464894195,5.961378828258103
+"free-riding ON, brand zero, selection off, cutoff 620",20260913,1,0,0,0.1,620,(e) person x month FE + line/balance controls,0.0,-1.9299491891374088,-2.3905504508294766
+"free-riding ON, brand zero, selection off, cutoff 620",20260913,1,0,0,0.1,620,"(f) RD at approval cutoff, other cards",0.0,0.4280841522417331,0.34078596546423356
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260913,1,0,0,0.25,620,"(a) pool-level, constant FICO mix",0.0,0.1317999451740272,0.15305130356259056
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260913,1,0,0,0.25,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.01521253775577896,-0.020335071894877314
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260913,1,0,0,0.25,620,"(c) within-person, no time effects",0.0,0.11436724080402202,0.15699607653630593
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260913,1,0,0,0.25,620,"(d) person x month FE, issuer dummy",0.0,4.281222632190993,5.961378828258103
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260913,1,0,0,0.25,620,(e) person x month FE + line/balance controls,0.0,-1.505902836560254,-2.3905504508294766
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260913,1,0,0,0.25,620,"(f) RD at approval cutoff, other cards",0.0,0.5073430827775879,0.34078596546423356
+"free-riding off, brand zero, selection off",20260914,0,0,0,0.0,680,"(a) pool-level, constant FICO mix",0.0,0.01994019769944607,0.01994019769944607
+"free-riding off, brand zero, selection off",20260914,0,0,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07997159481399524,-0.07997159481399524
+"free-riding off, brand zero, selection off",20260914,0,0,0,0.0,680,"(c) within-person, no time effects",0.0,0.058311013887135686,0.058311013887135686
+"free-riding off, brand zero, selection off",20260914,0,0,0,0.0,680,"(d) person x month FE, issuer dummy",0.0,3.910290568285111,3.910290568285111
+"free-riding off, brand zero, selection off",20260914,0,0,0,0.0,680,(e) person x month FE + line/balance controls,0.0,0.9621313689776256,0.9621313689776256
+"free-riding off, brand zero, selection off",20260914,0,0,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.002251049224708509,0.002251049224708509
+"free-riding off, brand zero, selection ON",20260914,0,0,1,0.0,680,"(a) pool-level, constant FICO mix",0.0,-0.310479218551527,0.01994019769944607
+"free-riding off, brand zero, selection ON",20260914,0,0,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4905312814012578,-0.07997159481399524
+"free-riding off, brand zero, selection ON",20260914,0,0,1,0.0,680,"(c) within-person, no time effects",0.0,0.018865656958073403,0.058311013887135686
+"free-riding off, brand zero, selection ON",20260914,0,0,1,0.0,680,"(d) person x month FE, issuer dummy",0.0,2.7222315577213925,3.910290568285111
+"free-riding off, brand zero, selection ON",20260914,0,0,1,0.0,680,(e) person x month FE + line/balance controls,0.0,0.27404163490563727,0.9621313689776256
+"free-riding off, brand zero, selection ON",20260914,0,0,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.1233674222863634,0.002251049224708509
+"free-riding off, brand POSITIVE, selection off",20260914,0,1,0,0.0,680,"(a) pool-level, constant FICO mix",-0.3477368402741537,-0.3277966425747081,-0.3277966425747081
+"free-riding off, brand POSITIVE, selection off",20260914,0,1,0,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.07997159481399524,-0.07997159481399524
+"free-riding off, brand POSITIVE, selection off",20260914,0,1,0,0.0,680,"(c) within-person, no time effects",-0.3477368402741537,-0.28286100243527185,-0.28286100243527185
+"free-riding off, brand POSITIVE, selection off",20260914,0,1,0,0.0,680,"(d) person x month FE, issuer dummy",-4.863985807214666,-23.051137986858418,-23.051137986858418
+"free-riding off, brand POSITIVE, selection off",20260914,0,1,0,0.0,680,(e) person x month FE + line/balance controls,-4.863985807214666,-25.060368360840346,-25.060368360840346
+"free-riding off, brand POSITIVE, selection off",20260914,0,1,0,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.002251049224708509,0.002251049224708509
+"free-riding off, brand POSITIVE, selection ON",20260914,0,1,1,0.0,680,"(a) pool-level, constant FICO mix",-0.15672894214898958,-0.4672081607005163,-0.3277966425747081
+"free-riding off, brand POSITIVE, selection ON",20260914,0,1,1,0.0,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4905312814012578,-0.07997159481399524
+"free-riding off, brand POSITIVE, selection ON",20260914,0,1,1,0.0,680,"(c) within-person, no time effects",-0.15672894214898958,-0.13413249187845042,-0.28286100243527185
+"free-riding off, brand POSITIVE, selection ON",20260914,0,1,1,0.0,680,"(d) person x month FE, issuer dummy",-3.095086151882578,-23.80637427142318,-23.051137986858418
+"free-riding off, brand POSITIVE, selection ON",20260914,0,1,1,0.0,680,(e) person x month FE + line/balance controls,-3.095086151882578,-25.21380033654163,-25.060368360840346
+"free-riding off, brand POSITIVE, selection ON",20260914,0,1,1,0.0,680,"(f) RD at approval cutoff, other cards",0.0,0.1233674222863634,0.002251049224708509
+"free-riding ON, brand zero, selection off",20260914,1,0,0,0.1,680,"(a) pool-level, constant FICO mix",0.0,0.012769424239866272,0.01994019769944607
+"free-riding ON, brand zero, selection off",20260914,1,0,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.0822096341874501,-0.07997159481399524
+"free-riding ON, brand zero, selection off",20260914,1,0,0,0.1,680,"(c) within-person, no time effects",0.0,0.05265519610730127,0.058311013887135686
+"free-riding ON, brand zero, selection off",20260914,1,0,0,0.1,680,"(d) person x month FE, issuer dummy",0.0,3.559747831445228,3.910290568285111
+"free-riding ON, brand zero, selection off",20260914,1,0,0,0.1,680,(e) person x month FE + line/balance controls,0.0,0.6800286179723016,0.9621313689776256
+"free-riding ON, brand zero, selection off",20260914,1,0,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.010422137026622797,0.002251049224708509
+"free-riding ON, brand zero, selection ON",20260914,1,0,1,0.1,680,"(a) pool-level, constant FICO mix",0.0,-0.31341578483740723,0.01994019769944607
+"free-riding ON, brand zero, selection ON",20260914,1,0,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4929386729174082,-0.07997159481399524
+"free-riding ON, brand zero, selection ON",20260914,1,0,1,0.1,680,"(c) within-person, no time effects",0.0,0.017212000607427464,0.058311013887135686
+"free-riding ON, brand zero, selection ON",20260914,1,0,1,0.1,680,"(d) person x month FE, issuer dummy",0.0,2.5193468107592145,3.910290568285111
+"free-riding ON, brand zero, selection ON",20260914,1,0,1,0.1,680,(e) person x month FE + line/balance controls,0.0,0.3755671001388916,0.9621313689776256
+"free-riding ON, brand zero, selection ON",20260914,1,0,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.11792085140036834,0.002251049224708509
+"free-riding ON, brand POSITIVE, selection off",20260914,1,1,0,0.1,680,"(a) pool-level, constant FICO mix",-0.34182235674772987,-0.329052932507864,-0.3277966425747081
+"free-riding ON, brand POSITIVE, selection off",20260914,1,1,0,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.0822096341874501,-0.07997159481399524
+"free-riding ON, brand POSITIVE, selection off",20260914,1,1,0,0.1,680,"(c) within-person, no time effects",-0.34182235674772987,-0.2827675178438696,-0.28286100243527185
+"free-riding ON, brand POSITIVE, selection off",20260914,1,1,0,0.1,680,"(d) person x month FE, issuer dummy",-4.944320712694878,-23.14623507805328,-23.051137986858418
+"free-riding ON, brand POSITIVE, selection off",20260914,1,1,0,0.1,680,(e) person x month FE + line/balance controls,-4.944320712694878,-25.114875568896917,-25.060368360840346
+"free-riding ON, brand POSITIVE, selection off",20260914,1,1,0,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.010422137026622797,0.002251049224708509
+"free-riding ON, brand POSITIVE, selection ON",20260914,1,1,1,0.1,680,"(a) pool-level, constant FICO mix",-0.1546484694655959,-0.46806425430300286,-0.3277966425747081
+"free-riding ON, brand POSITIVE, selection ON",20260914,1,1,1,0.1,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.4929386729174082,-0.07997159481399524
+"free-riding ON, brand POSITIVE, selection ON",20260914,1,1,1,0.1,680,"(c) within-person, no time effects",-0.1546484694655959,-0.13366667318812758,-0.28286100243527185
+"free-riding ON, brand POSITIVE, selection ON",20260914,1,1,1,0.1,680,"(d) person x month FE, issuer dummy",-3.1663974151857834,-24.041724267940097,-23.051137986858418
+"free-riding ON, brand POSITIVE, selection ON",20260914,1,1,1,0.1,680,(e) person x month FE + line/balance controls,-3.1663974151857834,-25.10656326745843,-25.060368360840346
+"free-riding ON, brand POSITIVE, selection ON",20260914,1,1,1,0.1,680,"(f) RD at approval cutoff, other cards",0.0,0.11792085140036834,0.002251049224708509
+"free-riding ON (gamma=0.25), brand zero, selection off",20260914,1,0,0,0.25,680,"(a) pool-level, constant FICO mix",0.0,0.006545091982571457,0.01994019769944607
+"free-riding ON (gamma=0.25), brand zero, selection off",20260914,1,0,0,0.25,680,"(b) cross-section, other cards, FICO-controlled",0.0,-0.08527801052928692,-0.07997159481399524
+"free-riding ON (gamma=0.25), brand zero, selection off",20260914,1,0,0,0.25,680,"(c) within-person, no time effects",0.0,0.04917289507756853,0.058311013887135686
+"free-riding ON (gamma=0.25), brand zero, selection off",20260914,1,0,0,0.25,680,"(d) person x month FE, issuer dummy",0.0,3.35598302867898,3.910290568285111
+"free-riding ON (gamma=0.25), brand zero, selection off",20260914,1,0,0,0.25,680,(e) person x month FE + line/balance controls,0.0,0.4901460715853522,0.9621313689776256
+"free-riding ON (gamma=0.25), brand zero, selection off",20260914,1,0,0,0.25,680,"(f) RD at approval cutoff, other cards",0.0,0.04784416987771823,0.002251049224708509
+"free-riding off, brand zero, selection off, cutoff 620",20260914,0,0,0,0.0,620,"(a) pool-level, constant FICO mix",0.0,0.16118169534695453,0.16118169534695453
+"free-riding off, brand zero, selection off, cutoff 620",20260914,0,0,0,0.0,620,"(b) cross-section, other cards, FICO-controlled",0.0,-0.030240979535020602,-0.030240979535020602
+"free-riding off, brand zero, selection off, cutoff 620",20260914,0,0,0,0.0,620,"(c) within-person, no time effects",0.0,0.17774580335731358,0.17774580335731358
+"free-riding off, brand zero, selection off, cutoff 620",20260914,0,0,0,0.0,620,"(d) person x month FE, issuer dummy",0.0,6.670074295916588,6.670074295916588
+"free-riding off, brand zero, selection off, cutoff 620",20260914,0,0,0,0.0,620,(e) person x month FE + line/balance controls,0.0,-0.53163504593068,-0.53163504593068
+"free-riding off, brand zero, selection off, cutoff 620",20260914,0,0,0,0.0,620,"(f) RD at approval cutoff, other cards",0.0,0.0819169205547764,0.0819169205547764
+"free-riding ON, brand zero, selection off, cutoff 620",20260914,1,0,0,0.1,620,"(a) pool-level, constant FICO mix",0.0,0.15290563333898766,0.16118169534695453
+"free-riding ON, brand zero, selection off, cutoff 620",20260914,1,0,0,0.1,620,"(b) cross-section, other cards, FICO-controlled",0.0,-0.013939424698726893,-0.030240979535020602
+"free-riding ON, brand zero, selection off, cutoff 620",20260914,1,0,0,0.1,620,"(c) within-person, no time effects",0.0,0.15871462829736158,0.17774580335731358
+"free-riding ON, brand zero, selection off, cutoff 620",20260914,1,0,0,0.1,620,"(d) person x month FE, issuer dummy",0.0,5.916723881450953,6.670074295916588
+"free-riding ON, brand zero, selection off, cutoff 620",20260914,1,0,0,0.1,620,(e) person x month FE + line/balance controls,0.0,-0.5148028645915842,-0.53163504593068
+"free-riding ON, brand zero, selection off, cutoff 620",20260914,1,0,0,0.1,620,"(f) RD at approval cutoff, other cards",0.0,0.1339451673115103,0.0819169205547764
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260914,1,0,0,0.25,620,"(a) pool-level, constant FICO mix",0.0,0.14800779406575224,0.16118169534695453
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260914,1,0,0,0.25,620,"(b) cross-section, other cards, FICO-controlled",0.0,0.008519252578912166,-0.030240979535020602
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260914,1,0,0,0.25,620,"(c) within-person, no time effects",0.0,0.13993285371702593,0.17774580335731358
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260914,1,0,0,0.25,620,"(d) person x month FE, issuer dummy",0.0,5.167918378914541,6.670074295916588
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260914,1,0,0,0.25,620,(e) person x month FE + line/balance controls,0.0,-0.6030555565118665,-0.53163504593068
+"free-riding ON (gamma=0.25), brand zero, selection off, cutoff 620",20260914,1,0,0,0.25,620,"(f) RD at approval cutoff, other cards",0.0,0.2024737915956447,0.0819169205547764

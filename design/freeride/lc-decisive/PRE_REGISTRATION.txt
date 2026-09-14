@@ -1,0 +1,66 @@
+PRE-REGISTERED CLASSIFICATION OF BUREAU FIELDS
+Written BEFORE any horse-race ranking was computed. 2026-09-11.
+
+Rule used: a field is "OTHER LENDERS' DECISION" if the number on the credit file is
+set by a third-party lender's underwriting act - a limit they granted, an account they
+approved, or the timing of such an approval. A field is "BORROWER'S OWN STATE" if the
+number is set by what the borrower did with the credit or by their own circumstances -
+balances drawn, utilisation, income, delinquency, public records, and their own
+shopping behaviour (inquiries are the borrower applying, not a lender approving).
+"MIXED" is used where a lender-granted number is netted against a borrower-driven one.
+
+--- OTHER LENDERS' DECISION (limits granted / accounts approved / approval timing) ---
+total_bc_limit                  bankcard limits granted by other lenders
+total_rev_hi_lim                revolving high limits granted
+tot_hi_cred_lim                 total high credit limit granted
+total_il_high_credit_limit      installment high credit granted
+acc_open_past_24mths            accounts other lenders approved in past 24 months
+num_tl_op_past_12m              trades opened past 12 months (approvals)
+open_rv_12m, open_rv_24m        revolving trades opened (approvals)
+open_il_12m, open_il_24m        installment trades opened (approvals)
+mort_acc                        mortgages approved
+num_bc_tl                       bankcard trades ever approved
+num_bc_sats                     satisfactory bankcard trades approved
+num_rev_accts                   revolving accounts approved
+num_il_tl                       installment trades approved
+num_op_rev_tl                   open revolving trades approved
+num_sats                        satisfactory accounts approved
+open_acc                        open accounts approved
+total_acc                       total accounts approved
+total_cu_tl                     finance/credit-union trades approved
+open_act_il                     active installment trades approved
+mo_sin_old_rev_tl_op            age of oldest revolving approval  (BORDERLINE)
+mo_sin_old_il_acct              age of oldest installment approval (BORDERLINE)
+mo_sin_rcnt_rev_tl_op           recency of most recent revolving approval
+mo_sin_rcnt_tl                  recency of most recent approval of any kind
+mths_since_recent_bc            recency of most recent bankcard approval
+
+--- BORROWER'S OWN STATE (balances, utilisation, income, delinquency, own shopping) ---
+revol_bal, revol_util, bc_util, all_util, il_util
+tot_cur_bal, avg_cur_bal, total_bal_ex_mort, total_bal_il, max_bal_bc
+percent_bc_gt_75
+num_actv_bc_tl, num_actv_rev_tl, num_rev_tl_bal_gt_0   (accounts the BORROWER is using)
+annual_inc, dti
+delinq_2yrs, delinq_amnt, acc_now_delinq
+pct_tl_nvr_dlq, num_accts_ever_120_pd, num_tl_90g_dpd_24m,
+num_tl_30dpd, num_tl_120dpd_2m
+mths_since_last_delinq
+pub_rec, pub_rec_bankruptcies, tax_liens
+tot_coll_amt, collections_12_mths_ex_med, chargeoff_within_12_mths
+inq_last_6mths, inq_last_12m, inq_fi, mths_since_recent_inq  (the BORROWER applying)
+
+--- MIXED (a granted limit netted against a drawn balance) ---
+bc_open_to_buy                  bankcard limit granted MINUS bankcard balance drawn
+
+--- DECISION RULE FIXED IN ADVANCE ---
+If log(total_bc_limit) is mid-pack among ALL bureau fields by absolute realized
+net-return spread, the honest conclusion is COARSE GRADE (Lending Club's 35-notch
+published grade is a coarse summary of its own model and many bureau fields beat it
+inside a grade), NOT free-riding / brand halo.
+If instead the OTHER-LENDERS'-DECISION class systematically occupies the top of the
+ranking and the BORROWER'S-OWN-STATE class does not, and total_bc_limit is near the
+top of its class with the sign that more third-party limit means lower loss, that is
+a FREE-RIDING finding.
+acc_open_past_24mths is the purest "other lenders just approved this person" proxy;
+if its sign says more recent third-party approvals predict WORSE realized cash, the
+simple free-riding reading is contradicted regardless of where total_bc_limit ranks.

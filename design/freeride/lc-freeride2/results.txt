@@ -1,0 +1,234 @@
+==============================================================================
+LENDING CLUB FREE-RIDING TEST 2 : did LC price other lenders' limits,
+and did it price them ENOUGH?
+==============================================================================
+Data: C:\Users\samwe\AppData\Local\Temp\claude\c--Users-samwe-OneDrive-Documents-codex-projects-Job-autoapply\8b3ac5c3-74cb-44aa-9894-816ca22156c2\scratchpad\freeride-data\LendingClub_2007_to_2018Q4.csv
+Raw rows: 2,260,701
+After term == 36 months: 1,609,754
+After issue year 2012-2017: 1,233,549
+After terminal status only: 950,379; charge-off 16.26%
+After dropping missing bankcard fields: 917,712 (dropped 32,667)
+After total_bc_limit > 0: 917,334
+After dropping missing int_rate/sub_grade: 917,334 (dropped 0)
+
+FINAL ANALYSIS SAMPLE: N = 917,334, charge-off rate 16.30%, mean APR 12.12%
+
+Loans and charge-off by issue year:
+   2012: n=20,709  charge-off 12.95%  mean APR 13.09%  median bc limit $13,600
+   2013: n=99,621  charge-off 12.32%  mean APR 13.34%  median bc limit $13,900
+   2014: n=160,712  charge-off 13.71%  mean APR 12.45%  median bc limit $12,900
+   2015: n=279,940  charge-off 14.86%  mean APR 11.25%  median bc limit $14,200
+   2016: n=229,626  charge-off 19.85%  mean APR 12.01%  median bc limit $15,000
+   2017: n=126,726  charge-off 20.01%  mean APR 12.74%  median bc limit $16,000
+
+------------------------------------------------------------------------------
+CORRELATIONS with log(total_bc_limit)  [Pearson, full sample]
+------------------------------------------------------------------------------
+   corr(log_bc_limit, fico            ) = +0.3693   (n=917,334)
+   corr(log_bc_limit, log(annual_inc) ) = +0.3721   (n=917,334)
+   corr(log_bc_limit, annual_inc      ) = +0.2442   (n=917,334)
+   corr(log_bc_limit, revol_util      ) = -0.1302   (n=917,251)
+   corr(log_bc_limit, dti             ) = +0.0422   (n=917,183)
+   corr(log_bc_limit, num_bc_tl       ) = +0.4813   (n=917,334)
+   corr(log_bc_limit, otb_share       ) = +0.2149   (n=917,334)
+   corr(log_bc_limit, int_rate        ) = -0.3229   (n=917,334)
+   corr(log_bc_limit, sub_grade(1-35) ) = -0.3367   (n=917,334)
+
+==============================================================================
+STAGE 1 - DID LENDING CLUB PRICE OTHER LENDERS' LIMITS?
+==============================================================================
+
+--- 1a: int_rate (percentage points of APR) ---
+
+[1a] int_rate ~ fico_only   R2 = 0.19310  (adj 0.19310)  RMSE 3.7303
+      fico           -0.057929  (HC0 SE 0.000113, t =  -514.8)
+
+[1a] int_rate ~ fico_plus_bc   R2 = 0.22510  (adj 0.22510)  RMSE 3.6556
+      fico           -0.045740  (HC0 SE 0.000140, t =  -326.8)
+      log_bc_limit   -0.769809  (HC0 SE 0.004936, t =  -156.0)
+      otb_share      -0.780693  (HC0 SE 0.016504, t =   -47.3)
+      num_bc_tl      +0.000439  (HC0 SE 0.000927, t =    +0.5)
+      -> per +10% other-lender limit: -0.07337 pp of APR   (per doubling: -0.5336 pp of APR)
+
+[1a] int_rate ~ fico_only_yearFE   R2 = 0.22650  (adj 0.22650)  RMSE 3.6523
+      fico           -0.058790  (HC0 SE 0.000113, t =  -522.5)
+
+[1a] int_rate ~ fico_plus_bc_yearFE   R2 = 0.25796  (adj 0.25796)  RMSE 3.5773
+      fico           -0.046914  (HC0 SE 0.000139, t =  -337.9)
+      log_bc_limit   -0.755920  (HC0 SE 0.004868, t =  -155.3)
+      otb_share      -0.751672  (HC0 SE 0.016374, t =   -45.9)
+      num_bc_tl      -0.003729  (HC0 SE 0.000917, t =    -4.1)
+      -> per +10% other-lender limit: -0.07205 pp of APR   (per doubling: -0.5240 pp of APR)
+
+[1a] incremental R2 from the three bankcard fields, given FICO      = +0.03200
+[1a] incremental R2 from the three bankcard fields, given FICO+yrFE = +0.03146
+
+--- 1b: sub_grade as integer A1=1 ... G5=35 (ordinal check) ---
+
+[1b] sub_grade_int ~ fico_only   R2 = 0.21067  (adj 0.21067)  RMSE 4.9539
+      fico           -0.081244  (HC0 SE 0.000152, t =  -534.1)
+
+[1b] sub_grade_int ~ fico_plus_bc   R2 = 0.24481  (adj 0.24480)  RMSE 4.8456
+      fico           -0.065378  (HC0 SE 0.000186, t =  -351.2)
+      log_bc_limit   -1.037924  (HC0 SE 0.006570, t =  -158.0)
+      otb_share      -0.877645  (HC0 SE 0.021724, t =   -40.4)
+      num_bc_tl      -0.015602  (HC0 SE 0.001237, t =   -12.6)
+      -> per +10% other-lender limit: -0.09892 notches   (per doubling: -0.7194 notches)
+
+[1b] sub_grade_int ~ fico_only_yearFE   R2 = 0.21537  (adj 0.21536)  RMSE 4.9391
+      fico           -0.081846  (HC0 SE 0.000152, t =  -538.2)
+
+[1b] sub_grade_int ~ fico_plus_bc_yearFE   R2 = 0.25019  (adj 0.25018)  RMSE 4.8283
+      fico           -0.065203  (HC0 SE 0.000187, t =  -349.2)
+      log_bc_limit   -1.062338  (HC0 SE 0.006589, t =  -161.2)
+      otb_share      -1.038328  (HC0 SE 0.021955, t =   -47.3)
+      num_bc_tl      -0.007839  (HC0 SE 0.001250, t =    -6.3)
+      -> per +10% other-lender limit: -0.10125 notches   (per doubling: -0.7364 notches)
+
+[1b] incremental R2 from the three bankcard fields, given FICO      = +0.03413
+[1b] incremental R2 from the three bankcard fields, given FICO+yrFE = +0.03483
+
+--- 1c: variance accounting ---
+   int_rate:      FICO alone R2 = 0.1931; +bankcard R2 = 0.2251 (+0.0320)
+   int_rate + yr: FICO alone R2 = 0.2265; +bankcard R2 = 0.2580 (+0.0315)
+   sub_grade:     FICO alone R2 = 0.2107; +bankcard R2 = 0.2448 (+0.0341)
+
+--- 1e: does the bankcard loading survive LC's other observables? ---
+   base  (fico,dti,revol_util,log_inc,loan_amnt,yrFE)  R2 = 0.26912
+   +bankcard                                           R2 = 0.29615  (delta +0.02704)
+      fico           -0.046842 (SE 0.000142, t= -330.3)
+      dti            +0.041979 (SE 0.002431, t=  +17.3)
+      revol_util     +0.003123 (SE 0.000303, t=  +10.3)
+      log_inc        -1.059037 (SE 0.014985, t=  -70.7)
+      loan_amnt      +0.000072 (SE 0.000001, t= +113.5)
+      log_bc_limit   -0.824003 (SE 0.005850, t= -140.8)
+      otb_share      -0.160580 (SE 0.027406, t=   -5.9)
+      num_bc_tl      -0.003407 (SE 0.001033, t=   -3.3)
+   -> per +10% other-lender limit, controlling for LC's other observables: -7.85 bps of APR
+
+--- 1d: by issue year (did LC start using it?) ---
+year          n   R2 fico    R2 +bc      dR2  bps APR / +10% limit       t   notch / +10%
+2012     20,709    0.5793    0.5815   0.0022                 -0.81    -3.8        -0.0094
+2013     99,621    0.3167    0.3871   0.0704                -10.29   -81.1        -0.1391
+2014    160,712    0.2319    0.2655   0.0335                 -6.89   -70.8        -0.0993
+2015    279,940    0.1901    0.2444   0.0543                 -8.25  -111.0        -0.1225
+2016    229,626    0.1539    0.1795   0.0256                 -6.80   -64.6        -0.0901
+2017    126,726    0.1997    0.2111   0.0115                 -5.14   -32.7        -0.0635
+
+==============================================================================
+STAGE 2 - DID LC PRICE IT ENOUGH? (residual signal inside sub_grade)
+==============================================================================
+  design: intercept + 34 sub_grade dummies + 5 year dummies (+3 bankcard fields); train 642,134 / test 275,200
+
+  2a  AUC  sub_grade+yearFE only        = 0.6825
+      AUC  + bankcard fields            = 0.6840   gain +0.0016
+      LR stat (3 df) = 595.6
+      log(total_bc_limit+1) coefficient = -0.0858 per log unit (SE 0.0042, z = -20.5)
+      odds ratio per +10% other-lender limit = 0.9919
+      odds ratio per doubling of limit      = 0.9423
+      otb_share coef -0.0910 per unit (z -6.9); num_bc_tl coef +0.0171 per account (z +20.3)
+      [full-sample fit] log_bc coef -0.0879 (SE 0.0035, z -25.2)
+
+  2a-robust  sub_grade x issue_year cells (207 cells, fully saturated):
+      AUC 0.6825 -> 0.6841 (gain +0.0016); log_bc coef -0.0864 (z -20.6)
+
+  2b: coefficient on log(total_bc_limit+1) WITHIN each letter grade
+      (controls: the 5 sub_grade dummies inside that grade + year dummies)
+grade          n     CO%      coef       SE       z   OR/+10%  AUC base   AUC +bc     gain
+A        199,293    5.92   -0.2189   0.0123   -17.8    0.9794    0.6058    0.6260   0.0202
+B        312,497   12.84   -0.1001   0.0066   -15.1    0.9905    0.5779    0.5831   0.0052
+C        252,309   20.79   -0.0742   0.0059   -12.7    0.9929    0.5732    0.5753   0.0021
+D        112,554   27.44   -0.0522   0.0079    -6.6    0.9950    0.5782    0.5793   0.0012
+E         32,568   33.65   -0.0385   0.0136    -2.8    0.9963    0.5790    0.5784  -0.0005
+F          6,734   38.77   -0.0152   0.0291    -0.5    0.9985    0.5873    0.5841  -0.0032
+G          1,379   too few rows, skipped
+
+  2c: HEADLINE TABLE - charge-off by quintile of other-lender bankcard limit,
+      quintiles cut WITHIN each letter grade
+grade  Q           n   med limit     CO%  mean APR%  mean FICO  med income
+A      Q1     40,052       8,100    7.46       7.39      710.4      60,000
+A      Q2     40,011      16,600    6.25       7.22      718.0      67,000
+A      Q3     39,680      26,100    6.00       7.08      725.8      75,000
+A      Q4     39,768      40,000    5.18       6.93      733.7      85,000
+A      Q5     39,782      69,616    4.72       6.75      743.8     102,000
+B      Q1     62,792       4,500   13.79      10.80      686.7      52,000
+B      Q2     62,698       9,200   13.26      10.72      688.5      56,000
+B      Q3     62,153      14,500   12.88      10.64      692.3      60,000
+B      Q4     62,649      22,600   12.72      10.57      697.5      68,931
+B      Q5     62,205      42,200   11.55      10.41      706.8      85,000
+C      Q1     51,107       3,200   21.28      13.94      681.1      48,000
+C      Q2     50,739       7,000   21.19      13.92      681.6      50,000
+C      Q3     50,046      11,400   21.13      13.90      684.0      55,000
+C      Q4     49,993      18,200   20.90      13.87      687.8      61,281
+C      Q5     50,424      35,100   19.43      13.83      695.0      80,000
+D      Q1     22,958       2,600   27.12      17.58      679.2      45,000
+D      Q2     22,621       6,000   27.16      17.62      678.9      48,000
+D      Q3     22,260      10,000   28.22      17.67      680.6      50,243
+D      Q4     22,206      16,100   27.72      17.68      683.9      58,000
+D      Q5     22,509      31,500   27.00      17.70      689.8      75,000
+E      Q1      6,712       2,300   33.19      20.97      678.5      43,000
+E      Q2      6,535       5,400   33.53      21.03      678.4      43,930
+E      Q3      6,357       9,000   34.61      21.15      679.4      49,000
+E      Q4      6,450      14,700   34.17      21.29      682.1      54,000
+E      Q5      6,514      29,200   32.79      21.64      686.8      70,000
+F      Q1      1,362       1,900   38.03      24.80      678.0      40,000
+F      Q2      1,388       4,500   38.83      24.88      677.4      40,000
+F      Q3      1,312       7,800   39.25      25.11      678.5      43,000
+F      Q4      1,334      13,000   39.96      25.39      679.8      51,694
+F      Q5      1,338      26,700   37.82      26.05      685.1      65,000
+G      Q1        278       1,800   52.52      28.21      675.3      35,000
+G      Q2        274       4,500   50.73      28.23      676.2      39,100
+G      Q3        275       8,300   49.82      28.67      679.2      45,000
+G      Q4        276      14,500   49.64      29.00      678.4      64,000
+G      Q5        276      32,000   39.86      29.46      682.9      85,000
+
+  2d: direction / coarseness probes
+      mean sub_grade integer by limit quintile within grade (is LC already
+      nudging low-limit borrowers to worse sub-grades inside the letter?):
+      A: Q1:3.70  Q2:3.41  Q3:3.18  Q4:2.95  Q5:2.69
+      B: Q1:8.30  Q2:8.16  Q3:8.07  Q4:7.96  Q5:7.83
+      C: Q1:12.88  Q2:12.79  Q3:12.77  Q4:12.74  Q5:12.72
+      D: Q1:17.68  Q2:17.62  Q3:17.60  Q4:17.57  Q5:17.54
+      E: Q1:22.58  Q2:22.53  Q3:22.48  Q4:22.45  Q5:22.45
+      F: Q1:27.47  Q2:27.46  Q3:27.44  Q4:27.44  Q5:27.49
+      G: Q1:32.48  Q2:32.42  Q3:32.42  Q4:32.48  Q5:32.68
+
+      + FICO/dti/revol_util/log_inc/loan_amnt as continuous controls on top of
+        sub_grade+year: AUC 0.6910 -> 0.6918 (gain +0.0009); log_bc coef -0.0786 (z -16.6)
+
+  2a-mature (2012-2015 only, n=560,982, CO 14.01%): AUC 0.6671 -> 0.6687 (gain +0.0016); log_bc coef -0.0919 (z -16.5)
+
+==============================================================================
+STAGE 3 - WHAT WAS THE UNDER-WEIGHTING WORTH?
+==============================================================================
+Formula: annualised loss rate ~= cumulative charge-off over loan life / 1.5,
+  where 1.5 years is the approximate average life of a 36-month amortising
+  loan (weighted-average life of level payments with prepayment ignored is
+  ~1.55y; we use 1.5). Charge-off here is the share of LOANS charged off, not
+  the share of principal lost, so this is an upper bound on nothing and a
+  rough proxy: it ignores recoveries, prepayment, partial repayment before
+  default (loss given default < 100% of original balance), and timing.
+
+grade    Q1 limit  Q5 limit   Q1 CO%   Q5 CO%   dCO pp  ann loss pp   Q1 APR   Q5 APR   dAPR pp   GAP bps
+A           8,100    69,616     7.46     4.72     2.74         1.83     7.39     6.75      0.64       118
+B           4,500    42,200    13.79    11.55     2.24         1.49    10.80    10.41      0.39       110
+C           3,200    35,100    21.28    19.43     1.85         1.23    13.94    13.83      0.11       112
+D           2,600    31,500    27.12    27.00     0.12         0.08    17.58    17.70     -0.12        20
+E           2,300    29,200    33.19    32.79     0.40         0.27    20.97    21.64     -0.67        94
+F           1,900    26,700    38.03    37.82     0.21         0.14    24.80    26.05     -1.25       139
+G           1,800    32,000    52.52    39.86    12.66         8.44    28.21    29.46     -1.25       969
+
+  Book size in sample: $11.66bn original principal.
+   grade A: bottom-limit quintile = $0.39bn (3.3% of book), under-charged by 118 bps/yr on that tranche
+   grade B: bottom-limit quintile = $0.53bn (4.5% of book), under-charged by 110 bps/yr on that tranche
+   grade C: bottom-limit quintile = $0.41bn (3.5% of book), under-charged by 112 bps/yr on that tranche
+   grade D: bottom-limit quintile = $0.19bn (1.6% of book), under-charged by 20 bps/yr on that tranche
+   grade E: bottom-limit quintile = $0.05bn (0.5% of book), under-charged by 94 bps/yr on that tranche
+   grade F: bottom-limit quintile = $0.01bn (0.1% of book), under-charged by 139 bps/yr on that tranche
+   grade G: bottom-limit quintile = $0.00bn (0.0% of book), under-charged by 969 bps/yr on that tranche
+   principal-weighted average gap on the bottom-quintile tranche: 103 bps/yr; that tranche is 13.6% of the book
+   spread over the whole book: 14 bps/yr equivalent
+
+  Model-based cross-check (logit coef from 2a, at the sample mean):
+     doubling of other-lender limit: charge-off 16.30% -> 15.48% (-0.81 pp cumulative, -0.54 pp/yr, -54 bps/yr)
+     +10% other-lender limit: charge-off 16.30% -> 16.18% (-0.11 pp cumulative, -0.08 pp/yr, -8 bps/yr)

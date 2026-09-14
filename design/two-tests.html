@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two tests, one survivor</title>
+<style>
+  :root { --ink:#1b1b1b; --muted:#5d5d5d; --rule:#d9d9d9; --bg:#fbfaf7; --panel:#fff; --accent:#8a3b12;
+          --ok:#2f6b3a; --warn:#9a6b00; --bad:#a13232; --dead:#7a7a7a; }
+  html { background: var(--bg); }
+  body { margin:0; font: 16px/1.55 Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+  main { max-width: 1000px; margin: 0 auto; padding: 40px 28px 80px; }
+  h1 { font-size: 31px; line-height:1.15; margin: 0 0 6px; font-weight: 600; }
+  h2 { font-size: 21px; margin: 46px 0 10px; font-weight: 600; border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+  h3 { font-size: 17px; margin: 26px 0 6px; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .kicker { font: 600 12px/1 Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .verdict { background: var(--panel); border-left: 5px solid var(--accent); padding: 14px 18px; margin: 18px 0 26px; }
+  .verdict p:last-child { margin-bottom:0; }
+  ul { margin: 0 0 12px 22px; padding:0; }
+  li { margin-bottom: 7px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 14px; background: var(--panel); }
+  th, td { border: 1px solid var(--rule); padding: 6px 9px; vertical-align: top; text-align: left; }
+  th { background: #f3f1ec; font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr.hl td { background: #fdf6ee; font-weight: 600; }
+  tr.dim td { color: var(--dead); }
+  .note { font-size: 13.5px; color: var(--muted); }
+  .ex { background: #f1efe9; padding: 10px 14px; border-radius: 4px; margin: 10px 0 14px; }
+  .wrap { overflow-x: auto; }
+  a { color: var(--accent); }
+  .tag { display:inline-block; font: 12px/1 Arial, sans-serif; padding:3px 7px; border-radius:3px; color:#fff; margin-right:4px; }
+  .t-dead { background: var(--bad); } .t-live { background: var(--ok); } .t-null { background: var(--warn); }
+  code { font: 13px "Consolas", monospace; background:#f1efe9; padding:1px 4px; border-radius:3px; }
+</style>
+</head>
+<body>
+<main>
+<div class="kicker">abs-risk · 11 September 2026</div>
+<h1>Two tests, one survivor</h1>
+<p class="sub">Both tests were pre-specified after three referees refuted the first pass. The free-riding story lost on its own terms. A different and much larger signal turned up in its place, pointing the opposite way. And the trust panel was shown, with a number, to be incapable of answering the question it was built for.</p>
+
+<div class="verdict">
+<p><b>The free-riding idea is dead, and it died cleanly.</b> Inside Lending Club's own price grid, balanced on score and measured in realized cash, the credit limits other lenders granted rank 42nd of 47 bureau fields. The sub-class that actually embodies the idea, limits granted by other lenders, is the weakest of four groups. Cut the breakpoints the way an investor would have to, using only prior years, and the whole effect goes to zero and changes sign between vintages.</p>
+<p><b>What replaced it is bigger and backwards.</b> The strongest field on the entire file is the count of accounts other lenders opened for this borrower in the past 24 months. More recent approvals predicts <i>more</i> default, monotonically, worth 371 basis points a year, and it survives the ex-ante test almost intact. Other lenders saying yes is a warning, not an endorsement.</p>
+<p><b>The trust cycle test is a null, and now we know why.</b> The design cannot detect a priority effect smaller than roughly a quarter of the entire Amex-to-Synchrony gap. That is the floor, so both tests returning nothing was the expected outcome all along. The earlier verdict favouring selection is withdrawn.</p>
+</div>
+
+<h2>Test 1 · Did Lending Club free-ride on other lenders, and did it free-ride enough?</h2>
+<p>The idea: other card issuers granted this borrower a total bankcard limit. That limit summarises every other lender's private judgement and sits on the credit file for free. If Lending Club's price under-used it, that is the Burger King move, free-riding on somebody else's site research, with a price tag attached.</p>
+<p>The first pass said yes, and quoted 124 basis points a year. Three referees took it apart: loss given default was assumed at 100% when the file carries realized cashflows, the annualisation divisor was wrong, charge-off was counted in loans but compared against a spread on dollars, score was never balanced, and nothing was clustered. So the rerun was specified in advance and run once.</p>
+
+<h3>The pre-specified design</h3>
+<ul>
+<li><b>Sample.</b> 36-month loans issued 2012 to 2015, all past maturity, 589,488 loans, 14.0% charged off.</li>
+<li><b>Cells.</b> Sub-grade by issue year by 20-point score band. Same price, same vintage, same score. 585 usable cells.</li>
+<li><b>Outcome.</b> Realized cash per $100 of original principal: interest received plus principal received plus recoveries, less collection fees, less the amount funded. No assumption about loss given default, no assumed life, no loan counts.</li>
+<li><b>Errors.</b> Clustered on the cell. Clustering inflates them by 1.22 times, which is why it matters.</li>
+</ul>
+<p class="note">Measured on the way through, replacing earlier guesses: realized loss given default is 51.6% of original principal net of recoveries, not 100%. The interest-earning life is 1.28 years, not 1.5.</p>
+
+<h3>The result</h3>
+<div class="wrap">
+<table>
+<tr><th>Quintile of other-lender bankcard limit</th><th class="num">Realized net return per $100</th><th class="num">vs Q1, cell-adjusted</th></tr>
+<tr><td>Q1 (smallest limits)</td><td class="num">+7.94</td><td class="num">&mdash;</td></tr>
+<tr><td>Q2</td><td class="num">+8.16</td><td class="num">+0.23</td></tr>
+<tr><td>Q3</td><td class="num">+8.08</td><td class="num">+0.15</td></tr>
+<tr><td>Q4</td><td class="num">+8.06</td><td class="num">+0.13</td></tr>
+<tr><td>Q5 (largest limits)</td><td class="num">+8.18</td><td class="num">+0.25</td></tr>
+</table>
+</div>
+<p>Top minus bottom is 25 cents per $100, clustered t of 2.25, about 20 basis points a year. It is not monotone. It is "Q1 is slightly worse and Q2 through Q5 are flat." Against the 124 basis points the first pass claimed, that is a sixth of the size.</p>
+
+<h3>The horse race, which is what decided it</h3>
+<p>The same cells and the same realized-cash outcome, run on every bureau field populated for at least 60% of the sample. Forty-seven fields ranked by the spread between their top and bottom quintile.</p>
+<div class="wrap">
+<table>
+<tr><th class="num">Rank</th><th>Field</th><th>What it is</th><th class="num">Q5 minus Q1, per $100</th><th class="num">Basis points a year</th></tr>
+<tr class="hl"><td class="num">1</td><td>Accounts opened, past 24 months</td><td>other lenders' approvals</td><td class="num">&minus;4.74</td><td class="num">&minus;371</td></tr>
+<tr><td class="num">2</td><td>Accounts opened, past 12 months</td><td>other lenders' approvals</td><td class="num">&minus;3.72</td><td class="num">&minus;291</td></tr>
+<tr><td class="num">3</td><td>Months since most recent bankcard</td><td>approval recency</td><td class="num">+2.68</td><td class="num">+210</td></tr>
+<tr><td class="num">4</td><td>Months since most recent account</td><td>approval recency</td><td class="num">+2.68</td><td class="num">+209</td></tr>
+<tr><td class="num">5</td><td>Inquiries, last 6 months</td><td>borrower's applications</td><td class="num">&minus;2.13</td><td class="num">&minus;167</td></tr>
+<tr class="dim"><td class="num">10</td><td>Average current balance</td><td>borrower's own state</td><td class="num">+1.82</td><td class="num">+142</td></tr>
+<tr class="dim"><td class="num">11</td><td>Annual income</td><td>borrower's own state</td><td class="num">+1.75</td><td class="num">+137</td></tr>
+<tr class="dim"><td class="num">24</td><td>Total high credit limit</td><td>limits granted</td><td class="num">+1.22</td><td class="num">+95</td></tr>
+<tr class="hl"><td class="num">42</td><td><b>Total bankcard limit</b></td><td><b>limits granted &mdash; the free-riding field</b></td><td class="num">+0.25</td><td class="num">+20</td></tr>
+<tr class="dim"><td class="num">44</td><td>Total revolving high limit</td><td>limits granted</td><td class="num">&minus;0.16</td><td class="num">&minus;12</td></tr>
+</table>
+</div>
+<p>Forty-second of forty-seven. Fifth from the bottom. And because a ranking can be gamed by the choice of metric, the checker re-ranked by t-statistic instead: 41st. Same answer.</p>
+
+<h3>The part that makes it honest</h3>
+<p>Every field was sorted into "a decision another lender made" versus "something about the borrower" <i>before</i> the ranking was computed, and the classification was written to a file first. On the surface the other-lender class wins: median rank 19.5 against 28.5.</p>
+<p>But the pre-registration also split that class into three kinds, and the win belongs to the wrong ones.</p>
+<div class="wrap">
+<table>
+<tr><th>Kind</th><th class="num">Fields</th><th class="num">Median rank</th><th class="num">Mean spread</th><th>Direction</th></tr>
+<tr><td>Approval timing (how long since another lender said yes)</td><td class="num">5</td><td class="num">7.0</td><td class="num">2.00</td><td>longer is better, 5 of 5</td></tr>
+<tr><td>Accounts approved (how many said yes)</td><td class="num">11</td><td class="num">19.0</td><td class="num">1.87</td><td>more is worse, 10 of 11</td></tr>
+<tr><td>Borrower's own state</td><td class="num">26</td><td class="num">28.5</td><td class="num">0.99</td><td>mixed</td></tr>
+<tr class="hl"><td><b>Limits granted &mdash; the actual free-riding construct</b></td><td class="num">4</td><td class="num">38.5</td><td class="num">0.52</td><td>2 up, 2 down</td></tr>
+</table>
+</div>
+<p>The group that means "another lender extended this person a big line, so they vouched for him" is the worst of the four, and loses outright to plain facts about the borrower. The class test does not rescue the idea. It relocates the signal to the recency and count of approvals, whose sign means the opposite thing.</p>
+
+<h3>The field that won, and what it says</h3>
+<div class="ex">
+Accounts opened in the past 24 months, inside the same sub-grade, vintage and score band:
+<table style="margin-top:8px">
+<tr><th>Quintile</th><th class="num">Median accounts opened</th><th class="num">Charge-off</th><th class="num">Net return per $100</th></tr>
+<tr><td>Q1</td><td class="num">1</td><td class="num">11.6%</td><td class="num">+10.17</td></tr>
+<tr><td>Q2</td><td class="num">3</td><td class="num">13.1%</td><td class="num">+8.65</td></tr>
+<tr><td>Q3</td><td class="num">4</td><td class="num">14.5%</td><td class="num">+7.81</td></tr>
+<tr><td>Q4</td><td class="num">6</td><td class="num">15.5%</td><td class="num">+6.86</td></tr>
+<tr><td>Q5</td><td class="num">9</td><td class="num">17.3%</td><td class="num">+5.38</td></tr>
+</table>
+</div>
+<p>Perfectly monotone, t of 33.9, nineteen times the size of the bankcard-limit effect. It replicates on the 60-month book, where it is again first. Holding the bankcard limit fixed leaves 99% of it. And it survives the ex-ante test almost undiminished.</p>
+<p><b>The reading.</b> The mechanism the data supports is credit-seeking intensity and recency: this borrower is levering up right now, and the lenders who approved him last year have not yet seen him perform. That is not lender endorsement. Free-riding on someone else's underwriting would require the <i>size</i> of the line they granted to be the informative thing, and it is the weakest group in the table. One caveat the checker added and it is a fair one: inquiries in the last six months, which are the borrower applying rather than any lender approving, rank fifth with the same sign. So the common factor may be the applying, not the approving.</p>
+
+<h3>Could anyone have traded it?</h3>
+<p>The first pass cut quintile breakpoints on the whole sample, which is hindsight. Cut them on prior vintages only and apply them forward:</p>
+<div class="wrap">
+<table>
+<tr><th>Vintage</th><th>Breakpoints from</th><th class="num">Spread per $100</th><th class="num">Basis points a year</th><th>Monotone</th></tr>
+<tr><td>2013</td><td>2012</td><td class="num">+0.07</td><td class="num">+5</td><td>no</td></tr>
+<tr><td>2014</td><td>2012&ndash;13</td><td class="num">+0.77</td><td class="num">+60</td><td>yes</td></tr>
+<tr><td>2015</td><td>2012&ndash;14</td><td class="num">&minus;0.36</td><td class="num">&minus;28</td><td>no, and negative</td></tr>
+<tr class="hl"><td colspan="2"><b>Weighted average</b></td><td class="num">+0.05</td><td class="num">+4</td><td>sign unstable</td></tr>
+</table>
+</div>
+<p>Indistinguishable from zero, with the standard error at roughly 0.10 and the sign flipping in the largest vintage. The same rule on the winning field delivers 357 of its in-sample 371 basis points. One signal is real and tradeable; the other is not.</p>
+
+<h2>Test 2 · Did the credit cycle separate selection from priority?</h2>
+<p>The logic was sound. If people rank their cards only when short of money, the Amex advantage should narrow when stimulus meant nobody was short, and widen again in the 2023 squeeze. If Amex simply holds better borrowers, the ratio should be flat. Three referees refuted the first pass here too, and the decisive objection was that its central comparison was between two windows rather than inside one, so the test had almost no variation to respond to.</p>
+
+<h3>The payment-rate test, never previously run</h3>
+<p>Monthly payment rate is the most direct pool-level measure of paying a card first that the data holds. Delinquency is its lagged consequence. Levels are meaningless across trusts, because Amex's pool is charge-card-like and Synchrony's carries promotional balances designed not to amortise, so the test is on how each responds to market-wide stress.</p>
+<div class="wrap">
+<table>
+<tr><th>Trust, against Synchrony</th><th class="num">Difference in elasticity</th><th class="num">Standard error</th><th class="num">z</th></tr>
+<tr class="hl"><td><b>Amex</b></td><td class="num">+0.028</td><td class="num">0.087</td><td class="num">+0.32</td></tr>
+<tr><td>Citi</td><td class="num">+0.053</td><td class="num">0.088</td><td class="num">+0.61</td></tr>
+<tr><td>Chase</td><td class="num">&minus;0.012</td><td class="num">0.097</td><td class="num">&minus;0.12</td></tr>
+<tr><td>Bank of America</td><td class="num">&minus;0.055</td><td class="num">0.089</td><td class="num">&minus;0.62</td></tr>
+<tr><td>Capital One</td><td class="num">&minus;0.116</td><td class="num">0.074</td><td class="num">&minus;1.57</td></tr>
+</table>
+</div>
+<p>Priority predicts a positive number for Amex, and the point estimate is positive. It is also one third of one standard error from zero, and Amex ranks second of five behind Citi. Nothing Amex-specific is there. Across the cycle the odd trust out is Synchrony, whose payment rate barely moved while every other trust's rose by roughly a third, which is a fact about promotional balances rather than about how anybody ranks a card.</p>
+<p class="note">One first-difference specification did come in at the priority direction with a z of 3.3. It was chased rather than banked: a distributed lag shows an enormous contemporaneous coefficient flanked on both sides by large negatives summing to zero, which is a phase artefact, because the six trusts do not close their billing periods on the same day.</p>
+
+<h3>The specification with no choices in it</h3>
+<p>Regress the log Amex-to-Synchrony delinquency ratio directly on market-wide delinquency. No regime bins, no baseline window, no event dates, so nothing to tune.</p>
+<div class="wrap">
+<table>
+<tr><th>Cut</th><th class="num">Elasticity</th><th class="num">Standard error</th><th class="num">95% interval</th></tr>
+<tr><td>Full panel</td><td class="num">+0.081</td><td class="num">0.150</td><td class="num">&minus;0.21 to +0.37</td></tr>
+<tr><td>Excluding the seasoning months</td><td class="num">+0.009</td><td class="num">0.132</td><td class="num">&minus;0.25 to +0.27</td></tr>
+</table>
+</div>
+<p>Priority predicts a negative number. The estimate is the wrong sign and indistinguishable from zero. That is a null, not a refutation.</p>
+
+<h3>Why it was always going to be a null</h3>
+<p>This is the most useful thing the rerun produced. Given the panel's actual stressor variation and its actual serially-correlated noise, the smallest effect this design could detect at conventional power is an elasticity of 0.42 for the delinquency ratio and 0.24 for the payment rate. In plain terms:</p>
+<div class="ex">A priority mechanism that moves the Amex-to-Synchrony gap by less than about <b>a third per doubling of market-wide delinquency</b> is invisible here. Set against the size of the thing being explained, that floor is <b>roughly a quarter of the entire gap</b>. Anything smaller than a quarter of the whole effect cannot be seen at all.</div>
+<p>So six aggregate monthly time series were never going to settle this. Both nulls were the expected outcome, and reading either of them as evidence for selection was the first pass's mistake. That verdict is withdrawn.</p>
+
+<h3>The mix correction, honestly bounded</h3>
+<p>Two known biases were fixed. Synchrony's bottom score bucket lumps unscored accounts in with the worst scores while every other trust's unscored row is dropped, which flatters Synchrony's expected loss; correcting it moves the answer by about one percent. The larger problem is that Synchrony reports VantageScore and everyone else reports FICO, and the two scales are not the same.</p>
+<div class="wrap">
+<table>
+<tr><th>Score offset applied to Synchrony</th><th class="num">Experian odds</th><th class="num">Fed 2007</th><th class="num">Agarwal balance</th><th class="num">Agarwal incidence</th></tr>
+<tr><td>&minus;40 points</td><td class="num">0.907</td><td class="num">0.976</td><td class="num">0.382</td><td class="num">0.433</td></tr>
+<tr><td>&minus;20</td><td class="num">0.719</td><td class="num">0.760</td><td class="num">0.367</td><td class="num">0.408</td></tr>
+<tr><td>0</td><td class="num">0.614</td><td class="num">0.633</td><td class="num">0.349</td><td class="num">0.380</td></tr>
+<tr><td>+20</td><td class="num">0.521</td><td class="num">0.513</td><td class="num">0.330</td><td class="num">0.351</td></tr>
+<tr><td>+40</td><td class="num">0.427</td><td class="num">0.429</td><td class="num">0.310</td><td class="num">0.320</td></tr>
+</table>
+</div>
+<p>The raw unadjusted ratio is 0.290. The honest range after both fixes runs from <b>0.31 to 0.98</b>. At the bottom, score mix explains almost none of the Amex advantage. At the top, it explains essentially all of it and the two issuers sit at parity. The interval contains both stories, and nothing in any public filing narrows it, because no trust publishes a score table on a scale common with Synchrony's.</p>
+
+<h2>A bug in the repo, confirmed independently</h2>
+<p>Five trust-months appear twice in the monthly card panel: Bank of America for December 2018 and May 2020, Citi for September and October 2019, Capital One for February 2019. Each pair is identical in every data column and differs only in the source accession, so the same monthly statement was ingested from two separate filings, most likely an original and an amendment.</p>
+<p>It does not change the headline ratios, and provably cannot: none of the duplicated months belongs to Amex or Synchrony, and in the mix-adjusted ratio the pinning level cancels out. What it does corrupt is the coverage counts, where Bank of America and Citi look like 94 months but hold 92, and any month-over-month calculation on a frame with duplicate keys. Worth a deduplication step on ingest.</p>
+
+<h2>What this leaves</h2>
+<ul>
+<li><b>The free-riding hypothesis is closed on public data.</b> Not by a weak test, but by a pre-specified one with the classification registered beforehand, which then went the other way. The limits other lenders grant are near the bottom of the file.</li>
+<li><b>A real signal was found and it inverts the premise.</b> Recent approvals by other lenders predict more default, not less, worth 371 basis points a year inside a lender's own price grid, monotone, tradeable ex ante. Other lenders saying yes lately is a warning sign.</li>
+<li><b>The pool-level question is settled as unanswerable, with a number.</b> A quarter of the whole gap is the detection floor. That is worth writing down, because it stops the next person from running the same test again.</li>
+<li><b>What would answer it:</b> borrower-level tradeline data where the same household holds both an Amex and a Synchrony card. Household fixed effects hold selection constant by construction, which six aggregate time series can never do. The NY Fed Consumer Credit Panel, a bureau extract, or the CFPB's credit panel.</li>
+</ul>
+
+<h2>Files</h2>
+<p>Scripts and full outputs under <code>abs-risk/design/freeride/</code>: <code>lc-decisive/</code> (pre-registration, horse race, ex-ante test), <code>trust-decisive/</code> (payment rate, power, mix bounds), plus the earlier <code>lending-club/</code> and <code>simulation/</code> folders. Every headline number in this note was re-run independently by a second agent from the raw data on a different code path, and reproduced. Two corrections that came out of that check are already folded in above: the ex-ante collapse is stated as indistinguishable from zero rather than as a specific percentage of hindsight, and the mix range's direction is stated the right way round.</p>
+</main>
+</body>
+</html>
