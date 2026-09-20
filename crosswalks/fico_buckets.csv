@@ -1,8 +1,8 @@
 trust,score_type,bucket_label,bucket_lo,bucket_hi,w_deep_subprime,w_subprime,w_near_prime,w_prime,w_prime_plus,w_superprime,rule,flags
 amex,FICO,Less than 560,,559,1.0,0.0,0.0,0.0,0.0,0.0,"uniform in score over [300,559] (open end clamped to 300/850); weight = tier points / bucket width 260",amex_nonstandard_buckets
-amex,FICO,560 -659,560,659,0.2,0.4,0.4,0.0,0.0,0.0,"uniform in score over [560,659]; weight = tier points / bucket width 100","straddle,amex_nonstandard_buckets"
-amex,FICO,660 -699,660,699,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [660,699]; weight = tier points / bucket width 40",amex_nonstandard_buckets
-amex,FICO,700 -759,700,759,0.0,0.0,0.0,0.333333,0.666667,0.0,"uniform in score over [700,759]; weight = tier points / bucket width 60","straddle,amex_nonstandard_buckets"
+amex,FICO,560 - 659,560,659,0.2,0.4,0.4,0.0,0.0,0.0,"uniform in score over [560,659]; weight = tier points / bucket width 100","straddle,amex_nonstandard_buckets"
+amex,FICO,660 - 699,660,699,0.0,0.0,0.0,1.0,0.0,0.0,"uniform in score over [660,699]; weight = tier points / bucket width 40",amex_nonstandard_buckets
+amex,FICO,700 - 759,700,759,0.0,0.0,0.0,0.333333,0.666667,0.0,"uniform in score over [700,759]; weight = tier points / bucket width 60","straddle,amex_nonstandard_buckets"
 amex,FICO,760 and above,760,,0.0,0.0,0.0,0.0,0.43956,0.56044,"uniform in score over [760,850] (open end clamped to 300/850); weight = tier points / bucket width 91","straddle,amex_nonstandard_buckets"
 amex,FICO,Refreshed FICO Unavailable,,,0.0,0.0,0.0,0.0,0.0,0.0,unscored: weight 0; tier shares renormalised over scored buckets,"unscored,amex_nonstandard_buckets"
 bofa,FICO,Over 720,721,,0.0,0.0,0.0,0.0,0.607692,0.392308,"uniform in score over [721,850] (open end clamped to 300/850); weight = tier points / bucket width 130",straddle
