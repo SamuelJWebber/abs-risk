@@ -88,7 +88,9 @@ def _parse(args) -> int:
         for trust, acc, err in errors:
             w.writerow([trust, acc, str(err)])
             print(f"ERROR {trust} {acc}: {err}", file=sys.stderr)
-    print(f"{len(errors)} filings failed to parse -> {log}")
+    n_dup = sum(1 for _, _, err in errors if str(err).startswith("DuplicateMonth"))
+    print(f"{len(errors) - n_dup} filings failed to parse, {n_dup} months filed twice with different numbers "
+          f"(later filing kept) -> {log}")
     if errors:
         kinds: dict[str, int] = {}
         for _, _, err in errors:
