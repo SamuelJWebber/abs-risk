@@ -56,7 +56,7 @@ or quarterly data back to 2006 and are tabulated in section 3.
 
 ## 1. Files downloaded
 
-All fetched with `curl -A "abs-risk/0.1 research (+https://github.com/User5017)"`;
+All fetched with `curl -A "abs-risk/0.1 research (+https://github.com/<account>)"` (account name left out of this public copy);
 no 403s were encountered, so no fallback was needed.
 
 | File | Source URL | HTTP | Bytes | SHA-256 |

@@ -1,7 +1,7 @@
 # Scout: public loan-level auto ABS data on EDGAR (Form ABS-EE, EX-102)
 
-Date: 2026-09-08 (second pass folded in). Repo root: `C:\Users\samwe\code\abs-risk\`. All paths are relative to
-the repo root. Every number cites the file it came from.
+Date: 2026-09-08 (second pass folded in). All paths are relative to the repository
+root. Every number cites the file it came from.
 
 Path shorthands:
 
@@ -32,7 +32,7 @@ Contents
 
 All SEC hosts returned HTTP 403 "Your Request Originates from an Undeclared Automated Tool" (Akamai) for every
 request from this machine, from the first request of the session. Tried with the mandated User-Agent
-`abs-risk/0.1 research (+https://github.com/User5017)` unless noted; nothing faked a browser.
+`abs-risk/0.1 research (+https://github.com/<account>)` unless noted (the account name is left out of this public copy); nothing faked a browser.
 
 | Test | Host | Result | Saved response (under `data/raw/scout/autos/_search/`) |
 |---|---|---|---|
@@ -40,7 +40,7 @@ request from this machine, from the first request of the session. Tried with the
 | company browse (atom) | www.sec.gov/cgi-bin/browse-edgar | 403 | `browse_santander.atom` |
 | submissions JSON | data.sec.gov | 403 | `sub_test.json` |
 | Archives folder index | www.sec.gov/Archives | 403 | `archives_test.html` |
-| same UA + `User5017@users.noreply.github.com` appended | data.sec.gov, efts | 403 | `diag_b.json`, `diag_c.json` |
+| same UA + the account's GitHub noreply address appended | data.sec.gov, efts | 403 | `diag_b.json`, `diag_c.json` |
 | curl HTTP/1.1 + Accept/Accept-Language/Accept-Encoding | data.sec.gov | 403 | `diag_d.json` |
 | Python `requests` (OpenSSL) | data.sec.gov, efts | 403, server `AkamaiGHost` | stdout only |
 | Windows System32 curl.exe 8.21 (Schannel) | data.sec.gov | 403 | `diag_wincurl.json` |
@@ -49,8 +49,8 @@ request from this machine, from the first request of the session. Tried with the
 | 10 min silence then one probe, three times | data.sec.gov | 403 at 05:04:08Z, 05:13:13Z, 05:23:25Z | `wait_probe_1..3.json`, `sec_wait.log` |
 | IPv6 path | - | no IPv6 route | - |
 
-Cause: public IPv4 `99.196.128.3`, hostname `99-196-128-3.cust.exede.net`, org `AS40306 ViaSat, Inc.` (ipinfo.io,
-stdout): satellite internet behind carrier-grade NAT, so the address is shared and sits on Akamai's
+Cause: the home connection's public IPv4 address (looked up on ipinfo.io; not recorded here because this repository is
+public): satellite internet behind carrier-grade NAT, so the address is shared and sits on Akamai's
 IP-reputation list ("identified as part of a network of automated tools"). Not the UA, not the client, not
 transient. EDGAR pulls run on the GitHub Actions runner (first-pass manifest note `probe data.sec.gov ok=True`);
 this machine only analyzes.

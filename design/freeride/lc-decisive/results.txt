@@ -1,7 +1,7 @@
 ==============================================================================
 LC DECISIVE RUN - realized cash, clustered SEs, FICO-balanced cells, horse race
 ==============================================================================
-Data: C:/Users/samwe/AppData/Local/Temp/claude/c--Users-samwe-OneDrive-Documents-codex-projects-Job-autoapply/8b3ac5c3-74cb-44aa-9894-816ca22156c2/scratchpad/freeride-data\LendingClub_2007_to_2018Q4.csv
+Data: <scratch>/freeride-data\LendingClub_2007_to_2018Q4.csv
 Raw rows in file: 2,260,701
    term '36 months': 1,609,754 (71.21% of raw file)
    term '60 months': 650,914 (28.79% of raw file)

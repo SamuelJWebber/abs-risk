@@ -13,7 +13,7 @@ Always on:
                     balance raises it (kappa); net sign by FICO tier follows Agarwal et al. 2018
   card terms        own-card room (Andersson et al. 2013) and balance share (Gathergood et al. 2019)
 
-Run:  cd C:/Users/samwe/code/abs-risk && python -m uv run python <this file>
+Run from the repository root:  python -m uv run python design/freeride/simulation/freeride_sim.py
 """
 import os, itertools, time
 import numpy as np

@@ -1,7 +1,7 @@
 import json, os
 import numpy as np, pandas as pd
 
-REPO = "C:/Users/samwe/code/abs-risk"
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # the repository root
 M = pd.read_csv(os.path.join(REPO, "data", "cards_monthly.csv"))
 print("rows", len(M))
 M["period_end"] = pd.to_datetime(M["period_end"])

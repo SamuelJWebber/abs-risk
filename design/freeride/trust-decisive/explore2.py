@@ -1,9 +1,10 @@
+import os
 import pandas as pd
 pd.set_option("display.width", 200)
-s = pd.read_csv("C:/Users/samwe/code/abs-risk/data/loss_shape.csv")
+s = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", "loss_shape.csv"))
 print(s[["shape_source", "tier", "tier_lo", "tier_hi", "relative_loss", "flag"]].to_string())
 print("\n=== composition fico ===")
-c = pd.read_csv("C:/Users/samwe/code/abs-risk/data/cards_composition.csv")
+c = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", "cards_composition.csv"))
 f = c[c["table"] == "fico"]
 print(f.groupby("trust")["as_of"].first())
 print(f[["trust", "bucket_label", "bucket_lo", "bucket_hi", "share_receivables"]].to_string())

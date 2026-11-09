@@ -1,7 +1,8 @@
+import os
 import json
 import pandas as pd
 
-M = pd.read_csv("C:/Users/samwe/code/abs-risk/data/cards_monthly.csv")
+M = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", "cards_monthly.csv"))
 print(M.columns.tolist())
 for t, g in M.groupby("trust"):
     r = g.sort_values("period_end").iloc[len(g) // 2]

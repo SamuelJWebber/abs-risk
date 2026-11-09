@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
-REPO = "C:/Users/samwe/code/abs-risk"
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # the repository root
 HERE = os.path.dirname(os.path.abspath(__file__))
 TRUSTS = ["amex", "bofa", "chase", "citi", "comet", "synchrony"]
 lines = []

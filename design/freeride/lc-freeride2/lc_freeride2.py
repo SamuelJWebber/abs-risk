@@ -10,7 +10,7 @@ Sample reproduces the prior run: 36-month, issued 2012-2017, terminal status,
 non-missing bankcard fields, total_bc_limit > 0.
 
 Numpy only (no sklearn/statsmodels). Helpers reused from
-C:/Users/samwe/code/abs-risk/design/freeride/lending-club/freeride_test.py
+design/freeride/lending-club/freeride_test.py
 """
 import json
 import os

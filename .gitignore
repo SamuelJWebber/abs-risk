@@ -8,3 +8,6 @@ raw/
 out/
 collected/
 data/panel/
+# LendingClub inputs to the closed free-riding tests (about 1.6 GB, third-party): never committed
+design/freeride/freeride-data/
+design/freeride/**/LendingClub_*.csv

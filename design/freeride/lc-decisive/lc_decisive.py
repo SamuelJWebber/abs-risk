@@ -15,11 +15,9 @@ import numpy as np
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(
-    "C:/Users/samwe/AppData/Local/Temp/claude/"
-    "c--Users-samwe-OneDrive-Documents-codex-projects-Job-autoapply/"
-    "8b3ac5c3-74cb-44aa-9894-816ca22156c2/scratchpad/freeride-data",
-    "LendingClub_2007_to_2018Q4.csv")
+# The LendingClub file (LendingClub_2007_to_2018Q4.csv, about 1.6 GB) is not in this repository: put it in
+# design/freeride/freeride-data/, the folder the lc-freeride2 scripts read from.
+DATA = os.path.join(os.path.dirname(HERE), "freeride-data", "LendingClub_2007_to_2018Q4.csv")
 OUT_TXT = os.path.join(HERE, "results.txt")
 OUT_JSON = os.path.join(HERE, "results.json")
 

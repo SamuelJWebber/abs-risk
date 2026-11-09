@@ -102,7 +102,7 @@ repurchase compete with default and must be treated as censoring, not as surviva
 
 ## 5. EDGAR access (settled 2026-09-08, the hard way)
 
-- The home connection is ViaSat satellite behind carrier-grade NAT (99.196.128.3, AS40306). The SEC edge
+- The home connection is a satellite ISP behind carrier-grade NAT, so its address is shared. The SEC edge
   blocks that address outright: 403 "Undeclared Automated Tool" on every host, every User-Agent, after a
   quiet period. Nothing on this machine can pull from EDGAR. Record: design/scout-autos.md §0.
 - A GitHub Actions runner (Microsoft address space) is accepted, but only with the SEC's plain User-Agent

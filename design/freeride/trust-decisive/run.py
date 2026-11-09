@@ -5,7 +5,7 @@ PART 2  the payment-rate test (never run before)
 PART 3  an honest power statement
 PART 4  fix the two known mix-adjustment biases
 
-Reads only from C:/Users/samwe/code/abs-risk. Writes only into this folder.
+Reads only from the repository's data/ folder. Writes only into this folder.
 """
 import json
 import os
@@ -18,7 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from lib import ols_nw, slope_row, const_design, ncdf, MDE_MULT  # noqa: E402
 
-REPO = "C:/Users/samwe/code/abs-risk"
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))  # the repository root
 TRUSTS = ["amex", "bofa", "chase", "citi", "comet", "synchrony"]
 TIERS = ["deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
 SHAPES = ["fico_odds", "fico_fed2007", "acms2018", "acms2018_dpd90"]
