@@ -4,15 +4,25 @@ name: cards-refresh
 # parse the prospectus composition tables, re-check them, and commit data/cards_monthly.csv and
 # data/cards_composition.csv. When either table changed, rebuild the card results and both card pages too.
 #
-# Weekly, not monthly: GitHub evicts a cache nobody touches for seven days, so a monthly run never found the
+# Twice a week, not monthly: GitHub evicts a cache nobody touches for seven days, so a monthly run never found the
 # last run's filings and re-downloaded all ~570 10-Ds every time (checked 2026-11-09: run 42691131162 fetched
-# every filing; the cache it saved is ~10 MiB). A weekly run restores the previous week's cache, fetches only
-# what is new, and commits only when a table changed.
+# every filing; the cache it saved is ~10 MiB). A weekly run sat right on that limit (a start delayed by a few
+# minutes could find the cache gone), so the run is Monday and Thursday: each restores a cache at most four days
+# old, fetches only what is new, and commits only when a table changed.
+#
+# Alert contract (absrisk cards check): the run fails, after committing what did parse, when the parse-failure log
+# gained a filing the committed copy does not list or when a trust's latest month trails the newest trust's by
+# more than one month. A failed run is what makes GitHub send the "Run failed" email.
 
 on:
   workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "Rebuild card results and pages even if the tables did not change"
+        type: boolean
+        default: false
   schedule:
-    - cron: "17 9 * * 1"   # Mondays; trusts file their 10-Ds around the 15th
+    - cron: "17 9 * * 1,4"   # Mondays and Thursdays; trusts file their 10-Ds around the 15th
 
 permissions:
   contents: write
@@ -40,6 +50,8 @@ jobs:
             cards-raw-
       - name: Tests
         run: uv run pytest -q
+      - name: Keep the committed parse-failure log for the alert check
+        run: git show HEAD:data/cards_parse_failures.csv > "$RUNNER_TEMP/failures_before.csv" || true
       - name: Fetch 10-D filings and prospectuses
         env:
           ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
@@ -51,14 +63,21 @@ jobs:
       - name: Check the new tables before committing them
         # one row per trust-month, the golden numbers, and the composition table against its fixtures
         run: uv run pytest -q tests/test_cards_dedupe.py tests/test_golden.py tests/test_cards_composition.py
+      - name: Alert check (new parse failures, trusts falling behind)
+        id: alert
+        continue-on-error: true
+        run: uv run absrisk cards check --failures-before "$RUNNER_TEMP/failures_before.csv"
       - name: Rebuild card results and pages when the tables changed
+        env:
+          FORCE_REBUILD: ${{ inputs.rebuild && 'true' || 'false' }}
         run: |
-          if git diff --quiet -- data/cards_monthly.csv data/cards_composition.csv; then
+          if [ "$FORCE_REBUILD" != "true" ] && git diff --quiet -- data/cards_monthly.csv data/cards_composition.csv crosswalks; then
             echo "tables unchanged; pages left as they are"
           else
             uv run absrisk analyze cards
             uv run absrisk report cards
             uv run absrisk report conclusions
+            uv run pytest -q tests/test_cards_results.py
           fi
       - name: Upload raw filings for local parser work
         if: always()
@@ -79,3 +98,8 @@ jobs:
           git status --porcelain
           git pull --rebase --autostash origin main
           git push origin HEAD:main
+      - name: Fail the run if the alert check failed
+        if: steps.alert.outcome == 'failure'
+        run: |
+          echo "::error::absrisk cards check failed; the step log above says which trust or filing"
+          exit 1

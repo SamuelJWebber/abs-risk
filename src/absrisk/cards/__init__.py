@@ -3,6 +3,7 @@
     absrisk cards fetch [--trust <slug>] [--since 2019-01-01] --raw data/raw/cards [--force] [--no-prospectus] [--limit N]
     absrisk cards parse --raw data/raw/cards --out data/cards_monthly.csv
     absrisk cards composition --raw data/raw/cards --out data/cards_composition.csv [--crosswalk crosswalks/fico_buckets.csv]
+    absrisk cards check [--failures-before <file>]   exit 1 on a new parse failure or a trust a month behind
 
 `fetch` needs EDGAR (runs on a GitHub Actions runner, PLAN.md section 5); `parse` and `composition` run on
 downloaded files only.
@@ -41,7 +42,18 @@ def main(argv: list[str]) -> int:
     p.add_argument("--crosswalk", default="crosswalks/fico_buckets.csv", type=Path)
     p.add_argument("--trust", action="append")
 
+    p = sub.add_parser("check", help="alert contract for the refresh: new parse failures, trusts falling behind")
+    p.add_argument("--monthly", default="data/cards_monthly.csv", type=Path)
+    p.add_argument("--failures", default="data/cards_parse_failures.csv", type=Path)
+    p.add_argument("--failures-before", default=None, type=Path,
+                   help="the failure log before this run; default: the copy committed at HEAD (git show)")
+    p.add_argument("--composition", default="data/cards_composition.csv", type=Path)
+    p.add_argument("--max-lag-months", type=int, default=None)
+    p.add_argument("--max-mix-age-months", type=int, default=None)
+
     args = parser.parse_args(argv)
+    if args.cmd == "check":
+        return _check(args)
     if args.cmd == "fetch":
         return _fetch(args)
     if args.cmd == "parse":
@@ -102,6 +114,31 @@ def _parse(args) -> int:
     if args.strict and errors:
         return 1
     return 1 if not rows else 0
+
+
+def _check(args) -> int:
+    import pandas as pd
+
+    from .check import (MAX_LAG_MONTHS, MAX_MIX_AGE_MONTHS, committed_failure_log, read_failure_log, run_check)
+
+    monthly = pd.read_csv(args.monthly)
+    now = read_failure_log(Path(args.failures).read_text(encoding="utf-8")) if Path(args.failures).exists() else []
+    if args.failures_before is not None:
+        before_text = Path(args.failures_before).read_text(encoding="utf-8") if Path(args.failures_before).exists() else ""
+    else:
+        before_text = committed_failure_log(args.failures)
+    composition = pd.read_csv(args.composition) if Path(args.composition).exists() else None
+    res = run_check(monthly, now, read_failure_log(before_text), composition,
+                    max_lag=MAX_LAG_MONTHS if args.max_lag_months is None else args.max_lag_months,
+                    max_mix_age=MAX_MIX_AGE_MONTHS if args.max_mix_age_months is None else args.max_mix_age_months)
+    latest = pd.to_datetime(monthly["period_end"]).groupby(monthly["trust"]).max()
+    print("latest month per trust: " + ", ".join(f"{t} {d:%Y-%m}" for t, d in latest.items()))
+    for w in res.warnings:
+        print(f"WARNING {w}")
+    for f in res.failures:
+        print(f"FAIL {f}", file=sys.stderr)
+    print("check passed" if res.ok else f"check failed: {len(res.failures)} problem(s)")
+    return 0 if res.ok else 1
 
 
 def _composition(args) -> int:
