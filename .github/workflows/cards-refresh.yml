@@ -1,12 +1,18 @@
 name: cards-refresh
 
 # Fetch every 10-D since 2019 for the six live card trusts (cached between runs), parse the monthly rows,
-# parse the prospectus composition tables, and commit data/cards_monthly.csv and data/cards_composition.csv.
+# parse the prospectus composition tables, re-check them, and commit data/cards_monthly.csv and
+# data/cards_composition.csv. When either table changed, rebuild the card results and both card pages too.
+#
+# Weekly, not monthly: GitHub evicts a cache nobody touches for seven days, so a monthly run never found the
+# last run's filings and re-downloaded all ~570 10-Ds every time (checked 2026-11-09: run 42691131162 fetched
+# every filing; the cache it saved is ~10 MiB). A weekly run restores the previous week's cache, fetches only
+# what is new, and commits only when a table changed.
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 9 20 * *"   # the 20th of each month, after the mid-month 10-D filings
+    - cron: "17 9 * * 1"   # Mondays; trusts file their 10-Ds around the 15th
 
 permissions:
   contents: write
@@ -20,13 +26,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync
       - name: Restore raw filings cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: raw/cards
           key: cards-raw-${{ github.run_id }}
@@ -42,9 +48,21 @@ jobs:
         run: uv run absrisk cards parse --raw raw/cards --out data/cards_monthly.csv
       - name: Parse composition tables
         run: uv run absrisk cards composition --raw raw/cards --out data/cards_composition.csv
+      - name: Check the new tables before committing them
+        # one row per trust-month, the golden numbers, and the composition table against its fixtures
+        run: uv run pytest -q tests/test_cards_dedupe.py tests/test_golden.py tests/test_cards_composition.py
+      - name: Rebuild card results and pages when the tables changed
+        run: |
+          if git diff --quiet -- data/cards_monthly.csv data/cards_composition.csv; then
+            echo "tables unchanged; pages left as they are"
+          else
+            uv run absrisk analyze cards
+            uv run absrisk report cards
+            uv run absrisk report conclusions
+          fi
       - name: Upload raw filings for local parser work
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cards-raw-${{ github.run_id }}
           path: raw/cards
@@ -55,7 +73,7 @@ jobs:
           git config user.name "abs-risk bot"
           git config user.email "abs-risk-bot@users.noreply.github.com"
           # composition rewrites the crosswalk too; stage every tracked output so the rebase has a clean tree
-          git add -A data crosswalks
+          git add -A data crosswalks docs
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m "cards-refresh: monthly rows and composition from run ${{ github.run_id }}"
           git status --porcelain
