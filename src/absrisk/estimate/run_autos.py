@@ -8,6 +8,9 @@ Outputs (all CSV unless noted):
   b2_fit.json                fit metadata (cells, exposure, columns)
   b3_cutoffs.csv             candidate pricing cutoffs per lender (APR and amount jumps)
   b3_rd.csv                  density test, first stage and outcome RD at each flagged cutoff
+  b1_cohort_at_12.csv, b1_cohort_at_24.csv   the B1 cuts inside one origination year at a time
+  b3_rd_bandwidths.csv       outcome RD at 0.5-2x the MSE-optimal bandwidth, usable cutoffs only
+Result-file prefixes predate the task board: b1_* is TASKS B3, b2_* is B4, b3_* is B5, b6_* is the entry/roll split.
 Run: `uv run absrisk analyze autos [--in data/autos] [--out data/results/autos]`.
 """
 
@@ -80,6 +83,56 @@ def run_b1(loans: pd.DataFrame, out: Path, n_boot: int = 200):
     return cif
 
 
+def run_b1_cohort(loans: pd.DataFrame, out: Path, n_boot: int = 200, horizons: tuple[int, ...] = (12, 24)):
+    """Same score, same origination year, different lender (TASKS B3: "by origination cohort").
+
+    Each lender's public pools hold one or two vintages, and vintages differ industry-wide, so a pooled lender gap
+    could be a vintage gap. This cut compares lenders inside one origination year at a time. Writes
+    b1_cohort_at_<h>.csv, the B1 table with an `orig_year` column in front."""
+    if "orig_month" not in loans:
+        return None
+    df = loans.copy()
+    df["score_b"] = survival.score_bucket(df["score"])
+    df["orig_year"] = pd.to_datetime(df["orig_month"]).dt.year.astype("Int64")
+    by = ["orig_year", "lender", "score_b"]
+    cif = survival.cumulative_incidence(df, by=by, horizon=max(horizons), n_boot=n_boot)
+    for h in horizons:
+        survival.incidence_at(cif, by, h).to_csv(out / f"b1_cohort_at_{h}.csv", index=False)
+    return cif
+
+
+def run_b3_bandwidths(loans: pd.DataFrame, out: Path, mults: tuple[float, ...] = rd.BANDWIDTH_MULTS):
+    """Bandwidth sensitivity of the charge-off effect at every cutoff that passes the screen (TASKS B5).
+
+    Reads b3_rd.csv from `out`, keeps the usable cutoffs (`rd.usable`), and refits the 12- and 24-month outcome at
+    0.5 to 2 times the MSE-optimal bandwidth on exactly the sample run_b3 used. Writes b3_rd_bandwidths.csv."""
+    p = out / "b3_rd.csv"
+    if not p.exists():
+        return None
+    rdres = pd.read_csv(p)
+    if rdres.empty:
+        return None
+    rows = []
+    for _, r in rdres[rd.usable(rdres)].iterrows():
+        g = loans[loans["lender"] == r["lender"]].dropna(subset=["score"])
+        for m in (12, 24):
+            gg = g.assign(y=rd.outcome_by_horizon(g, m)).dropna(subset=["y"])
+            if len(gg) < 2000:
+                continue
+            s = rd.rd_bandwidth_sensitivity(gg, "y", float(r["cutoff"]), mults=mults)
+            if s.empty:
+                continue
+            s.insert(0, "horizon", m)
+            s.insert(0, "cutoff", float(r["cutoff"]))
+            s.insert(0, "lender", r["lender"])
+            rows.append(s)
+    res = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(
+        columns=["lender", "cutoff", "horizon", "bw_mult", "bandwidth", "estimate", "se", "ci_lo", "ci_hi", "p_robust",
+                 "n_left", "n_right", "error"])
+    res.to_csv(out / "b3_rd_bandwidths.csv", index=False)
+    return res
+
+
 def run_b2(loans: pd.DataFrame, out: Path):
     df = hazard.add_design_columns(loans)
     keep = ["deal", "lender", "score_b", "cohort_q", "amount_q", "pti_q", "ltv_q", "apr_q"]
@@ -96,9 +149,15 @@ def run_b2(loans: pd.DataFrame, out: Path):
         "price": ["age_b", "score_b", "lender", "cohort_q"] + structure + (["apr_q"] if "apr_q" in df else []),
     }
     rows, meta = [], {}
-    # baselines with mass: the 660 score bucket (the prime boundary), the 7-9 month age bin, and the largest lender
+    # baselines with mass: the 660 score bucket (the prime boundary), the 7-9 month age bin, the largest lender and the
+    # most populous origination quarter. Without the last, the baseline quarter was the earliest one (2017Q2, five
+    # loans, no charge-offs) and every quarter's odds ratio came out near 1e10 with no interval; the other factors'
+    # estimates were unaffected (checked 2026-11-09: identical to 1e-6 in log odds either way).
     base_lender = str(df["lender"].value_counts().idxmax())
+    base_cohort = str(df["cohort_q"].value_counts().idxmax()) if "cohort_q" in df else None
     baseline = {"score_b": "660", "age_b": "7-9", "lender": base_lender, "amount_q": "0", "pti_q": "0", "ltv_q": "0", "apr_q": "0"}
+    if base_cohort is not None:
+        baseline["cohort_q"] = base_cohort
     for name, factors in specs.items():
         cells = hazard.aggregate_cells(lm, cells=[f for f in factors if f != "age_b"] + (["deal"] if "deal" not in factors else []))
         res = hazard.fit_hazards(cells, factors=factors, cluster="deal", baseline=baseline)
@@ -202,7 +261,7 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="absrisk analyze autos")
     ap.add_argument("--in", dest="in_dir", default="data/autos")
     ap.add_argument("--out", default="data/results/autos")
-    ap.add_argument("--skip", default="", help="comma list of b1,b2,b3 to skip")
+    ap.add_argument("--skip", default="", help="comma list of stages to skip: b1,b1c,b2,b3,b3bw,b6")
     a = ap.parse_args(argv)
     warnings.filterwarnings("ignore")
     out = Path(a.out)
@@ -212,10 +271,14 @@ def main(argv: list[str]) -> int:
     skip = {s.strip() for s in a.skip.split(",") if s.strip()}
     if "b1" not in skip:
         run_b1(loans, out)
+    if "b1c" not in skip:
+        run_b1_cohort(loans, out)
     if "b2" not in skip:
         run_b2(loans, out)
     if "b3" not in skip:
         run_b3(loans, out)
+    if "b3bw" not in skip:
+        run_b3_bandwidths(loans, out)
     if "b6" not in skip:
         run_b6(loans, out)
     print(f"wrote results to {out} for {len(loans):,} loans in {loans['deal'].nunique()} deals", file=sys.stderr)

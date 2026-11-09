@@ -160,6 +160,53 @@ def rd_estimate(df: pd.DataFrame, outcome: str, c: float, running: str = "score"
     return pd.DataFrame(rows)
 
 
+BANDWIDTH_MULTS = (0.5, 0.75, 1.0, 1.5, 2.0)
+
+
+def usable(rdres: pd.DataFrame, alpha_density: float = 0.05, z: float = 1.96) -> pd.Series:
+    """The screen a cutoff must pass before its outcome estimate means anything (TASKS B5, methods §3): a smooth
+    score density at the line (p > alpha_density) and a first stage, a jump in APR or in loan amount beyond z
+    standard errors. Boolean Series aligned to `rdres` (a b3_rd table)."""
+    dens = rdres["density_p"] > alpha_density
+    fs = pd.Series(False, index=rdres.index)
+    for var in ("orig_apr", "orig_amount"):
+        if f"fs_{var}" in rdres and f"fs_{var}_se" in rdres:
+            fs |= rdres[f"fs_{var}"].abs() > z * rdres[f"fs_{var}_se"]
+    return dens & fs
+
+
+def rd_bandwidth_sensitivity(df: pd.DataFrame, outcome: str, c: float, running: str = "score",
+                             mults: tuple[float, ...] = BANDWIDTH_MULTS) -> pd.DataFrame:
+    """rdrobust at multiples of its own MSE-optimal bandwidth: does the estimate keep its sign and size?
+
+    The multiplier 1.0 row is the same fit as `rd_estimate`'s first row. Bias-corrected robust intervals at every
+    bandwidth (the bias bandwidth is set equal to the main one when h is given, rdrobust's default). Empty when
+    rdrobust is not installed; a bandwidth whose fit fails is a row of NaN with the error kept."""
+    x = df[running].to_numpy(dtype=float)
+    y = df[outcome].to_numpy(dtype=float)
+    ok = np.isfinite(x) & np.isfinite(y)
+    x, y = x[ok], y[ok]
+    try:
+        from rdrobust import rdrobust  # type: ignore
+    except ImportError:
+        return pd.DataFrame()
+    base = rdrobust(y, x, c=c)
+    h0 = float(base.bws.iloc[0, 0])
+    rows = []
+    for m in mults:
+        row = {"bw_mult": float(m), "bandwidth": m * h0}
+        try:
+            r = base if m == 1.0 else rdrobust(y, x, c=c, h=m * h0)
+            row.update(estimate=float(r.coef.iloc[0, 0]), se=float(r.se.iloc[0, 0]), ci_lo=float(r.ci.iloc[2, 0]),
+                       ci_hi=float(r.ci.iloc[2, 1]), p_robust=float(r.pv.iloc[2, 0]), n_left=int(r.N_h[0]),
+                       n_right=int(r.N_h[1]), error="")
+        except Exception as e:  # noqa: BLE001 - recorded in the row, never silently dropped
+            row.update(estimate=np.nan, se=np.nan, ci_lo=np.nan, ci_hi=np.nan, p_robust=np.nan, n_left=0, n_right=0,
+                       error=f"{type(e).__name__}: {e}"[:200])
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def outcome_by_horizon(loans: pd.DataFrame, months: int, max_entry_age: int | None = 6) -> pd.Series:
     """1 if the loan charged off by age `months` (since origination), 0 if it was observed to that age without
     charging off (a prepayment before then counts as 0), NaN if censored earlier.

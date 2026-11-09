@@ -121,6 +121,7 @@
    "lender=exeter",
    "lender=honda",
    "lender=toyota",
+   "cohort_q=2017Q2",
    "cohort_q=2017Q3",
    "cohort_q=2017Q4",
    "cohort_q=2018Q1",
@@ -150,7 +151,6 @@
    "cohort_q=2024Q1",
    "cohort_q=2024Q2",
    "cohort_q=2024Q3",
-   "cohort_q=2024Q4",
    "cohort_q=2025Q1",
    "cohort_q=2025Q2",
    "cohort_q=2025Q3",
@@ -220,6 +220,7 @@
    "lender=exeter",
    "lender=honda",
    "lender=toyota",
+   "cohort_q=2017Q2",
    "cohort_q=2017Q3",
    "cohort_q=2017Q4",
    "cohort_q=2018Q1",
@@ -249,7 +250,6 @@
    "cohort_q=2024Q1",
    "cohort_q=2024Q2",
    "cohort_q=2024Q3",
-   "cohort_q=2024Q4",
    "cohort_q=2025Q1",
    "cohort_q=2025Q2",
    "cohort_q=2025Q3",
@@ -284,7 +284,8 @@
   "amount_q": "0",
   "pti_q": "0",
   "ltv_q": "0",
-  "apr_q": "0"
+  "apr_q": "0",
+  "cohort_q": "2024Q4"
  },
  "spec_notes": {
   "raw": "loan age only: the gap as it appears in the data, composition included",

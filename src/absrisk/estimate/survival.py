@@ -1,8 +1,9 @@
 """Cumulative incidence of charge-off by months since origination, with prepayment as a competing risk.
 
-Input: the `loans` table (analysis-plan §1a). Each loan contributes ages 1..months_observed, counted from
-first_period (the first month the loan is seen in the trust, which is close to but not always the origination
-month; the plan's B1 uses age since first observation and says so).
+Input: the `loans` table (analysis-plan §1a). Age is months since origination, with delayed entry: a loan is in
+the risk set only from the month it is first observed in the trust (`ages`, design/methods.md §1). The first
+version counted from first observation; that lined up a 2-month-old loan with a 5-year-old one, and was replaced
+on 2026-09-08 (commit 28d683d).
 
 Two estimators per group:
   aj_chargeoff  Aalen-Johansen cumulative incidence: charge-off competes with prepay/repurchase/other/absent.

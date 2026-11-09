@@ -24,7 +24,7 @@ def line_chart(series: list[dict], width=720, height=300, y_label="", x_label=""
     def sy(y):
         return pad_t + ih - (y - y0) / (y1 - y0 or 1) * ih
 
-    out = [f"<svg viewBox='0 0 {width} {height}' width='100%' role='img' aria-label='{escape(title)}' style='max-width:{width}px'>"]
+    out = [f"<svg viewBox='0 0 {width} {height}' width='{width}' height='{height}' role='img' aria-label='{escape(title)}' style='width:100%;max-width:{width}px;height:auto'>"]
     if title:
         out.append(f"<text x='{pad_l}' y='18' class='ct'>{escape(title)}</text>")
     # gridlines and y ticks
@@ -50,6 +50,58 @@ def line_chart(series: list[dict], width=720, height=300, y_label="", x_label=""
         color = s.get("color", PALETTE[i % len(PALETTE)])
         out.append(f"<rect x='{lx}' y='{ly + i * 16 - 8}' width='12' height='3' fill='{color}'/>")
         out.append(f"<text x='{lx + 18}' y='{ly + i * 16 - 3}' class='tick'>{escape(s['name'])}</text>")
+    out.append("</svg>")
+    return "".join(out)
+
+
+def forest_chart(rows: list[dict], width=720, row_h=20, x_label="odds ratio (log scale)", title="") -> str:
+    """Point estimates with intervals on a log axis, one row each, a reference line at 1.
+
+    rows: [{"label": str, "est": float, "lo": float, "hi": float, "group": str}]; a change of `group` starts a new
+    labelled block. Rows with a non-positive or missing value are skipped."""
+    import math
+
+    rows = [r for r in rows if all(r.get(k) == r.get(k) and r.get(k) is not None and r[k] > 0 for k in ("est", "lo", "hi"))]
+    if not rows:
+        return "<p class='muted'>no data</p>"
+    pad_l, pad_r, pad_t, pad_b = 170, 70, 30, 40
+    lines = []
+    prev = None
+    for r in rows:
+        if r.get("group") != prev:
+            lines.append(("group", r.get("group", "")))
+            prev = r.get("group")
+        lines.append(("row", r))
+    height = pad_t + pad_b + row_h * len(lines)
+    lo_v = min(min(r["lo"] for r in rows), 1.0)
+    hi_v = max(max(r["hi"] for r in rows), 1.0)
+    x0, x1 = math.log(lo_v) - 0.1, math.log(hi_v) + 0.1
+    iw = width - pad_l - pad_r
+
+    def sx(v):
+        return pad_l + (math.log(v) - x0) / (x1 - x0) * iw
+
+    out = [f"<svg viewBox='0 0 {width} {height}' width='{width}' height='{height}' role='img' aria-label='{escape(title)}' style='width:100%;max-width:{width}px;height:auto'>"]
+    if title:
+        out.append(f"<text x='{pad_l}' y='18' class='ct'>{escape(title)}</text>")
+    ticks = [t for t in (0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20) if lo_v * 0.9 <= t <= hi_v * 1.1] or [1]
+    ybot = height - pad_b
+    for t in ticks:
+        out.append(f"<line x1='{sx(t):.1f}' x2='{sx(t):.1f}' y1='{pad_t}' y2='{ybot}' class='grid'/>")
+        out.append(f"<text x='{sx(t):.1f}' y='{ybot + 16}' text-anchor='middle' class='tick'>{t:g}</text>")
+    out.append(f"<line x1='{sx(1):.1f}' x2='{sx(1):.1f}' y1='{pad_t}' y2='{ybot}' stroke='currentColor' stroke-width='1'/>")
+    out.append(f"<text x='{pad_l + iw / 2:.1f}' y='{height - 6}' text-anchor='middle' class='axis'>{escape(x_label)}</text>")
+    for i, (kind, r) in enumerate(lines):
+        y = pad_t + row_h * i + row_h / 2
+        if kind == "group":
+            out.append(f"<text x='8' y='{y + 4:.1f}' class='ct'>{escape(str(r))}</text>")
+            continue
+        color = PALETTE[0]
+        out.append(f"<text x='{pad_l - 8}' y='{y + 4:.1f}' text-anchor='end' class='tick'>{escape(str(r['label']))}</text>")
+        out.append(f"<line x1='{sx(r['lo']):.1f}' x2='{sx(r['hi']):.1f}' y1='{y:.1f}' y2='{y:.1f}' stroke='{color}' stroke-width='2'/>")
+        out.append(f"<circle cx='{sx(r['est']):.1f}' cy='{y:.1f}' r='4' fill='{color}'><title>{escape(str(r['label']))}: "
+                   f"{r['est']:.2f} [{r['lo']:.2f}, {r['hi']:.2f}]</title></circle>")
+        out.append(f"<text x='{width - pad_r + 6}' y='{y + 4:.1f}' class='tick'>{r['est']:.2f}</text>")
     out.append("</svg>")
     return "".join(out)
 

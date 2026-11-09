@@ -48,6 +48,19 @@ uncertainty where a cell is one deal (which is most cells at the extremes of sco
 they select loans into deals. The fresh-entrant cut (first seen within six months of origination) is published
 next to the full table for that reason. Where they agree, seasoning is not driving the comparison.
 
+**Vintage (added 2026-11-09).** Each lender's public pools hold one or two origination years, and vintages differ
+across the industry, so a pooled lender gap could be a vintage gap. The test compares the same two lenders in the
+same 20-point bucket inside one origination year against their pooled ratio (`pair_ratios`, page section 2). If
+vintage drove the gap, the within-year ratio would sit nearer one. Result: a median 1.00 of the pooled ratio over
+67 pairs (64 in the 2024 vintage, 3 in 2025; no other year has two lenders in one usable bucket); the seven pairs more
+than ten times apart pooled are 34 times apart inside 2024 against 38 pooled. The one pair that moves is Exeter
+against AmeriCredit at 620 (1.9 within 2024 against 3.8 pooled), because AmeriCredit's pool is the 2023 vintage.
+
+**Score scale.** Exeter's "Consumer Credit Bureau" score is VantageScore for 98.9% of its pool (its 424B5,
+design/scout-autos.md section 8); every other lender reports a bureau score that is FICO where it says which. A 700
+there and a 700 at Honda are close but not the same number. The headline same-bucket ratio is therefore also
+reported without Exeter: a median 38 times across seven buckets, against 50 with it.
+
 ## 2. The hazard ladder (Track B)
 
 Discrete-time competing risks: one row per loan-month, two binomial logits (charge-off, prepay) on aggregated
@@ -94,6 +107,13 @@ not select the two sides of the line differently.
 **Expected outcome, stated in advance: mostly nulls.** These pools have tens of thousands of loans, not millions,
 and 24-month charge-off differences of a percentage point need more. A null RD with a clean first stage is
 reported as a null, not dropped.
+
+**Result, 2026-11-09.** Sixteen candidate cutoffs; eight fail the density test; seven pass it and have a first stage
+in APR or loan amount. Each of the seven was refitted at 0.5, 0.75, 1, 1.5 and 2 times its MSE-optimal bandwidth
+(`rd.rd_bandwidth_sensitivity`, `data/results/autos/b3_rd_bandwidths.csv`). None of the fourteen cutoff-and-horizon
+estimates keeps a bias-corrected robust interval clear of zero at every bandwidth. The closest, Honda at 700 over 24
+months, is +2.0 to +2.6 points at every bandwidth but clears zero only at twice the bandwidth (robust p 0.07 at the
+optimal one). The design answers with a null, as expected in advance.
 
 ## 4. Shape times level (Track A)
 
