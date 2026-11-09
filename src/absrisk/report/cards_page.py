@@ -154,7 +154,7 @@ def build(results: Path, out: Path) -> Path:
     h = [f"<title>abs-risk cards</title><style>{CSS}</style><main>"]
     h.append("<h1>Card trusts: charge-off against what the score mix predicts</h1>")
     h.append(f"<p class='muted'>Built {date.today().isoformat()} from monthly 10-D reports and prospectus composition tables on EDGAR, "
-             f"and CFPB card market report figure data. {pred['trust'].nunique()} trusts, {pred['period_end'].nunique()} months.</p>")
+             f"and CFPB card market report figure data. {pred['trust'].nunique()} trusts, {pd.to_datetime(pred['period_end']).dt.to_period('M').nunique()} calendar months.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
     h.append("<h2>What the data says</h2>")
     for line in _headlines(rank, pred, mix):
@@ -237,12 +237,27 @@ def build(results: Path, out: Path) -> Path:
                 h.append(_interpret_stress(sdf, order))
     h.append("<h2>6. Panel regression</h2>")
     h.append("<p>Trust-month regression of the gross charge-off rate on tier shares with month fixed effects, then with trust fixed "
-             "effects added. Driscoll-Kraay standard errors. With six trusts and slow-moving mixes, trust effects and mix are close to "
-             "collinear; the first column identifies the mix gradient across trusts, the second only its within-trust movement.</p>")
-    if not panel.empty and "term" in panel:
-        w = panel.pivot_table(index="term", columns="spec", values=["coef", "se"]).reset_index()
-        w.columns = ["term"] + [f"{a}_{b}" for a, b in w.columns[1:]]
-        h.append(table(w, fmt={c: "{:+.3f}" for c in w.columns if c != "term"}))
+             "effects added, Driscoll-Kraay standard errors. Whether either can say anything depends on how the tier shares vary, "
+             "and they come from prospectus snapshots: one per trust in this build.</p>")
+    if not panel.empty and "status" in panel:
+        st = panel.drop_duplicates("spec")[["spec", "status", "note"]]
+        for r in st.itertuples():
+            h.append(f"<p><b>{escape(r.spec)}: {escape(r.status)}.</b> {escape(str(r.note))}.</p>")
+        ok = set(st.loc[st["status"] == "identified", "spec"])
+        if ok:
+            w = panel[panel["spec"].isin(ok)].pivot_table(index="term", columns="spec", values=["coef", "se"]).reset_index()
+            w.columns = ["term"] + [f"{a}_{b}" for a, b in w.columns[1:]]
+            h.append(table(w, fmt={c: "{:+.3f}" for c in w.columns if c != "term"}))
+        else:
+            h.append("<p>So this section has no coefficient to report. A score-mix gradient across card trusts needs more trusts "
+                     "than tiers, or mixes that move within a trust over time; six trusts with one snapshot each give neither. "
+                     "The shape-times-level residual (section 3) and the stage decomposition (section 5) do not depend on it. "
+                     "The fitted numbers are in a2_panel.csv for anyone who wants to see what a saturated fit looks like.</p>")
+        h.append("<p class='muted'>Until 2026-11-09 this section printed both columns as estimates, including trust-effect "
+                 "coefficients in the billions from the unidentified specification.</p>")
+    elif not panel.empty and "term" in panel:
+        h.append("<p class='muted'>This build's a2_panel.csv predates the identification check; re-run "
+                 "<code>absrisk analyze cards</code>.</p>")
     else:
         h.append("<p class='muted'>Not estimated in this build (see a2_panel.csv).</p>")
 

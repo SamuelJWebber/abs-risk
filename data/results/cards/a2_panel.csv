@@ -1,16 +1,16 @@
-spec,term,coef,se,p
-month_fe,deep_subprime,0.2711290634010213,0.022779707738469664,1.1524190360610065e-32
-month_fe,subprime,1.370059336386235,0.09671929721170675,1.5019139378915883e-45
-month_fe,near_prime,0.16906492128925366,0.02347750726148458,5.970924617136339e-13
-month_fe,prime,0.543639238047447,0.03922823908167468,1.1322466263678062e-43
-month_fe,prime_plus,0.7069647058471996,0.057593095176906334,1.231415751551783e-34
-month_and_trust_fe,deep_subprime,3514020228.024567,,
-month_and_trust_fe,subprime,-6112356524.18183,,
-month_and_trust_fe,near_prime,-8107681749.802147,,
-month_and_trust_fe,prime,-16568220871.03112,,
-month_and_trust_fe,prime_plus,5518185659.141778,,
-month_and_trust_fe,trust_bofa,634798390.2120732,,
-month_and_trust_fe,trust_chase,-685118215.9007252,,
-month_and_trust_fe,trust_citi,804969031.5917222,,
-month_and_trust_fe,trust_comet,1262086230.0181563,,
-month_and_trust_fe,trust_synchrony,3241541165.064293,,
+spec,term,coef,se,p,status,note
+month_fe,deep_subprime,0.20081284776477903,0.018745777108339357,8.89934871770492e-27,saturated,"6 distinct tier mixes across 6 trusts for 5 tier coefficients plus an intercept: the fit reproduces each trust's mean exactly, so the coefficients re-express the trust means and are not a mix gradient"
+month_fe,subprime,1.3596453791714225,0.09317791979562709,3.16141322431233e-48,saturated,"6 distinct tier mixes across 6 trusts for 5 tier coefficients plus an intercept: the fit reproduces each trust's mean exactly, so the coefficients re-express the trust means and are not a mix gradient"
+month_fe,near_prime,0.07441066069291018,0.023480025549513606,0.001529092710024149,saturated,"6 distinct tier mixes across 6 trusts for 5 tier coefficients plus an intercept: the fit reproduces each trust's mean exactly, so the coefficients re-express the trust means and are not a mix gradient"
+month_fe,prime,0.4755879074722534,0.03333603395738872,3.53994235979098e-46,saturated,"6 distinct tier mixes across 6 trusts for 5 tier coefficients plus an intercept: the fit reproduces each trust's mean exactly, so the coefficients re-express the trust means and are not a mix gradient"
+month_fe,prime_plus,0.5966887920823323,0.048737853226917774,1.835414651262313e-34,saturated,"6 distinct tier mixes across 6 trusts for 5 tier coefficients plus an intercept: the fit reproduces each trust's mean exactly, so the coefficients re-express the trust means and are not a mix gradient"
+month_and_trust_fe,deep_subprime,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,subprime,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,near_prime,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,prime,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,prime_plus,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,trust_bofa,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,trust_chase,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,trust_citi,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,trust_comet,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
+month_and_trust_fe,trust_synchrony,,,,not identified,"no trust's mix changes over the sample (one prospectus snapshot each), so the tier shares are collinear with the trust effects"
