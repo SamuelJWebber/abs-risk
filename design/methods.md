@@ -59,12 +59,22 @@ against AmeriCredit at 620 (1.9 within 2024 against 3.8 pooled), because AmeriCr
 **Score scale.** Exeter's "Consumer Credit Bureau" score is VantageScore for 98.9% of its pool (its 424B5,
 design/scout-autos.md section 8); every other lender reports a bureau score that is FICO where it says which. A 700
 there and a 700 at Honda are close but not the same number. The headline same-bucket ratio is therefore also
-reported without Exeter: a median 38 times across seven buckets, against 50 with it.
+reported without Exeter: a median 38 times across seven buckets, against 50 with it. Exeter is not the only scale
+issue (REVIEW.md R1-8): Toyota, Honda, CarMax, Capital One and Santander report scores above 850 (12.7%, 11.6%,
+7.3%, 2.5% and 0.6% of loans), which only the 250-900 auto-industry FICO scale allows, while AmeriCredit tops out at
+854 and Exeter at 845. Restricted to those five, the median is again 38 times over the same seven buckets: the one
+lender off that scale besides Exeter is never the highest or the lowest in them.
 
 ## 2. The hazard ladder (Track B)
 
 Discrete-time competing risks: one row per loan-month, two binomial logits (charge-off, prepay) on aggregated
-cells, standard errors clustered by deal. Four specifications, each adding one layer:
+cells. Every specification holds loan age and **months in pool** fixed: a loan must be current to be sold into a
+trust, so its first months in the pool have charge-off odds about an eighth of a seasoned loan's (odds ratio 0.13
+for months 0-2), and a young deal is mostly such months. Before 2026-11-09 this was missing, which made young deals
+look safer and two deals of one lender look further apart than they are. Score buckets and origination quarters
+with too few loans at either end are merged into their neighbours (under 500 loans; they once printed odds ratios
+near 1e-10 with p near 1e-200), and a level that still has no events is left blank. Four specifications, each adding
+one layer:
 
 | spec | adds | answers |
 |---|---|---|
@@ -76,15 +86,26 @@ cells, standard errors clustered by deal. Four specifications, each adding one l
 **`terms` is the main result; `price` is a decomposition, not a better control.** The lender sets APR from its
 private read of the borrower, so APR is a mediator of lender differences, not a confounder. Conditioning on a
 mediator answers a narrower question and can create collider bias. It is reported because what it does is itself
-a finding: adding APR collapses the bureau score's own gradient almost to nothing, which says the lender's price
-contains nearly all of the score's predictive content and more.
+a finding: adding APR flattens the bureau score's own gradient (scores 500-599 against 760-839) from about 6.8
+times to about 4.0 times in monthly charge-off odds, removing roughly a quarter of it in log odds. The lender's price
+carries part of the score's predictive content and more; the score keeps most of its own.
 
 **What the lender coefficient is not.** It is not a causal effect of switching lender. Lenders differ in the
 borrowers they attract, in what they know beyond the bureau score, in servicing and collections, and in which
 loans they put into a public deal. The coefficient carries all of that.
 
-**Clustering by deal is the honest floor.** With ten deals, cluster-robust intervals are wide, and they should
-be: the unit of independent variation here is closer to a deal than a loan.
+**Inference with ten deals.** The unit of independent variation is closer to a deal than a loan, so intervals
+are clustered by deal, with t critical values on nine degrees of freedom. That is not enough for the lender
+coefficients (REVIEW.md R1-6): AmeriCredit, Capital One, Honda and Toyota each own one deal, so the lender dummy
+coincides with one cluster and the sandwich carries no between-deal variance for it. In a simulation with deal
+shocks (`tests/test_autos_inference.py`) such an interval covered the truth about half the time. Lender intervals
+on the page therefore add the deal-to-deal spread, measured where it can be seen, between the two deals of each
+lender that has two (CarMax, Exeter, Santander: three degrees of freedom), with t critical values
+(`hazard.deal_spread_intervals`, `b2_lender_intervals.csv`). In the simulation those cover about 93% of the time. On
+the data the spread is about 0.33 in log odds in the terms specification; with it, Honda (0.15 [0.04, 0.61]), Toyota
+(0.19 [0.05, 0.77]) and CarMax (0.23 [0.06, 0.89]) stay distinguishable from Santander, and Capital One (0.36),
+AmeriCredit (0.75) and Exeter (1.10) do not. The assumption doing the work is that deal shocks are alike across
+lenders; with one deal, nothing else can say how lucky a lender's deal was.
 
 ## 3. Regression discontinuity (Track B)
 
@@ -111,7 +132,10 @@ reported as a null, not dropped.
 **Result, 2026-11-09.** Sixteen candidate cutoffs; eight fail the density test; seven pass it and have a first stage
 in APR or loan amount. Each of the seven was refitted at 0.5, 0.75, 1, 1.5 and 2 times its MSE-optimal bandwidth
 (`rd.rd_bandwidth_sensitivity`, `data/results/autos/b3_rd_bandwidths.csv`). None of the fourteen cutoff-and-horizon
-estimates keeps a bias-corrected robust interval clear of zero at every bandwidth. The closest, Honda at 700 over 24
+estimates clears zero with a bias-corrected robust interval at the optimal bandwidth, and none keeps one clear of
+zero at every bandwidth; across the 56 off-optimal refits, four clear zero (Honda 605 at 12 and 24 months and Honda
+700 at 24 months at twice the bandwidth, Santander 725 at 12 months at half), about the three chance would give. The
+closest, Honda at 700 over 24
 months, is +2.0 to +2.6 points at every bandwidth but clears zero only at twice the bandwidth (robust p 0.07 at the
 optimal one). The design answers with a null, as expected in advance.
 
@@ -170,7 +194,11 @@ the same lower number. Where they differ is which stage of default the advantage
   survives it.
 
 Taking logs makes the split additive, so each lender's gap against the baseline divides into an entry share and
-a roll share that sum to one.
+a roll share that sum to one. The product approximates the charge-off rate rather than equalling it (REVIEW.md
+R1-13): a charge-off never recorded 30 days late, a bankruptcy-type event coded straight to charge-off, is a
+competing exit in the entry stage and sits in neither factor. That is 75% of Capital One's charge-offs and at most 6.5%
+at every other lender, so `b6_*.csv` carry the share (`co_without_30_share`) and mark Capital One's split as not
+holding.
 
 **The roll comparison is the trustworthy half.** It conditions on an observed behaviour, being 30 days late,
 rather than on a reported score. These lenders use different score models on different scales (FICO Score 8 Auto

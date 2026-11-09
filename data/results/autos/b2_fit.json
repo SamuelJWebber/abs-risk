@@ -1,4 +1,5 @@
 {
+ "months_in_pool": "included",
  "raw": {
   "columns": [
    "const",
@@ -11,6 +12,9 @@
    "age_b=4-6",
    "age_b=49-60",
    "age_b=61+",
+   "pool_b=0-2",
+   "pool_b=3-5",
+   "pool_b=6-8",
    "lender=americredit",
    "lender=capone",
    "lender=carmax",
@@ -18,10 +22,12 @@
    "lender=honda",
    "lender=toyota"
   ],
-  "n_cells": 94,
-  "n_params": 16,
+  "n_cells": 281,
+  "n_params": 19,
   "n_exposure": 9951293.0,
-  "cov_type": "cluster by deal"
+  "n_clusters": 10,
+  "cov_type": "cluster by deal (10 clusters), t(9) critical values",
+  "t_df": 9
  },
  "score": {
   "columns": [
@@ -35,9 +41,9 @@
    "age_b=4-6",
    "age_b=49-60",
    "age_b=61+",
-   "score_b=360",
-   "score_b=380",
-   "score_b=400",
+   "pool_b=0-2",
+   "pool_b=3-5",
+   "pool_b=6-8",
    "score_b=420",
    "score_b=440",
    "score_b=460",
@@ -61,7 +67,6 @@
    "score_b=840",
    "score_b=860",
    "score_b=880",
-   "score_b=900",
    "score_b=none",
    "lender=americredit",
    "lender=capone",
@@ -70,10 +75,80 @@
    "lender=honda",
    "lender=toyota"
   ],
-  "n_cells": 1868,
-  "n_params": 44,
+  "n_cells": 5067,
+  "n_params": 43,
   "n_exposure": 9951293.0,
-  "cov_type": "cluster by deal"
+  "n_clusters": 10,
+  "cov_type": "cluster by deal (10 clusters), t(9) critical values",
+  "t_df": 9,
+  "deal_spread": {
+   "baseline_lender": "santander",
+   "baseline_deal": "sdart-2025-1",
+   "deals": {
+    "americredit": [
+     "amcar-2024-1"
+    ],
+    "carmax": [
+     "carmax-2025-1",
+     "carmax-2026-2"
+    ],
+    "capone": [
+     "copar-2025-1"
+    ],
+    "exeter": [
+     "exeter-2025-1",
+     "exeter-2025-5"
+    ],
+    "honda": [
+     "honda-2025-1"
+    ],
+    "santander": [
+     "sdart-2025-1",
+     "sdart-2026-1"
+    ],
+    "toyota": [
+     "toyota-2025-a"
+    ]
+   },
+   "chargeoff": {
+    "deal_shock_sd": 0.13869658053593784,
+    "df": 3,
+    "deal_effects_within_lender": {
+     "carmax": [
+      -1.791704507240583,
+      -1.6690647804984793
+     ],
+     "exeter": [
+      0.21815064235781173,
+      0.4667300546348006
+     ],
+     "santander": [
+      0.0,
+      -0.23334183590393787
+     ]
+    },
+    "pearson_scale": 0.5201242217206548
+   },
+   "prepay": {
+    "deal_shock_sd": 0.1442262580035499,
+    "df": 3,
+    "deal_effects_within_lender": {
+     "carmax": [
+      0.16890220766229652,
+      -0.10444762951427294
+     ],
+     "exeter": [
+      -0.1649820330532169,
+      -0.34369081511029653
+     ],
+     "santander": [
+      0.0,
+      0.13498127703328255
+     ]
+    },
+    "pearson_scale": 0.08579343071412979
+   }
+  }
  },
  "terms": {
   "columns": [
@@ -87,9 +162,9 @@
    "age_b=4-6",
    "age_b=49-60",
    "age_b=61+",
-   "score_b=360",
-   "score_b=380",
-   "score_b=400",
+   "pool_b=0-2",
+   "pool_b=3-5",
+   "pool_b=6-8",
    "score_b=420",
    "score_b=440",
    "score_b=460",
@@ -113,7 +188,6 @@
    "score_b=840",
    "score_b=860",
    "score_b=880",
-   "score_b=900",
    "score_b=none",
    "lender=americredit",
    "lender=capone",
@@ -121,11 +195,6 @@
    "lender=exeter",
    "lender=honda",
    "lender=toyota",
-   "cohort_q=2017Q2",
-   "cohort_q=2017Q3",
-   "cohort_q=2017Q4",
-   "cohort_q=2018Q1",
-   "cohort_q=2018Q2",
    "cohort_q=2018Q3",
    "cohort_q=2018Q4",
    "cohort_q=2019Q1",
@@ -156,6 +225,7 @@
    "cohort_q=2025Q3",
    "cohort_q=2025Q4",
    "cohort_q=2026Q1",
+   "cohort_q=<=2018Q2",
    "amount_q=1",
    "amount_q=2",
    "amount_q=3",
@@ -169,10 +239,80 @@
    "ltv_q=3",
    "ltv_q=4"
   ],
-  "n_cells": 346728,
-  "n_params": 91,
+  "n_cells": 611971,
+  "n_params": 86,
   "n_exposure": 9951293.0,
-  "cov_type": "cluster by deal"
+  "n_clusters": 10,
+  "cov_type": "cluster by deal (10 clusters), t(9) critical values",
+  "t_df": 9,
+  "deal_spread": {
+   "baseline_lender": "santander",
+   "baseline_deal": "sdart-2025-1",
+   "deals": {
+    "americredit": [
+     "amcar-2024-1"
+    ],
+    "carmax": [
+     "carmax-2025-1",
+     "carmax-2026-2"
+    ],
+    "capone": [
+     "copar-2025-1"
+    ],
+    "exeter": [
+     "exeter-2025-1",
+     "exeter-2025-5"
+    ],
+    "honda": [
+     "honda-2025-1"
+    ],
+    "santander": [
+     "sdart-2025-1",
+     "sdart-2026-1"
+    ],
+    "toyota": [
+     "toyota-2025-a"
+    ]
+   },
+   "chargeoff": {
+    "deal_shock_sd": 0.326764874537102,
+    "df": 3,
+    "deal_effects_within_lender": {
+     "carmax": [
+      -1.5198990838306092,
+      -0.9983271979252762
+     ],
+     "exeter": [
+      0.046658892872784415,
+      0.6740725169350649
+     ],
+     "santander": [
+      0.0,
+      -0.0005673048101820994
+     ]
+    },
+    "pearson_scale": 0.6225921861511755
+   },
+   "prepay": {
+    "deal_shock_sd": 0.326697745868758,
+    "df": 3,
+    "deal_effects_within_lender": {
+     "carmax": [
+      0.06268136986860365,
+      0.2454823933945324
+     ],
+     "exeter": [
+      -0.12243408884331089,
+      0.16950862876243067
+     ],
+     "santander": [
+      0.0,
+      0.7231371700846657
+     ]
+    },
+    "pearson_scale": 0.6031931251385084
+   }
+  }
  },
  "price": {
   "columns": [
@@ -186,9 +326,9 @@
    "age_b=4-6",
    "age_b=49-60",
    "age_b=61+",
-   "score_b=360",
-   "score_b=380",
-   "score_b=400",
+   "pool_b=0-2",
+   "pool_b=3-5",
+   "pool_b=6-8",
    "score_b=420",
    "score_b=440",
    "score_b=460",
@@ -212,7 +352,6 @@
    "score_b=840",
    "score_b=860",
    "score_b=880",
-   "score_b=900",
    "score_b=none",
    "lender=americredit",
    "lender=capone",
@@ -220,11 +359,6 @@
    "lender=exeter",
    "lender=honda",
    "lender=toyota",
-   "cohort_q=2017Q2",
-   "cohort_q=2017Q3",
-   "cohort_q=2017Q4",
-   "cohort_q=2018Q1",
-   "cohort_q=2018Q2",
    "cohort_q=2018Q3",
    "cohort_q=2018Q4",
    "cohort_q=2019Q1",
@@ -255,6 +389,7 @@
    "cohort_q=2025Q3",
    "cohort_q=2025Q4",
    "cohort_q=2026Q1",
+   "cohort_q=<=2018Q2",
    "amount_q=1",
    "amount_q=2",
    "amount_q=3",
@@ -272,14 +407,17 @@
    "apr_q=3",
    "apr_q=4"
   ],
-  "n_cells": 570036,
-  "n_params": 95,
+  "n_cells": 967328,
+  "n_params": 90,
   "n_exposure": 9951293.0,
-  "cov_type": "cluster by deal"
+  "n_clusters": 10,
+  "cov_type": "cluster by deal (10 clusters), t(9) critical values",
+  "t_df": 9
  },
  "baseline": {
   "score_b": "660",
   "age_b": "7-9",
+  "pool_b": "9+",
   "lender": "santander",
   "amount_q": "0",
   "pti_q": "0",
@@ -288,7 +426,7 @@
   "cohort_q": "2024Q4"
  },
  "spec_notes": {
-  "raw": "loan age only: the gap as it appears in the data, composition included",
+  "raw": "loan age and months in pool only: the gap as it appears in the data, composition included",
   "score": "adds the bureau score bucket: same score, different lender",
   "terms": "adds origination quarter, loan amount, payment-to-income and loan-to-value quintiles: same score and same loan structure",
   "price": "adds the lender's own APR quintile. APR is set by the lender from its private view of the borrower, so it is a mediator of lender differences, not a confounder; conditioning on it answers a narrower question and absorbs most of the score gradient. Reported for that reason, not as the preferred specification."

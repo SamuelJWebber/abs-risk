@@ -4,8 +4,10 @@ Outputs (all CSV unless noted):
   loans_summary.csv          per deal: N, first/last period, exit_type shares, score coverage, PTI unit rule
   b1_cif.csv                 cumulative incidence by lender x score bucket x age (AJ and KM), with N
   b1_at_12.csv, b1_at_24.csv the 12- and 24-month cuts
-  b2_hazard_ratios.csv       odds ratios by factor level for charge-off and prepay, with and without controls
-  b2_fit.json                fit metadata (cells, exposure, columns)
+  b2_hazard_ratios.csv       odds ratios by factor level for charge-off and prepay, with and without controls; clustered
+                             intervals with t(G-1) critical values; levels with no events blanked
+  b2_lender_intervals.csv    terms-specification lender odds ratios with intervals that include the deal-to-deal spread
+  b2_fit.json                fit metadata (cells, exposure, columns, deal-shock estimates)
   b3_cutoffs.csv             candidate pricing cutoffs per lender (APR and amount jumps)
   b3_rd.csv                  density test, first stage and outcome RD at each flagged cutoff
   b1_cohort_at_12.csv, b1_cohort_at_24.csv   the B1 cuts inside one origination year at a time
@@ -60,6 +62,7 @@ def summarize(loans: pd.DataFrame) -> pd.DataFrame:
             "share_repurchase": float(et.get("repurchase", 0)), "share_absent": float(et.get("absent", 0)),
             "share_censored": float(et.get("censored", 0)),
             "score_missing_share": float(g["score"].isna().mean()), "score_median": float(g["score"].median()),
+            "score_max": float(g["score"].max()), "score_above_850_share": float((g["score"] > 850).mean()),
             "score_type": ",".join(sorted(g["score_type"].dropna().astype(str).unique())[:3]),
             "pti_median": float(g["pti"].median()) if "pti" in g else np.nan,
             "apr_median": float(g["orig_apr"].median()), "amount_median": float(g["orig_amount"].median()),
@@ -142,36 +145,50 @@ def run_b2(loans: pd.DataFrame, out: Path):
     # lender set from its view of the borrower's risk: that is a mediator, not a confounder, so it is reported last
     # and labelled. Adding it flattens the score gradient, which is itself a result (see the page).
     structure = [k for k in ("amount_q", "pti_q", "ltv_q") if k in df]
+    # months in pool separates from loan age only when loans entered their trusts at different ages; when every loan
+    # entered at one age (a synthetic panel) the two are the same clock and the design would be singular
+    pool = ["pool_b"] if survival.ages(df)["entry_age"].nunique() > 1 else []
     specs = {
-        "raw": ["age_b", "lender"],
-        "score": ["age_b", "score_b", "lender"],
-        "terms": ["age_b", "score_b", "lender", "cohort_q"] + structure,
-        "price": ["age_b", "score_b", "lender", "cohort_q"] + structure + (["apr_q"] if "apr_q" in df else []),
+        "raw": ["age_b", *pool, "lender"],
+        "score": ["age_b", *pool, "score_b", "lender"],
+        "terms": ["age_b", *pool, "score_b", "lender", "cohort_q"] + structure,
+        "price": ["age_b", *pool, "score_b", "lender", "cohort_q"] + structure + (["apr_q"] if "apr_q" in df else []),
     }
-    rows, meta = [], {}
+    rows, meta = [], {"months_in_pool": "included" if pool else "left out: every loan entered at the same age"}
     # baselines with mass: the 660 score bucket (the prime boundary), the 7-9 month age bin, the largest lender and the
     # most populous origination quarter. Without the last, the baseline quarter was the earliest one (2017Q2, five
     # loans, no charge-offs) and every quarter's odds ratio came out near 1e10 with no interval; the other factors'
     # estimates were unaffected (checked 2026-11-09: identical to 1e-6 in log odds either way).
     base_lender = str(df["lender"].value_counts().idxmax())
     base_cohort = str(df["cohort_q"].value_counts().idxmax()) if "cohort_q" in df else None
-    baseline = {"score_b": "660", "age_b": "7-9", "lender": base_lender, "amount_q": "0", "pti_q": "0", "ltv_q": "0", "apr_q": "0"}
+    baseline = {"score_b": "660", "age_b": "7-9", "pool_b": "9+", "lender": base_lender, "amount_q": "0", "pti_q": "0",
+                "ltv_q": "0", "apr_q": "0"}
     if base_cohort is not None:
         baseline["cohort_q"] = base_cohort
+    lender_rows = []
     for name, factors in specs.items():
-        cells = hazard.aggregate_cells(lm, cells=[f for f in factors if f != "age_b"] + (["deal"] if "deal" not in factors else []))
+        cells = hazard.aggregate_cells(lm, cells=[f for f in factors if f not in ("age_b", "pool_b")] + ["deal"])
         res = hazard.fit_hazards(cells, factors=factors, cluster="deal", baseline=baseline)
         meta[name] = res["design_info"]
         for event in ("chargeoff", "prepay"):
             for f in factors:
-                hr = hazard.hazard_ratios(res[event], f)
+                ev = cells.groupby(f, observed=True)[f"d_{event}"].sum().to_dict()
+                hr = hazard.hazard_ratios(res[event], f, t_df=res["design_info"].get("t_df"),
+                                          events={str(k): v for k, v in ev.items()})
                 hr.insert(0, "factor", f)
                 hr.insert(0, "event", event)
                 hr.insert(0, "spec", name)
                 rows.append(hr)
+        if name in ("score", "terms"):
+            li, info = hazard.deal_spread_intervals(cells, factors, baseline)
+            li.insert(0, "spec", name)
+            lender_rows.append(li)
+            meta[name]["deal_spread"] = info
+    if lender_rows:
+        pd.concat(lender_rows, ignore_index=True).to_csv(out / "b2_lender_intervals.csv", index=False)
     meta["baseline"] = baseline
     meta["spec_notes"] = {
-        "raw": "loan age only: the gap as it appears in the data, composition included",
+        "raw": "loan age and months in pool only: the gap as it appears in the data, composition included",
         "score": "adds the bureau score bucket: same score, different lender",
         "terms": "adds origination quarter, loan amount, payment-to-income and loan-to-value quintiles: same score and same loan structure",
         "price": "adds the lender's own APR quintile. APR is set by the lender from its private view of the borrower, so it is a"

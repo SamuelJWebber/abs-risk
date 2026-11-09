@@ -60,6 +60,25 @@ def _interpret_decomposition(att: pd.DataFrame) -> str:
     return "".join(out)
 
 
+def _skipped_sentence(results: Path) -> str:
+    """What the entry/roll product leaves out: charge-offs never recorded 30 days late (R1-13)."""
+    p = results / "b6_decomposition.csv"
+    if not p.exists():
+        return ""
+    d = pd.read_csv(p)
+    if "co_without_30_share" not in d:
+        return ""
+    d = d.dropna(subset=["co_without_30_share"]).set_index("lender")
+    bad = d[~d["split_holds"].astype(bool)] if "split_holds" in d else d.iloc[0:0]
+    rest = d.drop(index=bad.index)
+    s = " It leaves out charge-offs never recorded 30 days late, bankruptcy-type events coded straight to charge-off: "
+    if not bad.empty:
+        s += (", ".join(f"{v:.0%} of {k}'s" for k, v in bad["co_without_30_share"].items())
+              + f", so the split says little about {escape(', '.join(bad.index))}, and ")
+    s += f"at most {rest['co_without_30_share'].max():.1%} at {'every lender' if bad.empty else 'every other lender'}"
+    return escape(s) + "."
+
+
 def usable_cells(at: pd.DataFrame) -> pd.DataFrame:
     """Cells with enough loans and enough of them still under observation at the horizon."""
     a = at[(at["score_b"].astype(str) != "none") & (at["n_loans"] >= MIN_LOANS) & (at["at_risk"] >= MIN_AT_RISK)].copy()
@@ -155,9 +174,48 @@ def bandwidth_stability(bw: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def scale_900_lenders(summary: pd.DataFrame | None) -> list[str]:
+    """Lenders whose reported scores run past 850: the 250-900 auto-industry FICO scale (FICO Auto Score). A lender on
+    the 300-850 scale cannot report a 900, so these are the lenders that can be compared on one scale (R1-8)."""
+    if summary is None or summary.empty or "score_above_850_share" not in summary:
+        return []
+    # at least one loan in a thousand above 850: a handful of 851-854 scores (AmeriCredit's) is noise, not a scale
+    w = summary.assign(above=summary["score_above_850_share"] * summary["n_loans"]).groupby("lender")[["above", "n_loans"]].sum()
+    share = w["above"] / w["n_loans"]
+    return sorted(share[share >= 0.001].index)
+
+
+def _lender_interval_sentence(li: pd.DataFrame | None, baseline: dict | None, fit: dict | None) -> str:
+    """Which lenders are distinguishable from the baseline once the interval carries the deal-to-deal spread (R1-6)."""
+    if li is None or li.empty:
+        return ""
+    t = li[(li["spec"] == "terms") & (li["event"] == "chargeoff")]
+    if t.empty:
+        return ""
+    base = (baseline or {}).get("lender", "the baseline lender")
+    clear = t[(t["lo95"] > 1) | (t["hi95"] < 1)].sort_values("odds_ratio")
+    cover = t[(t["lo95"] <= 1) & (t["hi95"] >= 1)].sort_values("odds_ratio")
+    info = ((fit or {}).get("terms", {}).get("deal_spread", {}) or {}).get("chargeoff", {})
+    sd, dof = info.get("deal_shock_sd"), info.get("df")
+    n1 = int((t["n_deals"] == 1).sum())
+    parts = [f"Each lender's coefficient also carries the luck of its own deals, and {n1} of these lenders own a single "
+             f"deal, so their clustered intervals measure only noise inside that deal."]
+    if sd is not None and dof:
+        parts.append(f" Measured where it can be, between the two deals of each lender that has two, the deal-to-deal spread is "
+                     f"about {sd:.2f} in log odds ({dof} degrees of freedom).")
+    parts.append(" With that spread added to each interval, "
+                 + (f"{escape(', '.join(f'{r.lender} {r.odds_ratio:.2f} [{r.lo95:.2f}, {r.hi95:.2f}]' for r in clear.itertuples()))} "
+                    f"remain{'s' if len(clear) == 1 else ''} distinguishable from {escape(str(base))}" if not clear.empty else
+                    f"no lender is distinguishable from {escape(str(base))}")
+                 + (f", and {escape(', '.join(f'{r.lender} {r.odds_ratio:.2f} [{r.lo95:.2f}, {r.hi95:.2f}]' for r in cover.itertuples()))} "
+                    f"{'is' if len(cover) == 1 else 'are'} not." if not cover.empty else "."))
+    return "".join(parts)
+
+
 def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: pd.DataFrame,
                cohort12: pd.DataFrame | None = None, baseline: dict | None = None,
-               bw: pd.DataFrame | None = None) -> list[str]:
+               bw: pd.DataFrame | None = None, summary: pd.DataFrame | None = None,
+               li: pd.DataFrame | None = None, fit: dict | None = None) -> list[str]:
     """Sentences computed from the result tables, so the page never claims more than the numbers."""
     out = []
     for at, horizon, lo_, hi_, label in ((at24, 24, 480, 620, "Deep in subprime, scores 480 to 639"),
@@ -180,14 +238,28 @@ def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: 
                   f"{g_s:.0f} times (section 3, score specification). " if g_s == g_s else "")
         nx = bucket_ratios(usable_cells(at12[at12["lender"] != "exeter"]))
         robust, meds, names = [], [], []
-        if not nx.empty:
-            names.append("score scale")
-            meds.append(nx["ratio"].median())
-            robust.append(f"leaving out Exeter, whose score is VantageScore rather than FICO, the median is {meds[-1]:.0f} "
-                          f"times across {len(nx)} buckets (range {nx['ratio'].min():.0f} to {nx['ratio'].max():.0f})")
         ok = []
         if not nx.empty:
+            names.append("Exeter's VantageScore")
+            meds.append(nx["ratio"].median())
             ok.append(meds[-1] >= 3)
+            robust.append(f"leaving out Exeter, whose score is VantageScore rather than FICO, the median is {meds[-1]:.0f} "
+                          f"times across {len(nx)} buckets (range {nx['ratio'].min():.0f} to {nx['ratio'].max():.0f})")
+        s900 = scale_900_lenders(summary)
+        if len(s900) >= 3:
+            same = bucket_ratios(usable_cells(at12[at12["lender"].isin(s900)]))
+            if not same.empty:
+                names.append("mixed score scales")
+                ok.append(same["ratio"].median() >= 3)
+                identical = (not nx.empty and len(same) == len(nx)
+                             and np.allclose(same.sort_values("lo")["ratio"], nx.sort_values("lo")["ratio"]))
+                others = sorted(set(at12["lender"]) - set(s900))
+                robust.append(f"keeping only the {len(s900)} lenders whose scores run past 850, the 250-900 auto-industry scale "
+                              f"({escape(', '.join(s900))}), so that every comparison is on one scale, the median is "
+                              f"{same['ratio'].median():.0f} times across {len(same)} buckets (range {same['ratio'].min():.0f} to "
+                              f"{same['ratio'].max():.0f}); {escape(' and '.join(others))} top out at 850 or just above"
+                              + (", and in these buckets the result is the same as leaving out Exeter alone, because the other "
+                                 "lender off that scale is never the highest or the lowest" if identical else ""))
         if cohort12 is not None and not cohort12.empty:
             pr = pair_ratios(usable_cells(cohort12), usable_cells(at12))
             if not pr.empty:
@@ -200,8 +272,8 @@ def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: 
                 robust.append(f"comparing the same two lenders in the same bucket inside a single origination year, the ratio is "
                               f"{shrink:.2f} of the pooled one (median over {len(pr)} pairs{tail_big}; section 2)")
         if robust:
-            what = " and ".join(names)
-            lead = (f"It survives the obvious objection{'s' if len(names) > 1 else ''}, {what}: " if all(ok) else
+            what = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+            lead = (f"It survives the obvious objection{'s' if len(names) > 1 else ''} ({what}): " if all(ok) else
                     f"Checking {what} moves it: ")
             rob = lead + "; ".join(robust) + ". "
         else:
@@ -226,17 +298,19 @@ def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: 
                        f"survives both. In the terms column, against {escape(str(base_l))}: "
                        f"{escape(', '.join(f'{k} {v:.2f}' for k, v in w['terms'].sort_values().items()))}. "
                        f"It is not a causal effect of the lender: it carries what each lender knows beyond the score, "
-                       f"who it attracts, how it services, and which loans it puts in a public deal.")
+                       f"who it attracts, how it services, and which loans it puts in a public deal. "
+                       + _lender_interval_sentence(li, baseline, fit))
     sc = hr[(hr["factor"] == "score_b") & (hr["event"] == "chargeoff")]
     if not sc.empty and {"score", "price"} <= set(sc["spec"]):
         g_s, g_t, g_p = _score_gradient(hr, "score"), _score_gradient(hr, "terms"), _score_gradient(hr, "price")
-        if g_s == g_s and g_p == g_p:
-            share = 1 - (np.log(g_p) / np.log(g_s)) if g_s > 1 and g_p > 0 else float("nan")
-            out.append(f"<b>The lender's own price carries much of what the score carries.</b> Scores 500 to 599 have {g_s:.0f} times "
-                       f"the monthly charge-off odds of scores 760 to 839 with age and lender held fixed, {g_t:.0f} times once loan "
-                       f"structure is held fixed too, and {g_p:.1f} times once the lender's APR quintile is added. Adding price removes "
-                       f"about {share:.0%} of the remaining score gradient in log odds. Price is set by the lender from its own read of "
-                       f"the borrower, so that column answers a narrower question and is not the preferred specification.")
+        if g_s == g_s and g_p == g_p and g_t == g_t:
+            share = 1 - (np.log(g_p) / np.log(g_t)) if g_t > 1 and g_p > 0 else float("nan")
+            out.append(f"<b>The lender's own price carries part of what the score carries.</b> Scores 500 to 599 have {g_s:.1f} times "
+                       f"the monthly charge-off odds of scores 760 to 839 with age and lender held fixed, {g_t:.1f} times once loan "
+                       f"structure is held fixed too, and {g_p:.1f} times once the lender's APR quintile is added. So price removes "
+                       f"about {share:.0%} of the score gradient that is left after loan structure, in log odds. Price is set by the "
+                       f"lender from its own read of the borrower, so that column answers a narrower question and is not the "
+                       f"preferred specification.")
     for f, name in (("amount_q", "loan amount"), ("pti_q", "payment-to-income"), ("ltv_q", "loan-to-value")):
         s = hr[(hr["factor"] == f) & (hr["event"] == "chargeoff") & (hr["spec"] == "terms")]
         if not s.empty:
@@ -268,11 +342,20 @@ def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: 
         st = bandwidth_stability(bw) if bw is not None else pd.DataFrame()
         if not st.empty:
             n_hold = int(st["holds"].sum())
-            tail += (f" Refitting each usable cutoff at 0.5, 0.75, 1.5 and 2 times its bandwidth, {n_hold} of {len(st)} "
-                     f"cutoff-and-horizon estimates keep a robust interval that excludes zero at every bandwidth"
-                     + (": " + escape(", ".join(f"{r.lender} {r.cutoff:.0f} at {r.horizon} months ({r.est_main:+.1%})"
-                                                for r in st[st["holds"]].itertuples())) if n_hold else "")
-                     + ". This is the only causal design on the page, and its answer is a null.")
+            g = bw.dropna(subset=["ci_lo", "ci_hi"])
+            clears = (g["ci_lo"] > 0) | (g["ci_hi"] < 0)
+            main_bw = (g["bw_mult"] - 1.0).abs() < 1e-9
+            n_main, k_main = int(main_bw.sum()), int(clears[main_bw].sum())
+            n_off, k_off = int((~main_bw).sum()), int(clears[~main_bw].sum())
+            off = g[~main_bw & clears]
+            if "at the optimal bandwidth" not in tail:
+                tail += (f" With robust intervals, {k_main} of {n_main} cutoff-and-horizon estimates clear zero at the MSE-optimal "
+                         f"bandwidth.")
+            tail += (f" Across the {n_off} refits at 0.5, 0.75, 1.5 and 2 times that bandwidth, {k_off} clear zero"
+                     + (f" ({escape('; '.join(f'{r.lender} {r.cutoff:.0f} at {r.horizon} months, {r.bw_mult:g} times' for r in off.itertuples()))})"
+                        if k_off else "")
+                     + f", about the {0.05 * n_off:.0f} that chance alone would give at the 5% level, and {n_hold} of {len(st)} stay "
+                       f"clear at every bandwidth. This is the only causal design on the page, and its answer is a null.")
         out.append(f"<b>Pricing cutoffs mostly are not clean experiments.</b> Of {len(rdres)} candidate score cutoffs examined, "
                    f"{len(fail)} fail the density test, meaning the pool itself changes at the line and the cutoff is an approval or "
                    f"securitization threshold rather than a pricing step. {len(ok)} have both a smooth density and a real jump in APR "
@@ -328,9 +411,16 @@ def _cohort_section(c12: pd.DataFrame, c24: pd.DataFrame | None, pooled12: pd.Da
     return h
 
 
-def _terms_forest(hr: pd.DataFrame, baseline: dict) -> str:
-    """Chart 2 (TASKS B4): terms-specification charge-off odds ratios with 95% intervals, clustered by deal."""
-    t = hr[(hr["spec"] == "terms") & (hr["event"] == "chargeoff")]
+def _terms_forest(hr: pd.DataFrame, baseline: dict, li: pd.DataFrame | None = None) -> str:
+    """Chart 2 (TASKS B4): terms-specification charge-off odds ratios with 95% intervals. Quintile intervals are clustered
+    by deal with t(9) critical values; lender intervals carry the deal-to-deal spread when b2_lender_intervals.csv
+    has them (R1-6), because a clustered interval for a single-deal lender measures within-deal noise only."""
+    t = hr[(hr["spec"] == "terms") & (hr["event"] == "chargeoff")].copy()
+    if li is not None and not li.empty:
+        h = li[(li["spec"] == "terms") & (li["event"] == "chargeoff")].set_index("lender")
+        m = (t["factor"] == "lender") & t["level"].isin(h.index)
+        t.loc[m, "lo95"] = t.loc[m, "level"].map(h["lo95"])
+        t.loc[m, "hi95"] = t.loc[m, "level"].map(h["hi95"])
     rows = []
     blocks = (("lender", f"Lender (against {baseline.get('lender', 'baseline')})"),
               ("amount_q", "Loan amount quintile (against the lowest)"),
@@ -349,7 +439,9 @@ def _terms_forest(hr: pd.DataFrame, baseline: dict) -> str:
     return ("<p>Chart 2. The <b>terms</b> specification, with lender, score bucket, loan age and origination quarter "
             "held fixed alongside the other two loan-structure measures. Descriptive with controls: each bar compares loans "
             "that differ in one recorded field, not borrowers assigned to it.</p>"
-            + forest_chart(rows, title="Monthly charge-off odds ratios, terms specification (95% intervals, clustered by deal)"))
+            + forest_chart(rows, title="Monthly charge-off odds ratios, terms specification (95% intervals)")
+            + "<p class='muted'>Lender intervals include the deal-to-deal spread; quintile intervals are clustered by deal "
+              "with t(9) critical values.</p>")
 
 
 def _bandwidth_section(bw: pd.DataFrame | None) -> list[str]:
@@ -385,6 +477,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     cuts = pd.read_csv(results / "b3_cutoffs.csv") if (results / "b3_cutoffs.csv").exists() else pd.DataFrame()
     rdres = pd.read_csv(results / "b3_rd.csv") if (results / "b3_rd.csv").exists() else pd.DataFrame()
     bw = pd.read_csv(results / "b3_rd_bandwidths.csv") if (results / "b3_rd_bandwidths.csv").exists() else None
+    li = pd.read_csv(results / "b2_lender_intervals.csv") if (results / "b2_lender_intervals.csv").exists() else None
     c12p, c24p = results / "b1_cohort_at_12.csv", results / "b1_cohort_at_24.csv"
     cohort12 = pd.read_csv(c12p) if c12p.exists() else None
     cohort24 = pd.read_csv(c24p) if c24p.exists() else None
@@ -395,7 +488,8 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
              f"{int(summary['n_loans'].sum()):,} loans in {len(summary)} deals from {summary['lender'].nunique()} lenders.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
     h.append("<h2>What the data says</h2>")
-    for line in _headlines(at12, at24, hr, rdres, cohort12=cohort12, baseline=fit.get("baseline"), bw=bw):
+    for line in _headlines(at12, at24, hr, rdres, cohort12=cohort12, baseline=fit.get("baseline"), bw=bw, summary=summary,
+                           li=li, fit=fit):
         h.append(f"<p>{line}</p>")
     h.append(f"<div class='note'>{KIND}</div>")
 
@@ -440,13 +534,14 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
 
     h.append("<h2>3. Monthly charge-off hazard: lender at fixed score, size at fixed score and lender</h2>")
     h.append("<p>Discrete-time competing-risks hazard on the loan-month expansion, fitted as binomial logits on aggregated cells "
-             "with standard errors clustered by deal. Odds ratios are relative to a stated baseline level. Four specifications, "
+             "with standard errors clustered by deal and t critical values on nine degrees of freedom (ten deals); lender "
+             "intervals also carry the deal-to-deal spread (headline above). Odds ratios are relative to a stated baseline level. Four specifications, "
              "each adding one layer: <b>raw</b> is loan age only; <b>score</b> adds the bureau score bucket; <b>terms</b> adds "
              "origination quarter, loan amount, payment-to-income and loan-to-value; <b>price</b> adds the lender's own APR "
              "quintile. Price is a mediator, not a confounder. The lender sets it from its private read of the borrower, so "
              "conditioning on it answers the narrower question of whether two lenders who priced a borrower the same then see the "
              "same losses. Read <b>terms</b> as the main result and <b>price</b> as a decomposition.</p>")
-    h.append(_terms_forest(hr, fit.get("baseline", {})))
+    h.append(_terms_forest(hr, fit.get("baseline", {}), li))
     for factor, title in (("lender", "Lender, charge-off"), ("amount_q", "Loan amount quintile, charge-off"), ("pti_q", "Payment-to-income quintile, charge-off"),
                           ("ltv_q", "Loan-to-value quintile, charge-off"), ("apr_q", "APR quintile, charge-off"),
                           ("score_b", "Score bucket, charge-off")):
@@ -462,8 +557,14 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
         h.append("<h3>Lender, prepayment (terms specification)</h3>")
         h.append("<p>The competing exit. A loan that pays off cannot later charge off, so a lender whose borrowers refinance or "
                  "trade in faster will show lower cumulative losses for that reason alone; the Aalen-Johansen curves above already "
-                 "account for it, and these are the same differences in the hazard.</p>")
-        h.append(table(sub[["level", "odds_ratio", "lo95", "hi95", "p"]], fmt={"odds_ratio": "{:.2f}", "lo95": "{:.2f}", "hi95": "{:.2f}", "p": "{:.3f}"}))
+                 "account for it, and these are the same differences in the hazard. Intervals and p-values include the "
+                 "deal-to-deal spread.</p>")
+        pp = li[(li["spec"] == "terms") & (li["event"] == "prepay")] if li is not None and not li.empty else pd.DataFrame()
+        if not pp.empty:
+            h.append(table(pp.sort_values("odds_ratio"), cols=["lender", "n_deals", "odds_ratio", "lo95", "hi95", "p"],
+                           fmt={"odds_ratio": "{:.2f}", "lo95": "{:.2f}", "hi95": "{:.2f}", "p": "{:.3f}"}))
+        else:
+            h.append(table(sub[["level", "odds_ratio", "lo95", "hi95", "p"]], fmt={"odds_ratio": "{:.2f}", "lo95": "{:.2f}", "hi95": "{:.2f}", "p": "{:.3f}"}))
     base = fit.get("baseline", {})
     h.append(f"<p class='muted'>Baseline levels: {escape(', '.join(f'{k}={v}' for k, v in base.items()))}. "
              f"Terms specification: {int(fit.get('terms', {}).get('n_cells', 0)):,} cells, "
@@ -508,7 +609,8 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
                  "holding an account that survives trouble better. Those are different claims and the level of charge-off cannot "
                  "separate them, so the gap is split into two stages: <b>entry</b>, the chance of reaching 30 days past due within "
                  "24 months of origination, and <b>roll</b>, the chance of charging off within 12 months of first reaching 30 days. "
-                 "Their product is the charge-off rate, so the log gap against the baseline lender splits cleanly between them.</p>")
+                 "Their product approximates the charge-off rate, and the log gap against the baseline lender splits between them."
+                 + _skipped_sentence(results) + "</p>")
         h.append("<div class='note'>The roll comparison is the more trustworthy of the two. It conditions on an observed behaviour, "
                  "being 30 days late, rather than on a score, so it is not disturbed by the fact that these lenders report different "
                  "score types on different scales. The entry comparison is partly contaminated by that scale difference; the roll "

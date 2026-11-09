@@ -11,6 +11,12 @@ Two stages, each a competing-risks problem on the same loans:
   roll    for loans that reach 30+, time from that month to charge-off.
           Competing exit: curing and then leaving, or still alive at the end of observation.
 
+The product of the two stages approximates the charge-off rate; it is not equal to it. A charge-off with no
+recorded 30+ month (bankruptcy and similar events coded straight to charge-off) is a competing exit in the entry
+stage and appears in neither factor: 75% of Capital One's charge-offs, under 7% at every other lender (REVIEW.md
+R1-13). `decompose` reports that share per group as `co_without_30_share`, and a group where it exceeds
+`MAX_CO_WITHOUT_30` is marked `split_holds = False`.
+
 A lender whose whole advantage is in `entry` is selecting better borrowers on the dimension that matters.
 A lender whose advantage persists in `roll` is holding an account its borrowers protect, or is collecting
 harder, or is holding collateral the borrower needs. This distinguishes selection from the rest; it does not
@@ -23,6 +29,8 @@ import numpy as np
 import pandas as pd
 
 from .survival import _counts, _curves, _month_index, ages, score_bucket
+
+MAX_CO_WITHOUT_30 = 0.25
 
 
 def stage_frames(loans: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -80,6 +88,11 @@ def decompose(loans: pd.DataFrame, by: list[str], entry_horizon: int = 24, roll_
         rec = dict(zip(by, keys))
         rec["n_loans"] = len(g)
         rec["n_ever30"] = len(e2)
+        co = (g["exit_type"] == "chargeoff").to_numpy()
+        reached = g.index.isin(e2_all.index)
+        rec["n_chargeoff"] = int(co.sum())
+        rec["co_without_30_share"] = float((co & ~reached).sum() / co.sum()) if co.sum() else np.nan
+        rec["split_holds"] = bool(not co.sum() or rec["co_without_30_share"] <= MAX_CO_WITHOUT_30)
         rec["entry_rate"] = float(_cif(e1, entry_horizon)[-1]) if len(g) >= min_loans else np.nan
         rec["roll_rate"] = float(_cif(e2, roll_horizon)[-1]) if len(e2) >= min_ever30 else np.nan
         rec["implied"] = rec["entry_rate"] * rec["roll_rate"] if rec["entry_rate"] == rec["entry_rate"] and rec["roll_rate"] == rec["roll_rate"] else np.nan
@@ -107,7 +120,8 @@ def attribute(dec: pd.DataFrame, group: str, baseline: str) -> pd.DataFrame:
                     "total_ratio": r["implied"] / b["implied"],
                     "entry_share_of_gap": le / tot if abs(tot) > 1e-9 else np.nan,
                     "roll_share_of_gap": lr / tot if abs(tot) > 1e-9 else np.nan,
-                    "n_loans": r["n_loans"], "n_ever30": r["n_ever30"]})
+                    "n_loans": r["n_loans"], "n_ever30": r["n_ever30"],
+                    "co_without_30_share": r.get("co_without_30_share", np.nan), "split_holds": r.get("split_holds", True)})
     return pd.DataFrame(out).sort_values("total_ratio")
 
 
