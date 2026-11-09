@@ -63,3 +63,51 @@ cards_monthly:
     label: "Total Charge-Offs as a percentage of Average Principal Receivables Outstanding"
     printed: "2.74 %"
     value: 0.0274
+
+# Auto loans (PLAN.md section 4; REVIEW.md bigger improvement 8): one loan per deal, traced from its EX-102 record
+# (tests/fixtures/autos/<deal>/<fixture>, records cut verbatim from the filing) to the committed loans table
+# (data/autos/<deal>.parquet), plus two charge-offs. `printed` is the text of each XML element exactly as filed;
+# `expect` is the parquet row. tests/test_golden_autos.py reads the XML with plain regex, not the parser, checks that
+# the printed values imply the expected ones, and that the committed table carries them.
+autos_loans:
+  - deal: amcar-2024-1
+    fixture: 2026-07.xml
+    asset: "0002020251 - 000010"
+    printed: {originationDate: "07/2017", originalLoanAmount: "50981.32000000", originalLoanTerm: "86", originalInterestRatePercentage: "0.12750000", obligorCreditScore: "609"}
+    expect: {orig_month: "2017-07-01", orig_amount: 50981.32, orig_term: 86, orig_apr: 0.1275, score: 609}
+  - deal: carmax-2026-2
+    fixture: 2026-06.xml
+    asset: "+JvhGfqaCSntQUZDQMFDyw=="
+    printed: {originationDate: "12/2025", originalLoanAmount: "11234.86", originalLoanTerm: "67", originalInterestRatePercentage: "0.0534", obligorCreditScore: "867"}
+    expect: {orig_month: "2025-12-01", orig_amount: 11234.86, orig_term: 67, orig_apr: 0.0534, score: 867}
+  - deal: copar-2025-1
+    fixture: 2026-07.xml
+    asset: "NThmZTM1YjE4YjMyODUwMWUzY"
+    printed: {originationDate: "01/2025", originalLoanAmount: "39501.16000000", originalLoanTerm: "60", originalInterestRatePercentage: "0.06990000", obligorCreditScore: "802"}
+    expect: {orig_month: "2025-01-01", orig_amount: 39501.16, orig_term: 60, orig_apr: 0.0699, score: 802}
+  - deal: exeter-2025-5
+    fixture: 2026-06.xml
+    asset: "210281729929454301"
+    printed: {originationDate: "11/2020", originalLoanAmount: "14220.81", originalLoanTerm: "67", originalInterestRatePercentage: "0.2296", obligorCreditScore: "580"}
+    expect: {orig_month: "2020-11-01", orig_amount: 14220.81, orig_term: 67, orig_apr: 0.2296, score: 580}
+  - deal: sdart-2026-1
+    fixture: 2026-07.xml
+    asset: "21904424"
+    printed: {originationDate: "01/2020", originalLoanAmount: "51000.00000000", originalLoanTerm: "75", originalInterestRatePercentage: "0.05960000", obligorCreditScore: "632"}
+    expect: {orig_month: "2020-01-01", orig_amount: 51000.0, orig_term: 75, orig_apr: 0.0596, score: 632}
+  - deal: toyota-2025-a
+    fixture: 2026-07.xml
+    asset: "50000993"
+    printed: {originationDate: "07/2024", originalLoanAmount: "38792.08000000", originalLoanTerm: "49", originalInterestRatePercentage: "0.02990000", obligorCreditScore: "753"}
+    expect: {orig_month: "2024-07-01", orig_amount: 38792.08, orig_term: 49, orig_apr: 0.0299, score: 753}
+  - deal: exeter-2025-5
+    fixture: 2026-06.xml
+    asset: "210852529957754301"
+    printed: {zeroBalanceCode: "4", zeroBalanceEffectiveDate: "06/2026", chargedoffPrincipalAmount: "19231.97"}
+    expect: {exit_type: chargeoff, exit_period: "2026-06-30", chargeoff_amount: 19231.97}
+  - deal: amcar-2024-1
+    fixture: 2026-07.xml
+    asset: "0002020251 - 000723"
+    printed: {zeroBalanceCode: "4", zeroBalanceEffectiveDate: "05/2026", chargedoffPrincipalAmount: "0.00000000"}
+    expect: {exit_type: chargeoff, exit_period: "2026-05-31"}
+
