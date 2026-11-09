@@ -97,3 +97,9 @@ No step here waits on the user. Answering the closed cards question would need b
   `--skip b1,b1c,b2,b3,b3bw,b6`. `absrisk analyze cards` is ~6 s. Cap BLAS threads when the machine is shared.
 - pytest's `addopts = "-q"` hides the summary line under `-q`; use `-o addopts=""` to see the count.
 - **This repo is public.** Read anything an agent generated in bulk before committing it.
+
+## Live pages check (2026-11-09, after Pages build 42700684862 for b95f5a7)
+
+*Seen live*: autos, cards, conclusions and index pages fetched from samueljwebber.github.io/abs-risk return 200
+and are identical to `docs/` apart from line endings (CRLF in the Windows checkout). Not checked in a browser at
+phone width; charts were checked for size in an emulated 1100 px viewport only (all ten autos charts render).
