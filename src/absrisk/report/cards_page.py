@@ -3,23 +3,58 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
 from html import escape
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from ..estimate import cards_roll
-from .svg import CSS, line_chart, table
+from ..shape.level import data_dir
+from .svg import line_chart, page, table
 
 STRESS_ORDER = ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on")
 
-SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. The FICO mix is a snapshot from the "
-         "latest prospectus and is held fixed between prospectus dates. Charge-off bases differ by trust and are "
+SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. Charge-off bases differ by trust and are "
          "kept as reported. The residual is actual minus what the pool's score mix predicts under a stated "
          "loss-by-tier shape; it mixes underwriting, product, customer mix within a score band, pool selection and "
-         "behaviour, and it cannot say which. It can say that a trust loses more than its score mix predicts, by how "
-         "many points, and since when. It cannot say why. Nothing here is a payment-hierarchy estimate.")
+         "behaviour, and it cannot say which. In principle it says whether a trust loses more than its score mix "
+         "predicts, by how many points, and since when. Here the number of points depends on which loss curve is "
+         "assumed (section 4), so the page reports a sign only where every curve agrees, and the years in which it held. "
+         "It cannot say why. Nothing here is a payment-hierarchy estimate.")
+
+
+def _snapshot_note(pred: pd.DataFrame, mix: pd.DataFrame) -> str:
+    """How the score mix and the industry level are applied over time, stated from the prediction table (R1-7)."""
+    if pred.empty or "mix_extrapolated" not in pred:
+        return ""
+    one = pred[pred["shape_source"] == pred["shape_source"].iloc[0]]
+    first = pd.to_datetime(one["period_end"]).min()
+    ok = mix.dropna(subset=["as_of"]) if "as_of" in mix else pd.DataFrame()
+    dates = pd.to_datetime(ok["as_of"]) if not ok.empty else pd.Series(dtype="datetime64[ns]")
+    n_snap = ok.groupby("trust")["as_of"].nunique() if not ok.empty else pd.Series(dtype=int)
+    snap = ("one prospectus snapshot per trust" if not n_snap.empty and (n_snap == 1).all()
+            else "the prospectus snapshots in the composition table")
+    parts = [f"The score mix is {snap}, dated {dates.min():%B %Y} to {dates.max():%B %Y}, applied to every month since "
+             f"{first:%B %Y}. So {one['mix_extrapolated'].mean():.0%} of trust-months are predicted from a snapshot dated after "
+             f"them, and when a trust files a new prospectus every earlier month's prediction for it changes."]
+    if "level_year_clamped" in one and one["level_year_clamped"].any():
+        cl = one[one["level_year_clamped"]]
+        yrs = sorted(pd.to_datetime(cl["period_end"]).dt.year.unique())
+        last_level = int(cl["level_year"].max())
+        span = f"{yrs[0]}" if len(yrs) == 1 else f"{yrs[0]}-{str(yrs[-1])[-2:]}"
+        parts.append(f" The CFPB industry level runs to {last_level}, so months in {span} use the {last_level} level "
+                     f"({one['level_year_clamped'].mean():.0%} of trust-months).")
+    return "".join(parts)
+
+
+def _sign_by_year(pred: pd.DataFrame) -> pd.DataFrame:
+    """Per trust and calendar year: '+' if the mean residual is positive under every shape, '-' if negative under
+    every shape, '+/-' if the shapes disagree. This is the page's 'since when'."""
+    p = pred.assign(year=pd.to_datetime(pred["period_end"]).dt.year)
+    g = p.groupby(["trust", "year", "shape_source"])["residual"].mean().unstack("shape_source")
+    sign = pd.Series(np.where((g > 0).all(axis=1), "+", np.where((g < 0).all(axis=1), "-", "+/-")), index=g.index)
+    return sign.unstack("year")
 
 
 def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> list[str]:
@@ -176,13 +211,15 @@ def build(results: Path, out: Path) -> Path:
     rank = pd.read_csv(results / "a1_ranking.csv") if (results / "a1_ranking.csv").exists() else pd.DataFrame()
     mix = pd.read_csv(results / "mix_by_trust.csv")
     panel = pd.read_csv(results / "a2_panel.csv") if (results / "a2_panel.csv").exists() else pd.DataFrame()
-    shapes = pd.read_csv(Path("data/loss_shape.csv")) if Path("data/loss_shape.csv").exists() else pd.DataFrame()
+    shape_csv = data_dir() / "loss_shape.csv"            # the repo's data folder, wherever the command runs from
+    shapes = pd.read_csv(shape_csv) if shape_csv.exists() else pd.DataFrame()
 
-    h = [f"<title>abs-risk cards</title><style>{CSS}</style><main>"]
-    h.append("<h1>Card trusts: charge-off against what the score mix predicts</h1>")
-    h.append(f"<p class='muted'>Built {date.today().isoformat()} from monthly 10-D reports and prospectus composition tables on EDGAR, "
-             f"and CFPB card market report figure data. {pred['trust'].nunique()} trusts, {pd.to_datetime(pred['period_end']).dt.to_period('M').nunique()} calendar months, {pd.to_datetime(pred['period_end']).min():%B %Y} to {pd.to_datetime(pred['period_end']).max():%B %Y}.</p>")
-    h.append(f"<div class='note'>{escape(SCOPE)}</div>")
+    h = ["<h1>Card trusts: charge-off against what the score mix predicts</h1>"]
+    months = pd.to_datetime(pred["period_end"])
+    h.append(f"<p class='muted'><b>Data through {months.max():%B %Y}.</b> Monthly 10-D reports and prospectus composition tables "
+             f"on EDGAR, and CFPB card market report figure data: {pred['trust'].nunique()} trusts, "
+             f"{months.dt.to_period('M').nunique()} calendar months, {months.min():%B %Y} to {months.max():%B %Y}.</p>")
+    h.append(f"<div class='note'>{escape(SCOPE)} {escape(_snapshot_note(pred, mix))}</div>")
     h.append("<h2>What the data says</h2>")
     for line in _headlines(rank, pred, mix):
         h.append(f"<p>{line}</p>")
@@ -208,7 +245,9 @@ def build(results: Path, out: Path) -> Path:
     if "error" in mix and mix["error"].notna().any():
         h.append("<p class='muted'>Not mapped: " + escape("; ".join(f"{r['trust']} ({r['error']})" for _, r in mix[mix['error'].notna()].iterrows())) + "</p>")
 
-    h.append("<h2>2. The three loss-by-tier shapes</h2>")
+    n_shapes = shapes.dropna(subset=["relative_loss"])["shape_source"].nunique() if not shapes.empty else 0
+    words = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+    h.append(f"<h2>2. The {words.get(n_shapes, n_shapes)} loss-by-tier shapes</h2>")
     h.append("<p>Relative charge-off by tier, prime = 1. Consumer-level FICO odds (any account, 90+ days past due) are steep; "
              "card-level charge-off rates by FICO among accounts already issued are much flatter, because lenders size lines "
              "and price by score. Which shape is right for a pool decides its residual, so every result is shown under each.</p>")
@@ -241,8 +280,23 @@ def build(results: Path, out: Path) -> Path:
         h.append("<h3>Rank (1 = largest positive residual)</h3>")
         h.append(table(r))
         stable = (r.drop(columns="trust").nunique(axis=1) == 1).all()
-        h.append(f"<p><b>{'The ranking is the same under every shape.' if stable else 'The ranking changes with the shape.'}</b> "
-                 f"{'The ordering of trusts does not depend on which loss curve is assumed.' if stable else 'Which trust looks worse depends on the assumed loss curve, so no single ordering is reported as a finding.'}</p>")
+        if stable:
+            h.append("<p><b>The ranking is the same under every shape.</b> The ordering of trusts does not depend on which "
+                     "loss curve is assumed.</p>")
+        else:
+            held = r.set_index("trust").nunique(axis=1) == 1
+            h.append(f"<p><b>The ranking changes with the shape in the middle, not at the ends.</b> "
+                     f"{escape(', '.join(sorted(held[held].index)))} keep{'s' if held.sum() == 1 else ''} the same rank under every "
+                     f"shape; the others move. So the ordering of the trusts that hold their place is reported as a finding and "
+                     f"the ordering of the rest is not.</p>")
+        sy = _sign_by_year(pred)
+        if not sy.empty:
+            always = [t for t in sy.index if (sy.loc[t].dropna() == "+").all()]
+            h.append("<h3>Since when: the sign of each year's mean residual under every shape</h3>")
+            h.append("<p>+ means the trust lost more than its mix predicts under every shape that year, - less under every "
+                     "shape, +/- that the shapes disagree." + (f" {escape(', '.join(always))} is above its prediction under every "
+                     f"shape in every year since {int(sy.columns.min())}." if always else "") + "</p>")
+            h.append(table(sy.reset_index()))
 
     bt_p, stress_p, regimes_p = results / "a3_by_trust.csv", results / "a3_stress.csv", results / "a3_regimes.csv"
     if bt_p.exists():
@@ -319,9 +373,10 @@ def build(results: Path, out: Path) -> Path:
     else:
         h.append("<p class='muted'>Not estimated in this build (see a2_panel.csv).</p>")
 
-    h.append("<footer>Code and data: github.com/SamuelJWebber/abs-risk. Row labels, bases and prospectus tables per trust are in design/scout-cards.md.</footer></main>")
+    h.append("<footer>Code and data: <a href='https://github.com/SamuelJWebber/abs-risk'>github.com/SamuelJWebber/abs-risk</a>. "
+             "Row labels, bases and prospectus tables per trust are in design/scout-cards.md.</footer>")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("".join(h), encoding="utf-8")
+    out.write_text(page("abs-risk cards", "".join(h), current="cards.html"), encoding="utf-8")
     return out
 
 

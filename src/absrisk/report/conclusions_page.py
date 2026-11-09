@@ -7,7 +7,6 @@ Every number is read from the result tables, so the page cannot drift from the d
 from __future__ import annotations
 
 import sys
-from datetime import date
 from html import escape
 from pathlib import Path
 
@@ -15,7 +14,7 @@ import pandas as pd
 
 from ..estimate import cards_roll
 from .cards_page import STRESS_ORDER, direction_sentences
-from .svg import CSS, table
+from .svg import page, table
 
 
 def _num(x, fmt="{:.2f}"):
@@ -66,9 +65,12 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
     n_lenders = summ["lender"].nunique() if not summ.empty else 0
     n_filings = int(bt["months"].sum()) if not bt.empty else 0
 
-    h = [f"<title>abs-risk conclusions</title><style>{CSS}</style><main>"]
-    h.append("<h1>Does anyone pay one card first?</h1>")
-    h.append(f"<p class='muted'>Built {date.today().isoformat()} from {n_filings} monthly trust reports and "
+    h = ["<h1>Does anyone pay one card first?</h1>"]
+    card_last = pd.to_datetime(bt["last"]).max() if not bt.empty and "last" in bt else None
+    auto_last = str(summ["last_period"].max()) if not summ.empty and "last_period" in summ else None
+    through = "; ".join(x for x in (f"card data through {card_last:%B %Y}" if card_last is not None else "",
+                                    f"auto data through {pd.Period(auto_last[:7]).strftime('%B %Y')}" if auto_last else "") if x)
+    h.append(f"<p class='muted'><b>{escape(through[:1].upper() + through[1:])}.</b> {n_filings} monthly trust reports and "
              f"{n_loans:,} auto loans across {n_deals} deals and {n_lenders} lenders, all from public SEC filings.</p>")
 
     h.append("<h2>The question</h2>")
@@ -184,11 +186,12 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
              "The advantage is bought at origination." + crisis + " For a lender, that means the returns to better selection "
              "dwarf the returns to being someone's favourite card. For a borrower, it means the card that looks safest is safest "
              "because of who else holds it.</p>")
-    h.append("<footer>Methods and every caveat: design/methods.md in the repository. Data and code: "
-             "github.com/SamuelJWebber/abs-risk. Sources: SEC EDGAR forms 10-D, 424B and ABS-EE, and CFPB Consumer Credit Card "
-             "Market Report figure data.</footer></main>")
+    h.append("<footer>Methods and every caveat: <a href='https://github.com/SamuelJWebber/abs-risk/blob/main/design/methods.md'>"
+             "design/methods.md</a>. Data and code: <a href='https://github.com/SamuelJWebber/abs-risk'>"
+             "github.com/SamuelJWebber/abs-risk</a>. Sources: SEC EDGAR forms 10-D, 424B and ABS-EE, and CFPB Consumer Credit "
+             "Card Market Report figure data.</footer>")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("".join(h), encoding="utf-8")
+    out.write_text(page("abs-risk conclusions", "".join(h), current="conclusions.html"), encoding="utf-8")
     return out
 
 

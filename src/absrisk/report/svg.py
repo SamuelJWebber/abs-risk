@@ -141,6 +141,27 @@ p{max-width:72ch}.muted{color:var(--muted)}.note{background:var(--card);border:1
 .tw{overflow-x:auto;margin:8px 0 16px}table{border-collapse:collapse;font-size:13px;min-width:420px}th,td{border-bottom:1px solid var(--line);padding:5px 9px;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600}
 svg{display:block;margin:6px 0 14px;background:var(--card);border:1px solid var(--line);border-radius:6px}
 svg .grid{stroke:var(--line);stroke-width:1}svg .tick{fill:var(--muted);font-size:11px}svg .axis{fill:var(--muted);font-size:12px}svg .ct{fill:var(--fg);font-size:13px;font-weight:600}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:12px}
 footer{margin-top:40px;color:var(--muted);font-size:13px}
+nav{font-size:13px;color:var(--muted);margin:0 0 18px;display:flex;flex-wrap:wrap;gap:4px 14px}
+nav a{color:var(--accent);text-decoration:none}nav a[aria-current]{color:var(--fg);font-weight:600}
+a{color:var(--accent)}
+@media (max-width:600px){main{padding:16px 16px 48px}h1{font-size:22px}}
 """
+
+REPO_URL = "https://github.com/SamuelJWebber/abs-risk"
+NAV = (("index.html", "Overview"), ("conclusions.html", "Conclusions"), ("cards.html", "Card trusts"),
+       ("autos.html", "Auto loans"), (REPO_URL + "/blob/main/design/methods.md", "Methods"), (REPO_URL, "Code and data"))
+
+
+def page(title: str, body: str, current: str = "") -> str:
+    """One shell for every generated page: doctype, charset, viewport, the shared style and a nav line.
+
+    Without the doctype a browser renders in quirks mode, and without the viewport meta a phone lays the page out
+    at about 980 px and shrinks it (REVIEW.md R1-12). `current` is the file name of this page, marked in the nav."""
+    links = " ".join(f"<a href='{escape(href)}'" + (" aria-current='page'" if href == current else "") + f">{escape(label)}</a>"
+                     for href, label in NAV)
+    return ("<!doctype html>\n<html lang='en'><head><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            f"<title>{escape(title)}</title><style>{CSS}</style></head>\n<body><main><nav>{links}</nav>"
+            f"{body}</main></body></html>\n")

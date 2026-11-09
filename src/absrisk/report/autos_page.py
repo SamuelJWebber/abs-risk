@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date
 from html import escape
 from pathlib import Path
 
@@ -12,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ..estimate import rd
-from .svg import CSS, forest_chart, line_chart, table
+from .svg import forest_chart, line_chart, page, table
 
 MIN_LOANS = 1500        # loans in the cell
 MIN_AT_RISK = 250       # still under observation at the horizon: a cell can have many loans but few old enough
@@ -390,9 +389,9 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     cohort12 = pd.read_csv(c12p) if c12p.exists() else None
     cohort24 = pd.read_csv(c24p) if c24p.exists() else None
 
-    h = [f"<title>abs-risk autos</title><style>{CSS}</style><main>"]
-    h.append("<h1>Auto loans: same score, different lender</h1>")
-    h.append(f"<p class='muted'>Built {date.today().isoformat()} from public ABS-EE loan-level filings on EDGAR. "
+    h = ["<h1>Auto loans: same score, different lender</h1>"]
+    last = pd.Period(str(summary["last_period"].max())[:7])
+    h.append(f"<p class='muted'><b>Data through {last.strftime('%B %Y')}.</b> Public ABS-EE loan-level filings on EDGAR: "
              f"{int(summary['n_loans'].sum()):,} loans in {len(summary)} deals from {summary['lender'].nunique()} lenders.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
     h.append("<h2>What the data says</h2>")
@@ -530,9 +529,11 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     h.append("<p>Nothing here observes a person's card and auto loan together, so it says nothing about which one they pay "
              "first. It says how default varies with lender and loan size at a fixed score in one product where the loan-level "
              "data is public. The score-shape of default from section 2 is one of the three candidate shapes used on the cards page.</p>")
-    h.append("<footer>Code and data: github.com/SamuelJWebber/abs-risk. Every number traces to a filing accession recorded in the build manifest.</footer></main>")
+    h.append("<footer>Code and data: <a href='https://github.com/SamuelJWebber/abs-risk'>github.com/SamuelJWebber/abs-risk</a>. "
+             "Every number traces to a filing accession recorded in the build manifest. What each estimate can carry: "
+             "<a href='https://github.com/SamuelJWebber/abs-risk/blob/main/design/methods.md'>design/methods.md</a>.</footer>")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("".join(h), encoding="utf-8")
+    out.write_text(page("abs-risk autos", "".join(h), current="autos.html"), encoding="utf-8")
     return out
 
 

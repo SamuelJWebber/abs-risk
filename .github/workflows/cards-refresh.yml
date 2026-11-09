@@ -77,7 +77,7 @@ jobs:
             uv run absrisk analyze cards
             uv run absrisk report cards
             uv run absrisk report conclusions
-            uv run pytest -q tests/test_cards_results.py
+            uv run pytest -q tests/test_cards_results.py tests/test_pages.py
           fi
       - name: Upload raw filings for local parser work
         if: always()
