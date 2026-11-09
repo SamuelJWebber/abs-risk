@@ -198,7 +198,7 @@ def test_parse_raw_and_csv(tmp_path):
 
 def test_cli_parse(tmp_path, capsys):
     out = tmp_path / "m.csv"
-    assert main(["parse", "--raw", str(FIX), "--out", str(out)]) == 0
+    assert main(["parse", "--raw", str(FIX), "--out", str(out), "--failures", str(tmp_path / "failures.csv")]) == 0
     assert "6 rows" in capsys.readouterr().out
     assert sum(1 for _ in open(out, encoding="utf-8")) == 7
 
