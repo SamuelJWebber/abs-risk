@@ -219,7 +219,7 @@ def test_committed_csvs_match_fixtures(built):
     prospectus than the fixture (Amex did in September 2026): the monthly refresh then commits that one, and
     comparing it to the fixture failed every refresh after it. So the row-for-row check covers the trusts
     whose committed `prospectus_accession` is the fixture's; a trust on a newer prospectus must carry the
-    same tables, a later as-of date, and shares that still sum to one.
+    same tables, an as-of date no earlier than the fixture's, and shares that still sum to one.
     """
     rows, _ = built
     committed = read_csv(REPO / "data" / "cards_composition.csv")
@@ -236,7 +236,9 @@ def test_committed_csvs_match_fixtures(built):
         a_rows = [r for r in committed if r["trust"] == trust]
         b_rows = [r for r in rows if r["trust"] == trust]
         assert {r["table"] for r in a_rows} == {r["table"] for r in b_rows}, trust
-        assert min(r["as_of"] for r in a_rows) > max(str(r["as_of"]) for r in b_rows), trust
+        # not earlier: a later prospectus can repeat the same pool date (COMET's 0001193125-26-413919 reprints the
+        # 2026-06-10 tables of the fixture's 0001193125-26-302059), so "later" would fail a legitimate refresh
+        assert min(r["as_of"] for r in a_rows) >= max(str(r["as_of"]) for r in b_rows), trust
         fico = [r for r in a_rows if r["table"] == "fico"]
         assert sum(float(r["share_receivables"] or 0) for r in fico) == pytest.approx(1.0, abs=1e-6), trust
     for trust in sorted(shared):

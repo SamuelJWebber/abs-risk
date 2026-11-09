@@ -105,6 +105,19 @@ def test_conflicting_amendment_is_expected_and_not_an_error():
     assert errors == [] and kept[0]["source_accession"] == "0001193125-19-302272"
 
 
+def test_committed_monthly_table_has_one_row_per_trust_month():
+    """The committed data/cards_monthly.csv, as the refresh workflow writes it. Held five duplicate months until the
+    2026-11-09 refresh (run 42691131162) regenerated it through dedupe_rows."""
+    import csv
+
+    path = Path(__file__).resolve().parents[1] / "data" / "cards_monthly.csv"
+    with open(path, newline="", encoding="utf-8") as fh:
+        keys = [(r["trust"], r["period_end"]) for r in csv.DictReader(fh)]
+    assert keys, "data/cards_monthly.csv is empty"
+    dupes = sorted({k for k in keys if keys.count(k) > 1})
+    assert dupes == []
+
+
 def test_unique_months_pass_through_untouched():
     from absrisk.cards.parse import dedupe_rows
 
