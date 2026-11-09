@@ -212,17 +212,33 @@ def test_crosswalk_covers_every_bucket_and_tier_shares_sum_to_one(built):
 
 
 def test_committed_csvs_match_fixtures(built):
-    """Every trust the committed CSVs and the fixtures share must agree row for row.
+    """Every trust whose committed table comes from the fixture's own prospectus must agree row for row.
 
     Row counts may differ legitimately: the fixtures carry seven prospectuses including the defeased Discover
-    trust, while a pipeline run on the runner fetches only the six live ones. What must never drift is the
-    content for a trust present in both.
+    trust, while a pipeline run on the runner fetches only the six live ones. And a trust may file a newer
+    prospectus than the fixture (Amex did in September 2026): the monthly refresh then commits that one, and
+    comparing it to the fixture failed every refresh after it. So the row-for-row check covers the trusts
+    whose committed `prospectus_accession` is the fixture's; a trust on a newer prospectus must carry the
+    same tables, a later as-of date, and shares that still sum to one.
     """
     rows, _ = built
     committed = read_csv(REPO / "data" / "cards_composition.csv")
     assert committed, "data/cards_composition.csv is empty"
-    shared = {r["trust"] for r in committed} & {r["trust"] for r in rows}
-    assert shared, "committed composition shares no trust with the fixtures"
+    fixture_acc = {r["trust"]: r["prospectus_accession"] for r in rows}
+    committed_acc = {r["trust"]: r["prospectus_accession"] for r in committed}
+    for trust, acc in committed_acc.items():
+        assert len({r["prospectus_accession"] for r in committed if r["trust"] == trust}) == 1, trust
+    shared = {t for t, acc in committed_acc.items() if fixture_acc.get(t) == acc}
+    newer = {t for t, acc in committed_acc.items() if t in fixture_acc and fixture_acc[t] != acc}
+    assert shared | newer, "committed composition shares no trust with the fixtures"
+    assert shared | newer == set(committed_acc) & set(fixture_acc)
+    for trust in sorted(newer):
+        a_rows = [r for r in committed if r["trust"] == trust]
+        b_rows = [r for r in rows if r["trust"] == trust]
+        assert {r["table"] for r in a_rows} == {r["table"] for r in b_rows}, trust
+        assert min(r["as_of"] for r in a_rows) > max(str(r["as_of"]) for r in b_rows), trust
+        fico = [r for r in a_rows if r["table"] == "fico"]
+        assert sum(float(r["share_receivables"] or 0) for r in fico) == pytest.approx(1.0, abs=1e-6), trust
     for trust in sorted(shared):
         a_rows = [r for r in committed if r["trust"] == trust]
         b_rows = [r for r in rows if r["trust"] == trust]
