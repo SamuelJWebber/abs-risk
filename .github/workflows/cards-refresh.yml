@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3   # no floating major tag is published for v10
       - run: uv sync
       - name: Restore raw filings cache
         uses: actions/cache@v6
