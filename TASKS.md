@@ -31,14 +31,9 @@ Status: `todo` | `doing` | `done YYYY-MM-DD` | `blocked (why)`.
 | B4 | Loan size and payment burden at constant score | chart 2 with cohort and lender fixed effects, described as descriptive with controls | done 2026-11-09 (chart 2 = forest plot of the terms specification on the page. Terms, top quintile against bottom: amount 0.72 [0.65, 0.80], PTI 2.47 [2.08, 2.94], LTV 4.33 [3.48, 5.38]; lenders against Santander: Exeter 1.13, AmeriCredit 0.99, captives 0.16-0.24. The numbers once listed here (amount n.s., PTI 1.3-1.8, LTV 1.7-2.6) are the price column, where APR is a mediator. Cohort baseline moved to 2024Q4; other estimates unchanged to 1e-6.) |
 | B5 | Regression discontinuity at lender cutoffs | density test, first-stage jump in rate or amount, outcome jump, bandwidth sensitivity; published only if the first stage exists | done 2026-11-09 (null. 16 candidates, 8 fail density, 7 usable; 0 of 14 cutoff-horizon estimates keep a robust interval clear of zero at 0.5-2x bandwidth, b3_rd_bandwidths.csv. design/methods.md section 3) |
 
-## Handoff 2026-09-08 (session 1)
-Scouting is complete on both tracks and the CFPB side. EDGAR access works only from GitHub Actions with the plain
-`abs-risk contact@email` User-Agent (secret ABSRISK_CONTACT is set); the home ISP is blocked for good. Raw artifacts
-live under data/raw/scout/edgar, edgar2, edgar3 (gitignored, re-fetchable with `gh run download`). Next session,
-one of: A3 (shape sources, needs no EDGAR, unblocks the whole card residual), A1 (10-D fetcher and parser; labels
-and bases are in design/scout-cards.md), or B1+B2 (ABS-EE fetcher and parquet panel; field list, unit fixes,
-retention and exit rules are in design/scout-autos.md §11). The auto scout's third-pass list (§10 there) should be
-folded into B1's first run rather than run as scouting.
+## Handoff
+HANDOFF.md, rewritten every session, is the handoff. The 2026-09-08 note that stood here described
+the scouting stage and is in git history.
 
 ## Open items and known gaps
 - Track B schema hazards to encode, not discover again: PTI is a fraction everywhere except Capital One (percent);

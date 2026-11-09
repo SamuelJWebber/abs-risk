@@ -155,7 +155,7 @@ def build(results: Path, out: Path) -> Path:
     h = [f"<title>abs-risk cards</title><style>{CSS}</style><main>"]
     h.append("<h1>Card trusts: charge-off against what the score mix predicts</h1>")
     h.append(f"<p class='muted'>Built {date.today().isoformat()} from monthly 10-D reports and prospectus composition tables on EDGAR, "
-             f"and CFPB card market report figure data. {pred['trust'].nunique()} trusts, {pd.to_datetime(pred['period_end']).dt.to_period('M').nunique()} calendar months.</p>")
+             f"and CFPB card market report figure data. {pred['trust'].nunique()} trusts, {pd.to_datetime(pred['period_end']).dt.to_period('M').nunique()} calendar months, {pd.to_datetime(pred['period_end']).min():%B %Y} to {pd.to_datetime(pred['period_end']).max():%B %Y}.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
     h.append("<h2>What the data says</h2>")
     for line in _headlines(rank, pred, mix):

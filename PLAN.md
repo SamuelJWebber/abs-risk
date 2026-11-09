@@ -1,7 +1,8 @@
 # abs-risk — Plan (v0, methodology only; data specifics land after scouting)
 
-**Status:** scouting, 2026-09-08. Scouting notes: design/scout-cards.md, design/scout-autos.md,
-design/scout-ccmr-tiers.md. Task board: TASKS.md.
+**Status:** written 2026-09-08 before the data; both tracks built and published since. What is true now:
+HANDOFF.md; task board: TASKS.md; what each estimate can carry: design/methods.md. Scouting notes:
+design/scout-cards.md, design/scout-autos.md, design/scout-ccmr-tiers.md.
 
 ## 0. Context
 
