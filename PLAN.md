@@ -106,12 +106,14 @@ repurchase compete with default and must be treated as censoring, not as surviva
   blocks that address outright: 403 "Undeclared Automated Tool" on every host, every User-Agent, after a
   quiet period. Nothing on this machine can pull from EDGAR. Record: design/scout-autos.md §0.
 - A GitHub Actions runner (Microsoft address space) is accepted, but only with the SEC's plain User-Agent
-  format `Name contact@email`. The diagnostic matrix (scripts/scout/ua_diag.py, run 34190694825, 2026-09-08)
+  format `Name contact@email`. The diagnostic matrix (scripts/scout/ua_diag.py, run 34190694825, 2026-09-08; the
+  script and its workflow were deleted on 2026-11-09 so the refused forms cannot be sent again, see git history)
   showed every format carrying the repository URL in parentheses refused on every host with both curl and
   Python, and `abs-risk contact@email` accepted on every host. So: no URL in the User-Agent, contact address
   from the ABSRISK_CONTACT secret, name from ABSRISK_NAME (optional).
-- So every fetch runs in Actions (`.github/workflows/scout.yml` now; a refresh workflow later), and local
-  work is on downloaded artifacts and committed derived tables. This is the same shape as the dashboard.
+- So every fetch runs in Actions (`.github/workflows/scout.yml` for scouting, `cards-refresh.yml` and
+  `autos-build.yml` since), and local work is on downloaded artifacts and committed derived tables. This is the
+  same shape as the dashboard.
 
 ## 6. Open until scouting completes
 

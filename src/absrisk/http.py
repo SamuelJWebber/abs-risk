@@ -38,7 +38,8 @@ class _ThrottledAdapter(HTTPAdapter):
 
 
 def user_agent() -> str:
-    """SEC format only: `<name> <contact>`. Verified 2026-09-08 on a GitHub runner (scripts/scout/ua_diag.py):
+    """SEC format only: `<name> <contact>`. Verified 2026-09-08 on a GitHub runner (scripts/scout/ua_diag.py, removed
+    on 2026-11-09 because it still sent the refused forms; it is in git history before commit 6a18549):
     any User-Agent carrying a URL in parentheses is refused as an "Undeclared Automated Tool" on every SEC
     host; `abs-risk contact@example.com` and `Name abs-risk contact@example.com` are accepted everywhere.
     Without ABSRISK_CONTACT the string still names the project, and EDGAR will refuse it."""
