@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..estimate import cards_roll
+from .cards_page import STRESS_ORDER, direction_sentences
 from .svg import CSS, table
 
 
@@ -29,9 +31,10 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
     base_c = bt.loc[bt["co_monthly"].idxmax(), "trust"] if not bt.empty else None
     best_c = bt.loc[bt["co_monthly"].idxmin()] if not bt.empty else None
     stress = C.get("a3_stress", pd.DataFrame())
-    order = [p for p in ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on")
-             if not stress.empty and p in set(stress["period"])]
-    conv = stress.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order) if order else pd.DataFrame()
+    regimes = C.get("a3_regimes", pd.DataFrame())
+    order = [p for p in STRESS_ORDER if not stress.empty and p in set(stress["period"])]
+    direction = cards_roll.direction_summary(stress, regimes, order) if order or not regimes.empty else None
+    verdict = direction["verdict"] if direction else "mixed"
 
     # ---- auto decomposition
     att = A.get("b6_attribution_by_score", pd.DataFrame())
@@ -78,28 +81,39 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
              "of issuers stops there and calls it underwriting quality.</p>")
 
     h.append("<h2>The test</h2>")
-    h.append("<p>Losses factor into two stages, and the two stories load onto different ones:</p>")
-    h.append("<p class='muted' style='font-size:15px'>loss &nbsp;=&nbsp; <b>entry</b>, the chance of falling behind &nbsp;x&nbsp; "
-             "<b>conversion</b>, the chance that falling behind becomes a write-off</p>")
+    h.append("<p>A card trust's monthly charge-off rate factors exactly into three shares the trust reports itself, and the "
+             "two stories load onto different ones:</p>")
+    h.append("<p class='muted' style='font-size:15px'>monthly charge-off &nbsp;=&nbsp; <b>entry</b>, the share of balances 30 or "
+             "more days late &nbsp;x&nbsp; <b>progression</b>, the share of those that are 90 or more days late &nbsp;x&nbsp; "
+             "<b>conversion</b>, the month's charge-off as a share of balances 90 or more days late</p>")
     h.append("<p>Selection moves <b>entry</b> and leaves conversion alone: the borrower rarely gets into trouble, and once in "
              "trouble resolves like anyone else. Priority moves <b>conversion</b>: the borrower gets into trouble at the normal "
-             "rate and rescues that account. The second measure is the more trustworthy one, because it conditions on an observed "
-             "behaviour, already being 90 days late, rather than on a credit score whose scale differs between lenders.</p>")
+             "rate and rescues that account. Priority could lower entry too, since a borrower who pays a card first falls behind "
+             "on it less often, so entry alone does not separate the stories; conversion is the measure that can, and it is also "
+             "the more trustworthy one, because it conditions on an observed behaviour, already being 90 days late, rather than "
+             "on a credit score whose scale differs between lenders. Progression is close to the same at every trust.</p>")
 
-    h.append("<h2>The answer: selection, and it is not close</h2>")
+    heading = {"against": "The answer: selection, and it is not close",
+               "mixed": "The answer: selection, on every level comparison",
+               "priority": "The levels say selection; the timing test leans the other way"}[verdict]
+    h.append(f"<h2>{heading}</h2>")
     if best_c is not None:
         h.append(f"<p><b>Cards.</b> {best_c['trust']} loses {best_c['co_monthly_ratio']:.2f} times what {base_c} loses each month. "
                  f"Its share of balances 30 days late is {best_c['entry_ratio']:.2f} times {base_c}'s. But once an account is 90 days "
                  f"late, it converts to a write-off at <b>{best_c['conversion_ratio']:.2f} times</b> {base_c}'s rate. Entry accounts for "
-                 f"{best_c['entry_share_of_gap']:.0%} of the gap and conversion for {best_c['conversion_share_of_gap']:+.0%}. "
-                 f"Priority predicts the opposite sign: a protected card would rescue its late accounts, which is a low conversion "
-                 f"rate, not a high one.</p>")
-        h.append(table(bt, cols=["trust", "months", "co_monthly", "entry", "conversion", "entry_ratio", "conversion_ratio",
-                                 "entry_share_of_gap", "conversion_share_of_gap"],
-                       fmt={"co_monthly": "{:.3%}", "entry": "{:.2%}", "conversion": "{:.1%}", "entry_ratio": "{:.2f}",
-                            "conversion_ratio": "{:.2f}", "entry_share_of_gap": "{:.2f}", "conversion_share_of_gap": "{:.2f}"}))
-        h.append("<p class='muted'>This decomposition is arithmetic, not a model. The three shares are reported by each trust and "
-                 "their product is the charge-off rate to within 1e-18.</p>")
+                 f"{best_c['entry_share_of_gap']:.0%} of the gap, progression for {best_c['progression_share_of_gap']:+.0%} and "
+                 f"conversion for {best_c['conversion_share_of_gap']:+.0%}. Priority predicts the opposite sign on conversion: a "
+                 f"protected card would rescue its late accounts, which is a low conversion rate, not a high one.</p>")
+        h.append(table(bt, cols=["trust", "months", "co_monthly", "entry", "progression", "conversion", "entry_ratio",
+                                 "progression_ratio", "conversion_ratio", "entry_share_of_gap", "progression_share_of_gap",
+                                 "conversion_share_of_gap"],
+                       fmt={"co_monthly": "{:.3%}", "entry": "{:.2%}", "progression": "{:.3f}", "conversion": "{:.1%}",
+                            "entry_ratio": "{:.2f}", "progression_ratio": "{:.2f}", "conversion_ratio": "{:.2f}",
+                            "entry_share_of_gap": "{:+.2f}", "progression_share_of_gap": "{:+.2f}",
+                            "conversion_share_of_gap": "{:+.2f}"}))
+        h.append("<p class='muted'>This decomposition is arithmetic, not a model. Each column is a geometric mean over the trust's "
+                 "months, so for every row entry x progression x conversion is co_monthly, and the three shares of the gap against "
+                 f"{escape(str(base_c))} sum to one.</p>")
     if not sel.empty:
         names = ", ".join(sorted(sel["lender"]))
         lo, hi = sel["entry_share"].min(), sel["entry_share"].max()
@@ -114,22 +128,15 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
                  f"lender's but lose far more often afterwards. That is a difference in what happens after trouble starts, which is "
                  f"where priority would live, but for a secured product the likelier readings are repossession policy and workout "
                  f"practice rather than the borrower's ranking of debts.</p>")
-    if not conv.empty and len(order) >= 2:
-        first, last = order[0], order[-1]
-        mv = (conv[last] - conv[first]).dropna()
-        rose = sorted(mv[mv > 0.05].index)
-        lead = ""
-        if best_c is not None and best_c["trust"] in conv.index:
-            lead = (f"For {best_c['trust']}, the trust with the lowest losses, it went from "
-                    f"{conv.loc[best_c['trust'], first]:.2f} to {conv.loc[best_c['trust'], last]:.2f}. ")
-            rose = [r for r in rose if r != best_c["trust"]]
-        others = f"It rose for {escape(', '.join(rose))} as well, and fell for none. " if rose else ""
-        h.append(f"<p><b>A second test, on direction rather than level.</b> If people rank their debts, the ranking should bite "
-                 f"hardest when money is short, so a protected card's conversion should <i>fall</i> in a squeeze. Between "
-                 f"{escape(first)} and {escape(last)} it did the opposite. {lead}{others}"
-                 f"Delinquency itself swung with the cycle, so the pressure was real; the relative fate of a 90-day-late account "
-                 f"moved the wrong way for the priority story.</p>")
-        h.append(table(conv.reset_index(), fmt={c: "{:.2f}" for c in conv.columns}))
+    if direction and (direction.get("regime") or direction.get("tightenings")):
+        best_name = str(best_c["trust"]) if best_c is not None else None
+        h.append("<p><b>A second test, on direction rather than level.</b> If people rank their debts, the ranking should bite "
+                 "hardest when money is short, so a protected card's conversion ratio should <i>fall</i> when delinquency is "
+                 "high. " + " ".join(direction_sentences(direction, best_name)) + "</p>")
+        if not regimes.empty:
+            w = regimes.pivot_table(index="trust", columns="regime", values="conversion_ratio").reindex(columns=["loose", "tight"])
+            w["move"] = w["tight"] - w["loose"]
+            h.append(table(w.reset_index(), fmt={"loose": "{:.2f}", "tight": "{:.2f}", "move": "{:+.2f}"}))
 
     h.append("<h2>What else the data settled</h2>")
     if amt is not None and pti is not None and ltv is not None:
@@ -169,10 +176,14 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
              "survivors were underpowered.</p>")
 
     h.append("<h2>The short version</h2>")
+    crisis = " The timing of losses across the cycle neither confirms nor overturns that." if verdict == "mixed" else (
+        " It is not collected in a crisis either." if verdict == "against" else
+        " The timing of losses leans the other way, which is the one piece of evidence for a protected card.")
     h.append("<p>Issuers with low losses at the same credit score got there by lending to people who do not fall behind, not by "
-             "holding an account their customers protect. The advantage is bought at origination, not collected in a crisis. For a "
-             "lender, that means the returns to better selection dwarf the returns to being someone's favourite card. For a "
-             "borrower, it means the card that looks safest is safest because of who else holds it.</p>")
+             "holding an account their customers protect: their late accounts are not rescued more often than anyone else's. "
+             "The advantage is bought at origination." + crisis + " For a lender, that means the returns to better selection "
+             "dwarf the returns to being someone's favourite card. For a borrower, it means the card that looks safest is safest "
+             "because of who else holds it.</p>")
     h.append("<footer>Methods and every caveat: design/methods.md in the repository. Data and code: "
              "github.com/SamuelJWebber/abs-risk. Sources: SEC EDGAR forms 10-D, 424B and ABS-EE, and CFPB Consumer Credit Card "
              "Market Report figure data.</footer></main>")

@@ -185,6 +185,16 @@ across two lenders, which no public data provides.
 
 **Applied to cards.** The same split runs on trust-level delinquency buckets: the flow into 30 days late against
 the flow from 30 days to charge-off. It is dollar-weighted and coarser than the loan-level version, and bucket
-edges differ by trust, so only the 30-plus and 90-plus cuts are comparable. The stress interaction is the second
-test: if borrowers really rank debts, a trust whose accounts are ranked first should see its roll advantage widen
-when households are squeezed and narrow when they are flush. Constant selection predicts a flat ratio.
+edges differ by trust, so only the 30-plus and 90-plus cuts are comparable. On the trust data the identity has three
+factors, entry (30+ share) x progression (90+ / 30+) x conversion (monthly charge-off / 90+), and the trust averages
+are geometric means so that the averages multiply back exactly and the three shares of a gap sum to one.
+
+The stress interaction is the second test: if borrowers really rank debts, a trust whose accounts are ranked first
+should see its conversion ratio fall when households are squeezed. "Squeezed" has to come from the data, not from a
+calendar label: until November 2026 the test compared "pre-covid 2019" with a "squeeze 2023H2 on" in which every
+trust's 30+ share was lower (REVIEW.md R1-4). It now splits months by a delinquency index (each trust's 30+ share over
+its own average, averaged across trusts; above the median is tight) and also reports the one step between named
+periods that raised every trust's 30+ share. The result is mixed: in tight months the ratio fell for Amex, the
+lowest-loss trust, and rose for Citi; across the one clean tightening it fell for BofA and COMET. Conversion is a
+flow over a stock that builds ahead of the charge-offs, so it falls whenever delinquency is rising, whoever is paid
+first; the level comparison carries the argument and this test neither confirms nor overturns it.

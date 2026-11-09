@@ -8,6 +8,10 @@ Outputs:
   a1_predicted.csv        per trust-month and shape: actual, predicted, residual, mix_extrapolated
   a1_ranking.csv          mean residual per trust under each shape, and the rank; the ranking-stability check
   a2_panel.csv            panel regression coefficients (month FE; month + trust FE), Driscoll-Kraay SEs
+  a3_stages.csv           per trust-month: entry (30+), progression (90+/30+), conversion (charge-off/90+)
+  a3_by_trust.csv         geometric means per trust, ratios to the highest-loss trust, shares of the log gap
+  a3_stress.csv           the same in four named calendar periods, with each period's 30+ share
+  a3_regimes.csv          the same in months of above- against below-median delinquency (the direction test)
 Run: `uv run absrisk analyze cards [--series ccip]`.
 """
 
@@ -111,6 +115,15 @@ def predicted(monthly: pd.DataFrame, mix: pd.DataFrame, shapes: pd.DataFrame, le
     return pd.DataFrame(out)
 
 
+def _undated(summary: str) -> str:
+    """statsmodels stamps each summary with the wall-clock date and time; blank them so a rebuild of unchanged inputs
+    writes an unchanged file."""
+    import re
+
+    summary = re.sub(r"(Date:\s+)\w{3}, \d{2} \w{3} \d{4}", lambda m: m.group(1) + "-".ljust(16), summary)
+    return re.sub(r"(Time:\s+)\d{2}:\d{2}:\d{2}", lambda m: m.group(1) + "-".rjust(8), summary)
+
+
 def ranking(pred: pd.DataFrame) -> pd.DataFrame:
     r = pred.groupby(["shape_source", "trust"]).agg(mean_residual=("residual", "mean"), mean_actual=("actual", "mean"),
                                                   mean_predicted=("predicted", "mean"), n_months=("residual", "size")).reset_index()
@@ -167,14 +180,17 @@ def main(argv: list[str]) -> int:
         bt = cards_roll.by_trust(st)
         bt.to_csv(out / "a3_by_trust.csv", index=False)
         cards_roll.stress_test(st, STRESS_PERIODS).to_csv(out / "a3_stress.csv", index=False)
+        cards_roll.regimes(st).to_csv(out / "a3_regimes.csv", index=False)
     except Exception as e:  # noqa: BLE001
         (out / "a3_stages.csv").write_text(f"not computed: {e}\n")
 
     mm = monthly_mix(mix, monthly)
     try:
         fits, tidy = cards_est.panel_regression(monthly.assign(period_end=pd.to_datetime(monthly["period_end"])), mm, rate_col=a.rate)
-        tidy.to_csv(out / "a2_panel.csv", index=False)
-        (out / "a2_panel_summary.txt").write_text("\n\n".join(f"== {k} ==\n{v.summary()}" for k, v in fits.items()))
+        # ten significant digits: the saturated fit is exact up to the solver, and solver noise in the last digits
+        # should not turn an unchanged rebuild into a diff
+        tidy.to_csv(out / "a2_panel.csv", index=False, float_format="%.10g")
+        (out / "a2_panel_summary.txt").write_text(_undated("\n\n".join(f"== {k} ==\n{v.summary()}" for k, v in fits.items())))
     except Exception as e:  # noqa: BLE001
         (out / "a2_panel.csv").write_text(f"not estimated: {e}\n")
     print(f"wrote {out}: {len(pred)} trust-month-shape rows, {mix['trust'].nunique() if not mix.empty else 0} trusts with a mix", file=sys.stderr)

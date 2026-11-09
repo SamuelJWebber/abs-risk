@@ -9,7 +9,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..estimate import cards_roll
 from .svg import CSS, line_chart, table
+
+STRESS_ORDER = ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on")
 
 SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. The FICO mix is a snapshot from the "
          "latest prospectus and is held fixed between prospectus dates. Charge-off bases differ by trust and are "
@@ -88,11 +91,14 @@ def _interpret_stages(bt: pd.DataFrame) -> str:
     base = bt.loc[bt["co_monthly"].idxmax(), "trust"]
     best = d.loc[d["co_monthly"].idxmin()]
     over = d[d["entry_share_of_gap"] > 1.0]
+    prog = f"{bt['progression'].min():.2f} to {bt['progression'].max():.2f}" if "progression" in bt else ""
     parts = [f"<p><b>The advantage is in never getting into trouble, not in surviving it.</b> {best['trust']} loses "
              f"{best['co_monthly_ratio']:.2f} times what {base} loses each month. Its 30-plus share is "
              f"{best['entry_ratio']:.2f} times {base}'s, but once an account is 90 days late it converts to a loss at "
-             f"{best['conversion_ratio']:.2f} times {base}'s rate. Entry accounts for {best['entry_share_of_gap']:.0%} of the gap "
-             f"and conversion for {best['conversion_share_of_gap']:+.0%}."]
+             f"{best['conversion_ratio']:.2f} times {base}'s rate. Entry accounts for {best['entry_share_of_gap']:.0%} of the "
+             f"gap, progression for {best['progression_share_of_gap']:+.0%} and conversion for "
+             f"{best['conversion_share_of_gap']:+.0%}." + (f" Progression barely differs between trusts ({prog} of 30-day-late "
+                                                          f"balances reach 90 days), so the story is in the other two." if prog else "")]
     if not over.empty:
         names = ", ".join(sorted(over["trust"]))
         parts.append(f" For {escape(names)} the entry share exceeds one, meaning conversion works against them: their deeply "
@@ -101,48 +107,68 @@ def _interpret_stages(bt: pd.DataFrame) -> str:
     parts.append(" That is the opposite of what protection would look like. If cardholders paid this issuer first, accounts would "
                  "reach 90 days late and then be rescued, which is a low conversion rate, not a high one. Two other readings survive: "
                  "the issuer may charge off faster by policy or re-age less, and the pools differ in score mix. The mix objection does "
-                 "not touch conversion, which already conditions on being 90 days late; the policy objection does.</p>")
+                 "not touch conversion, which already conditions on being 90 days late; the policy objection does.")
+    low_conv = d.loc[d["conversion"].idxmin(), "trust"] if "conversion" in d else None
+    if low_conv is not None and low_conv != best["trust"]:
+        parts.append(f" The trust whose 90-day-late balances convert least is {escape(str(low_conv))}, not the lowest-loss trust, so "
+                     f"the ordering by surviving trouble does not match the ordering by losing least.")
+    parts.append("</p>")
     return "".join(parts)
 
 
-def _interpret_stress(sdf: pd.DataFrame, order: list[str]) -> str:
-    """Does the conversion ratio move with the macro cycle, and in which direction?
+def _names(xs, moves: dict | None = None) -> str:
+    """'a (-0.10), b (+0.02) and c', or 'none'."""
+    if not xs:
+        return "none"
+    items = [f"{x} ({moves[x]:+.2f})" if moves is not None else str(x) for x in xs]
+    return escape(items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1])
 
-    Prioritisation predicts a specific sign: a card borrowers protect should have its deeply delinquent accounts
-    rescued more often when money is tight, so its conversion ratio should FALL in a squeeze. A ratio that holds
-    still, or rises, is evidence against that story rather than for it.
-    """
-    w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order)
-    w = w.dropna(thresh=2)
-    if w.empty or len(order) < 2:
-        return ""
-    ent = sdf.pivot_table(index="trust", columns="period", values="entry").reindex(columns=order).dropna(thresh=2)
-    ent_move = (ent.max(axis=1) / ent.min(axis=1)).median() if not ent.empty else float("nan")
-    first, last = order[0], order[-1]
-    best = w.mean(axis=1).idxmin()          # the trust with the lowest conversion, the protection candidate
-    lowest_loss = sdf.groupby("trust")["co_monthly"].mean().idxmin()
-    moves = (w[last] - w[first]).dropna()
-    rose = moves[moves > 0.05]
-    fell = moves[moves < -0.05]
-    parts = [f"<p>Between {escape(first)} and {escape(last)}, delinquency itself moved by about {ent_move:.1f} times, "
-             f"so households really were squeezed and relieved across this window. "]
-    if len(rose) >= len(fell):
-        names = escape(", ".join(sorted(rose.index))) if not rose.empty else "none"
-        parts.append(f"The conversion ratios did not fall for anyone who looks protected. They rose for {names} "
-                     f"and fell for {len(fell)} trust(s). ")
+
+def direction_sentences(d: dict, best: str | None = None) -> list[str]:
+    """The direction test in sentences, from `cards_roll.direction_summary`. Used by the cards and conclusions pages,
+    so the two cannot disagree about it."""
+    out = []
+    r = d.get("regime")
+    tol = d.get("tol", 0.05)
+    if r:
+        n = r["months"] // 2
+        line = (f"Split the {r['months']} months by the trusts' own delinquency. In the {n} months when it ran above its median "
+                f"({r['index_tight']:.2f} times each trust's usual 30-plus share, against {r['index_loose']:.2f} in the other "
+                f"{r['months'] - n}), the conversion ratio against {escape(r['baseline'])} fell for "
+                f"{_names(r['fell'], r['moves'])}, rose for {_names(r['rose'], r['moves'])}, and moved by less than "
+                f"{tol:.2f} for {_names(r['flat'])}.")
+        if best and best in r["loose"]:
+            mv = r["moves"].get(best, float("nan"))
+            line += (f" For {escape(best)}, the lowest-loss trust, it went from {r['loose'][best]:.2f} in loose months to "
+                     f"{r['tight'][best]:.2f} in tight ones: {'the direction prioritisation predicts' if mv < 0 else 'the wrong way for prioritisation'}"
+                     f", while staying {'above' if r['tight'][best] > 1 else 'below'} {escape(r['baseline'])}'s 1.00.")
+        out.append(line)
+    ts = d.get("tightenings", [])
+    if ts:
+        for t in ts:
+            out.append(f"Of the named periods, the step from {escape(t['from'])} to {escape(t['to'])} raised every trust's 30-plus "
+                       f"share (by {t['rise_min'] - 1:.0%} to {t['rise_max'] - 1:.0%}). Across it the conversion ratio fell for "
+                       f"{_names(t['fell'], t['moves'])}, rose for {_names(t['rose'], t['moves'])}, and was flat for "
+                       f"{_names(t['flat'])}.")
+    elif d.get("endpoints") is not None:
+        out.append("No step between the named periods raised every trust's 30-plus share, so none of them is a clean squeeze.")
+    e = d.get("endpoints")
+    if e and not e["tighter"]:
+        out.append(f"The first and last named periods are not a tightening: every trust's 30-plus share is "
+                   f"{'lower' if e['looser'] else 'not uniformly higher'} in {escape(e['to'])} than in {escape(e['from'])} "
+                   f"({e['ratio_min']:.2f} to {e['ratio_max']:.2f} times). Until November 2026 this page compared exactly those two "
+                   f"and read the result as a test of prioritisation; it was not one.")
+    v = d.get("verdict", "mixed")
+    if v == "mixed":
+        out.append("<b>So the direction test is mixed.</b> The moves either way are small beside the level gap above, and conversion "
+                   "divides a flow by a stock that builds ahead of the charge-offs, which lowers it whenever delinquency is rising, "
+                   "whoever is paid first. The level comparison carries the argument; this test neither confirms nor overturns it.")
+    elif v == "priority":
+        out.append("<b>The direction test leans towards prioritisation:</b> every trust's conversion ratio fell in the tight months. "
+                   "Conversion falls mechanically while delinquency builds, so this is weak evidence, but it is the predicted sign.")
     else:
-        parts.append(f"Conversion ratios fell for {escape(', '.join(sorted(fell.index)))}. ")
-    parts.append(f"Prioritisation predicts a particular sign here: a card that borrowers pay first should rescue more of its "
-                 f"90-day-late accounts exactly when money is tight, so its conversion ratio should drop in the squeeze. ")
-    if lowest_loss in moves.index:
-        d = moves[lowest_loss]
-        parts.append(f"{lowest_loss}, the trust with the lowest loss rate, moves {d:+.2f} over the window, "
-                     f"{'the wrong way for that story' if d > 0 else 'the direction that story predicts'}. ")
-    parts.append(f"The trust with the lowest conversion throughout is {best}, which is not the lowest-loss trust, so the ordering by "
-                 f"'accounts that survive trouble' does not match the ordering by 'accounts that lose least'. Taken together the "
-                 f"cycle evidence does not support borrowers ranking these issuers; it fits fixed differences in who was lent to and "
-                 f"in how each issuer charges off.</p>")
-    return "".join(parts)
+        out.append("<b>The direction test goes against prioritisation:</b> no trust's conversion ratio fell in the tight months.")
+    return out
 
 
 def build(results: Path, out: Path) -> Path:
@@ -218,7 +244,7 @@ def build(results: Path, out: Path) -> Path:
         h.append(f"<p><b>{'The ranking is the same under every shape.' if stable else 'The ranking changes with the shape.'}</b> "
                  f"{'The ordering of trusts does not depend on which loss curve is assumed.' if stable else 'Which trust looks worse depends on the assumed loss curve, so no single ordering is reported as a finding.'}</p>")
 
-    bt_p, stress_p = results / "a3_by_trust.csv", results / "a3_stress.csv"
+    bt_p, stress_p, regimes_p = results / "a3_by_trust.csv", results / "a3_stress.csv", results / "a3_regimes.csv"
     if bt_p.exists():
         bt = pd.read_csv(bt_p)
         h.append("<h2>5. Does anyone pay this card first?</h2>")
@@ -231,25 +257,42 @@ def build(results: Path, out: Path) -> Path:
                  "would reach 90 days late and still be rescued. Selection instead shows up in <b>entry</b>. The comparison of "
                  "conversion is the more trustworthy half, because it conditions on accounts already 90 days late rather than on the "
                  "pool's score mix.</p>")
-        cols = ["trust", "months", "co_monthly", "entry", "progression", "conversion",
-                "entry_ratio", "conversion_ratio", "entry_share_of_gap", "conversion_share_of_gap"]
+        cols = ["trust", "months", "co_monthly", "entry", "progression", "conversion", "entry_ratio", "progression_ratio",
+                "conversion_ratio", "entry_share_of_gap", "progression_share_of_gap", "conversion_share_of_gap"]
         cols = [c for c in cols if c in bt]
-        h.append(table(bt, cols=cols, fmt={"co_monthly": "{:.3%}", "entry": "{:.2%}", "progression": "{:.2f}", "conversion": "{:.1%}",
-                                          "entry_ratio": "{:.2f}", "conversion_ratio": "{:.2f}",
-                                          "entry_share_of_gap": "{:.2f}", "conversion_share_of_gap": "{:.2f}"}))
+        h.append(table(bt, cols=cols, fmt={"co_monthly": "{:.3%}", "entry": "{:.2%}", "progression": "{:.3f}", "conversion": "{:.1%}",
+                                          "entry_ratio": "{:.2f}", "progression_ratio": "{:.2f}", "conversion_ratio": "{:.2f}",
+                                          "entry_share_of_gap": "{:+.2f}", "progression_share_of_gap": "{:+.2f}",
+                                          "conversion_share_of_gap": "{:+.2f}"}))
+        h.append("<p class='muted'>Each column is a geometric mean over the trust's months, so entry x progression x conversion is "
+                 "co_monthly exactly and the three shares of the gap sum to one. Ratios and shares are against the trust with the "
+                 "highest loss rate.</p>")
         h.append(_interpret_stages(bt))
         if stress_p.exists():
             sdf = pd.read_csv(stress_p)
+            reg = pd.read_csv(regimes_p) if regimes_p.exists() else pd.DataFrame()
             if not sdf.empty:
-                order = [p for p in ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on") if p in set(sdf["period"])]
-                w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order).reset_index()
-                h.append("<h3>The same ratio through four very different years</h3>")
+                order = [p for p in STRESS_ORDER if p in set(sdf["period"])]
+                best = str(bt.loc[bt["co_monthly"].idxmin(), "trust"])
+                h.append("<h3>The direction test: does conversion fall when money is tight?</h3>")
                 h.append("<p>If borrowers rank their debts, the ranking should bite hardest when money is tight, so a protected "
-                         "card's 90-day-late accounts should be rescued more often in a squeeze and its conversion ratio should "
+                         "card's 90-day-late accounts should be rescued more often then and its conversion ratio should "
                          "<i>fall</i>. This is the one place the two stories make opposite predictions about a direction, rather than "
-                         "about a level, which is why it is worth looking at even though the periods are crude.</p>")
+                         "about a level. It needs months that really were tight, so they are picked by the trusts' own delinquency: "
+                         "each trust's 30-plus share over its own average, averaged across trusts.</p>")
+                if not reg.empty:
+                    w = reg.pivot_table(index="trust", columns="regime", values="conversion_ratio").reindex(columns=["loose", "tight"])
+                    w["move"] = w["tight"] - w["loose"]
+                    h.append(table(w.reset_index(), fmt={"loose": "{:.2f}", "tight": "{:.2f}", "move": "{:+.2f}"}))
+                d = cards_roll.direction_summary(sdf, reg, order)
+                h.append("<p>" + " ".join(direction_sentences(d, best)) + "</p>")
+                h.append("<h3>The same ratios in four named periods, with the delinquency in each</h3>")
+                e = sdf.pivot_table(index="trust", columns="period", values="entry").reindex(columns=order).reset_index()
+                h.append("<p>30-plus share of balances (geometric mean over the period's months):</p>")
+                h.append(table(e, fmt={c: "{:.2%}" for c in e.columns if c != "trust"}))
+                w = sdf.pivot_table(index="trust", columns="period", values="conversion_ratio").reindex(columns=order).reset_index()
+                h.append("<p>Conversion ratio against the period's highest-loss trust:</p>")
                 h.append(table(w, fmt={c: "{:.2f}" for c in w.columns if c != "trust"}))
-                h.append(_interpret_stress(sdf, order))
     h.append("<h2>6. Panel regression</h2>")
     h.append("<p>Trust-month regression of the gross charge-off rate on tier shares with month fixed effects, then with trust fixed "
              "effects added, Driscoll-Kraay standard errors. Whether either can say anything depends on how the tier shares vary, "
