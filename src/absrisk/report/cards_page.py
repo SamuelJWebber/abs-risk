@@ -48,6 +48,40 @@ def _snapshot_note(pred: pd.DataFrame, mix: pd.DataFrame) -> str:
     return "".join(parts)
 
 
+def _straddle_note(results: Path) -> str:
+    """The straddle-rule sensitivity PLAN section 2 promised, read from a1_straddle.csv."""
+    p = results / "a1_straddle.csv"
+    if not p.exists():
+        return ""
+    s = pd.read_csv(p)
+    if s.empty or "uniform" not in set(s["straddle_rule"]):
+        return ""
+    base = s[s["straddle_rule"] == "uniform"].set_index(["shape_source", "trust"])
+    lines = []
+    moved_rank = set()
+    worst = 0.0
+    for rule in ("lower", "upper"):
+        alt = s[s["straddle_rule"] == rule].set_index(["shape_source", "trust"])
+        if alt.empty:
+            continue
+        d = (alt["mean_residual"] - base.loc[alt.index, "mean_residual"]).abs()
+        worst = max(worst, float(d.max()))
+        moved_rank |= {t for (sh, t), rk in alt["rank"].items() if rk != base.loc[(sh, t), "rank"]}
+    every = s.groupby("trust")["rank"].nunique()
+    fixed = sorted(every[every == 1].index)
+    lines.append("<p><b>The straddle rule.</b> Buckets that straddle a tier edge are spread uniformly in score. Putting every "
+                 "such bucket wholly in its lowest tier, or wholly in its highest, bounds any rule that keeps a bucket's balances "
+                 f"inside its own edges. Under those bounds the mean residuals move by up to {worst * 100:.2f} percentage points, "
+                 "most under the steep consumer-level shapes, and "
+                 + (f"the rank changes for {escape(', '.join(sorted(moved_rank)))} under at least one shape"
+                    if moved_rank else "no trust's rank changes under any shape")
+                 + (f"; {escape(', '.join(fixed))} keep{'s' if len(fixed) == 1 else ''} the same rank under every shape and every "
+                    f"rule." if fixed else "; no trust keeps one rank under every shape and every rule.")
+                 + " So the straddle rule is a second assumption, beside the loss curve, that moves the size of a residual; "
+                   "the sign and rank statements above are made under the uniform rule. Every rank is in a1_straddle.csv.</p>")
+    return "".join(lines)
+
+
 def _sign_by_year(pred: pd.DataFrame) -> pd.DataFrame:
     """Per trust and calendar year: '+' if the mean residual is positive under every shape, '-' if negative under
     every shape, '+/-' if the shapes disagree. This is the page's 'since when'."""
@@ -289,6 +323,7 @@ def build(results: Path, out: Path) -> Path:
                      f"{escape(', '.join(sorted(held[held].index)))} keep{'s' if held.sum() == 1 else ''} the same rank under every "
                      f"shape; the others move. So the ordering of the trusts that hold their place is reported as a finding and "
                      f"the ordering of the rest is not.</p>")
+        h.append(_straddle_note(results))
         sy = _sign_by_year(pred)
         if not sy.empty:
             always = [t for t in sy.index if (sy.loc[t].dropna() == "+").all()]

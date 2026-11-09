@@ -7,6 +7,8 @@ Outputs:
                           crosswalk, unscored balances dropped and the rest renormalised (`unscored` says how much)
   a1_predicted.csv        per trust-month and shape: actual, predicted, residual, mix_extrapolated
   a1_ranking.csv          mean residual per trust under each shape, and the rank; the ranking-stability check
+  a1_straddle.csv         the same ranking with every straddling bucket put wholly in its lowest or its highest tier,
+                          the sensitivity PLAN section 2 promised for the straddle rule
   a2_panel.csv            panel regression coefficients (month FE; month + trust FE), Driscoll-Kraay SEs
   a3_stages.csv           per trust-month: entry (30+), progression (90+/30+), conversion (charge-off/90+)
   a3_by_trust.csv         geometric means per trust, ratios to the highest-loss trust, shares of the log gap
@@ -124,6 +126,44 @@ def _undated(summary: str) -> str:
     return re.sub(r"(Time:\s+)\d{2}:\d{2}:\d{2}", lambda m: m.group(1) + "-".rjust(8), summary)
 
 
+STRADDLE_RULES = ("uniform", "lower", "upper")
+
+
+def crosswalk_under(crosswalk: pd.DataFrame, rule: str) -> pd.DataFrame:
+    """The crosswalk under another straddle rule. 'uniform' is the committed rule (a bucket spread over its tiers in
+    proportion to the scores each holds); 'lower' puts every straddling bucket wholly in the lowest tier it touches,
+    'upper' in the highest. The two bound any rule that keeps a bucket's balances inside the bucket's own edges."""
+    if rule == "uniform":
+        return crosswalk
+    if rule not in STRADDLE_RULES:
+        raise ValueError(f"unknown straddle rule {rule!r}")
+    xw = crosswalk.copy()
+    w = xw[WEIGHTS].to_numpy(dtype=float, copy=True)
+    for i in range(len(w)):
+        nz = np.flatnonzero(w[i] > 0)
+        if len(nz) > 1:
+            j = nz[0] if rule == "lower" else nz[-1]
+            w[i] = 0.0
+            w[i, j] = 1.0
+    xw[WEIGHTS] = w
+    return xw
+
+
+def straddle_sensitivity(monthly: pd.DataFrame, composition: pd.DataFrame, crosswalk: pd.DataFrame,
+                         shapes: pd.DataFrame, level: pd.DataFrame, series: str, rate_col: str) -> pd.DataFrame:
+    """Mean residual and rank per trust and shape under each straddle rule."""
+    out = []
+    for rule in STRADDLE_RULES:
+        mix = mix_by_trust(composition, crosswalk_under(crosswalk, rule))
+        pred = predicted(monthly, mix, shapes, level, series, rate_col)
+        if pred.empty:
+            continue
+        r = ranking(pred)
+        r.insert(0, "straddle_rule", rule)
+        out.append(r[["straddle_rule", "shape_source", "trust", "mean_residual", "rank"]])
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame()
+
+
 def ranking(pred: pd.DataFrame) -> pd.DataFrame:
     r = pred.groupby(["shape_source", "trust"]).agg(mean_residual=("residual", "mean"), mean_actual=("actual", "mean"),
                                                   mean_predicted=("predicted", "mean"), n_months=("residual", "size")).reset_index()
@@ -172,6 +212,8 @@ def main(argv: list[str]) -> int:
     pred.to_csv(out / "a1_predicted.csv", index=False)
     if not pred.empty:
         ranking(pred).to_csv(out / "a1_ranking.csv", index=False)
+        straddle_sensitivity(monthly, composition, crosswalk, shapes, level, a.series, a.rate).to_csv(
+            out / "a1_straddle.csv", index=False)
     # A3: the loss rate factors exactly into entry x progression x conversion; where a trust's advantage sits
     # separates "its accounts rarely get into trouble" from "its accounts survive trouble".
     try:

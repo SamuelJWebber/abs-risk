@@ -37,8 +37,10 @@ selection and behaviour). No account-level card modelling. No forecasting in v1.
 - `actual_chargeoff` from the trust's monthly 10-D (annualised net or gross, whichever every trust reports;
   the choice is recorded per trust and never mixed).
 - `share(t, tier)` from the trust's most recent prospectus FICO distribution, mapped to CFPB tiers.
-  Prospectus buckets differ by trust; the crosswalk is explicit (crosswalks/fico_buckets.csv) and any bucket
-  that straddles a tier boundary is split by a stated rule, with the sensitivity shown.
+  Prospectus buckets differ by trust; the crosswalk is explicit (crosswalks/fico_buckets.csv, the only mapping
+  the analysis reads since 2026-11-09) and any bucket that straddles a tier boundary is split by a stated rule, with
+  the sensitivity shown (lowest-tier and highest-tier bounds: data/results/cards/a1_straddle.csv, cards page
+  section 4).
 - `loss_curve(tier, year)`: **no public source gives card charge-off by score tier.** The CFPB says so in
   its card market reports (2021 fn 75, 2023 fn 88: tiering by current score is endogenous to delinquency,
   so loss by tier is withheld). Scouting record: design/scout-ccmr-tiers.md. The curve is therefore built as
@@ -96,9 +98,12 @@ repurchase compete with default and must be treated as censoring, not as surviva
 - Raw filings under data/raw/<track>/<trust-or-deal>/<accession>/, never committed, re-downloadable.
 - Derived tables small enough to commit under data/; large panels as parquet under data/panel/ (gitignored)
   with a manifest that records the filings they came from.
-- One command per track: `absrisk cards refresh`, `absrisk autos refresh`. Monthly GitHub Actions run once
-  both tracks have a fixture test and a golden check; not before.
-- Golden checks (checks/golden.yaml): numbers traced to a filing page or a CFPB table, re-verified each run.
+- Planned: one command per track (`absrisk cards refresh`, `absrisk autos refresh`). **Not built.** The card
+  refresh is the cards-refresh workflow instead (fetch, parse, composition, alert check, rebuild; Mondays and
+  Thursdays). Autos has no incremental refresh: autos-build re-downloads every EX-102 of a deal.
+- Golden checks (checks/golden.yaml): one card number per trust traced to its filing, re-checked by
+  tests/test_golden.py on every refresh run. The CFPB level is re-verified against the workbooks by
+  tests/test_shape.py only where the workbooks are (locally); on the runner that test skips.
 
 ## 5. EDGAR access (settled 2026-09-08, the hard way)
 

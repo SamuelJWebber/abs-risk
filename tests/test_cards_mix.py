@@ -91,3 +91,26 @@ def test_committed_crosswalk_is_the_rule_applied_to_the_committed_composition():
         assert (a["rule"], a["flags"]) == (b["rule"], b["flags"]), a["bucket_label"]
         for t in TIERS:
             assert float(a[f"w_{t}"]) == pytest.approx(b[f"w_{t}"], abs=1e-6), (a["trust"], a["bucket_label"], t)
+
+
+def test_straddle_bounds_move_whole_buckets_to_one_tier():
+    from absrisk.estimate.run_cards import crosswalk_under
+
+    xw = pd.DataFrame([{"trust": "x", "bucket_label": "560-659", **{f"w_{t}": w for t, w in zip(TIERS, (0.2, 0.4, 0.4, 0, 0, 0))}},
+                       {"trust": "x", "bucket_label": "660-719", **{f"w_{t}": w for t, w in zip(TIERS, (0, 0, 0, 1, 0, 0))}}])
+    lo, hi = crosswalk_under(xw, "lower"), crosswalk_under(xw, "upper")
+    assert lo.loc[0, "w_deep_subprime"] == 1 and lo.loc[0, ["w_subprime", "w_near_prime"]].sum() == 0
+    assert hi.loc[0, "w_near_prime"] == 1 and hi.loc[0, ["w_deep_subprime", "w_subprime"]].sum() == 0
+    assert (lo.loc[1] == xw.loc[1]).all() and (hi.loc[1] == xw.loc[1]).all()      # a bucket inside one tier stays put
+    assert crosswalk_under(xw, "uniform") is xw
+    with pytest.raises(ValueError):
+        crosswalk_under(xw, "middle")
+
+
+def test_committed_straddle_table_contains_the_published_ranking():
+    s = pd.read_csv(REPO / "data" / "results" / "cards" / "a1_straddle.csv")
+    r = pd.read_csv(REPO / "data" / "results" / "cards" / "a1_ranking.csv")
+    u = s[s["straddle_rule"] == "uniform"].merge(r, on=["shape_source", "trust"], suffixes=("", "_r"))
+    assert len(u) == len(r)
+    assert (u["rank"] == u["rank_r"]).all() and u["mean_residual"].sub(u["mean_residual_r"]).abs().max() < 1e-12
+    assert set(s["straddle_rule"]) == {"uniform", "lower", "upper"}
