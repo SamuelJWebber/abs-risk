@@ -1,0 +1,65 @@
+# Golden checks (PLAN.md section 4, TASKS A1): one number per trust, traced to the filing it was printed in.
+#
+# Each entry names the filing (accession and document, committed under tests/fixtures/cards/<trust>/<accession>/),
+# the row label as it reads in the document, the number exactly as printed after that label, and the value
+# cards_monthly.csv must carry for that trust-month. tests/test_golden.py checks both directions on every test run,
+# so the refresh workflow re-verifies them before it fetches and again before it commits:
+#   1. the label and the printed number are in the filing text, in that order, and the printed number is the value;
+#   2. the committed data/cards_monthly.csv row for the trust-month comes from that accession and carries the value.
+# A later amendment for one of these months, or a parser change that moves a number, fails here loudly.
+# Rates are fractions in the CSV (0.0274), percentages in the filings (2.74%).
+
+cards_monthly:
+  - trust: amex
+    period_end: "2026-07-31"
+    accession: 0001104659-26-097714
+    document: tm2623074d1_ex99-01.htm
+    field: gross_co_rate
+    label: "Annualized Default Rate"
+    printed: "1.8640 %"
+    value: 0.018640
+
+  - trust: comet
+    period_end: "2026-07-31"
+    accession: 0001163321-26-000025
+    document: exhibit9912002-ccjuly2026.htm
+    field: gross_co_rate
+    label: "12) Annualized Default Rate as a Percent of Adjusted Beginning of the Month Principal Receivables"
+    printed: "2.96%"
+    value: 0.0296
+
+  - trust: chase
+    period_end: "2026-07-31"
+    accession: 0001193125-26-353171
+    document: d169887dex992.htm
+    field: gross_co_rate
+    label: "Gross Losses as a Percentage of Average Pool Balance (Annualized)"
+    printed: "2.02%"
+    value: 0.0202
+
+  - trust: citi
+    period_end: "2026-07-28"
+    accession: 0001193125-26-353756
+    document: d138267dex99.htm
+    field: gross_co_rate
+    label: "Credit Loss Component"
+    printed: "1.90 %"
+    value: 0.0190
+
+  - trust: synchrony
+    period_end: "2026-07-31"
+    accession: 0001104659-26-097449
+    document: tm2622590d1_ex99-1.htm
+    field: gross_co_rate
+    label: "Gross Charge-Off Rate (Default Amount for Defaulted Accounts / BOP Principal Receivables) i. Current"
+    printed: "5.3437%"
+    value: 0.053437
+
+  - trust: bofa
+    period_end: "2026-07-31"
+    accession: 0001140361-26-033313
+    document: ef20079972_ex99-1.htm
+    field: gross_co_rate
+    label: "Total Charge-Offs as a percentage of Average Principal Receivables Outstanding"
+    printed: "2.74 %"
+    value: 0.0274
