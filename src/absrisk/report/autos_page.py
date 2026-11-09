@@ -255,9 +255,15 @@ def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: 
                     f"{ok['co24_se'].min():.1%}, so an effect under about {2 * ok['co24_se'].min():.1%} could not have been seen here. "
                     f"That is a null, and it is reported as one.")
         elif not ok.empty:
-            tail = (f"{len(sig)} of them clears two standard errors at 24 months. With {n_tests} tests run across cutoffs and horizons, "
-                    f"about {0.05 * n_tests:.0f} would clear that bar by chance alone, so it is not treated as a finding; the table in "
-                    f"section 4 gives every estimate so the reader can judge.")
+            robust = ""
+            if bw is not None and not bw.empty and "p_robust" in bw:
+                main = bw[(bw["bw_mult"] - 1.0).abs() < 1e-9]
+                n_rob = int((main["p_robust"] < 0.05).sum())
+                robust = (f" With the bias-corrected robust intervals rdrobust reports, {n_rob} of {len(main)} cutoff-and-horizon "
+                          f"estimates clear zero at the optimal bandwidth.")
+            tail = (f"{len(sig)} of them clears two conventional standard errors at 24 months. With {n_tests} tests run across "
+                    f"cutoffs and horizons, about {0.05 * n_tests:.0f} would clear that bar by chance alone, so it is not treated as "
+                    f"a finding; the table in section 4 gives every estimate so the reader can judge.{robust}")
         else:
             tail = "None has both a smooth density and a real jump in terms, so there is nothing to estimate."
         st = bandwidth_stability(bw) if bw is not None else pd.DataFrame()
