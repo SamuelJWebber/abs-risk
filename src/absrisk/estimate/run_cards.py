@@ -1,8 +1,10 @@
 """Run the Track A estimators and write results under data/results/cards/.
 
-Inputs: data/cards_monthly.csv (A1), data/cards_composition.csv (A2), data/loss_shape.csv and data/ccmr_level.csv (A3).
+Inputs: data/cards_monthly.csv (A1), data/cards_composition.csv and crosswalks/fico_buckets.csv (A2),
+data/loss_shape.csv and data/ccmr_level.csv (A3).
 Outputs:
-  mix_by_trust.csv        tier shares per trust and prospectus as-of date (from the FICO table via the straddle rule)
+  mix_by_trust.csv        tier shares per trust and prospectus as-of date: the FICO table mapped through the committed
+                          crosswalk, unscored balances dropped and the rest renormalised (`unscored` says how much)
   a1_predicted.csv        per trust-month and shape: actual, predicted, residual, mix_extrapolated
   a1_ranking.csv          mean residual per trust under each shape, and the rank; the ranking-stability check
   a2_panel.csv            panel regression coefficients (month FE; month + trust FE), Driscoll-Kraay SEs
@@ -18,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..shape import TIERS, default_shapes, load_level, predict_chargeoff, tiers_from_buckets
+from ..shape import TIERS, default_shapes, load_level, predict_chargeoff
 from . import cards as cards_est
 from . import cards_roll
 
@@ -31,40 +33,51 @@ STRESS_PERIODS = {
 
 
 SCORE_MIN, SCORE_MAX = 300, 850
+DEFAULT_CROSSWALK = "crosswalks/fico_buckets.csv"
+WEIGHTS = [f"w_{t}" for t in TIERS]
 
 
-def mix_by_trust(composition: pd.DataFrame) -> pd.DataFrame:
-    """Tier shares per (trust, as_of) from the FICO table. Uses receivables shares, else accounts.
+def mix_by_trust(composition: pd.DataFrame, crosswalk: pd.DataFrame) -> pd.DataFrame:
+    """Tier shares per (trust, as_of): the prospectus FICO table mapped through the committed crosswalk.
 
-    Bucket edges outside the FICO range are clamped into it and the clamp is recorded: Citi's table opens a
-    bucket at 1 rather than at the bottom of the scale, and open-ended top buckets vary. Clamping only moves
-    an edge onto the scale; it never moves a boundary between two tiers.
+    `crosswalk` is crosswalks/fico_buckets.csv, which `absrisk cards composition` writes from the straddle rule
+    (`composition.build_crosswalk`); the analysis reads it rather than re-deriving the mapping, so the file is the
+    one place a bucket is assigned to tiers. Unscored buckets carry weight zero there: their balances are dropped,
+    the scored ones renormalised, and the dropped share is reported in `unscored`. Receivables shares are used where
+    the table gives them, else accounts. A FICO bucket without a crosswalk row raises; a table with no scored
+    bucket at all gets an `error` row, because a tier mix cannot be made from nothing.
     """
+    xw = crosswalk.copy()
+    xw["bucket_label"] = xw["bucket_label"].astype(str)
+    xw = xw.drop_duplicates(["trust", "bucket_label"]).set_index(["trust", "bucket_label"])
     rows = []
     fico = composition[composition["table"] == "fico"]
     for (trust, as_of), g in fico.groupby(["trust", "as_of"]):
         share_col = "share_receivables" if g["share_receivables"].notna().any() else "share_accounts"
         g = g.dropna(subset=[share_col])
-        buckets, clamped = [], []
-        for _, r in g.iterrows():
-            lo = None if pd.isna(r["bucket_lo"]) else int(r["bucket_lo"])
-            hi = None if pd.isna(r["bucket_hi"]) else int(r["bucket_hi"])
-            if lo is not None and lo < SCORE_MIN:
-                clamped.append(f"{lo}->{SCORE_MIN}")
-                lo = SCORE_MIN
-            if hi is not None and hi > SCORE_MAX:
-                clamped.append(f"{hi}->{SCORE_MAX}")
-                hi = SCORE_MAX
-            buckets.append((lo, hi, float(r[share_col])))
-        try:
-            mix = tiers_from_buckets(buckets)
-        except Exception as e:  # noqa: BLE001
-            rows.append({"trust": trust, "as_of": as_of, "error": str(e)[:120]})
+        keys = list(zip(g["trust"], g["bucket_label"].astype(str)))
+        missing = [k for k in keys if k not in xw.index]
+        if missing:
+            raise ValueError(f"crosswalk has no row for {missing}; rerun `absrisk cards composition`")
+        w = xw.loc[keys, WEIGHTS].to_numpy(dtype=float)
+        flags = sorted({f for v in xw.loc[keys, "flags"].fillna("") for f in str(v).split(",") if f}) if "flags" in xw else []
+        share = g[share_col].to_numpy(dtype=float)
+        scored = w.sum(axis=1) > 0
+        mass = (share[:, None] * w).sum(axis=0)
+        clamped = []
+        for lo, hi in zip(g["bucket_lo"], g["bucket_hi"]):
+            if pd.notna(lo) and int(lo) < SCORE_MIN:
+                clamped.append(f"{int(lo)}->{SCORE_MIN}")
+            if pd.notna(hi) and int(hi) > SCORE_MAX:
+                clamped.append(f"{int(hi)}->{SCORE_MAX}")
+        notes = sorted({str(n).split("; bucket: ")[0] for n in g["sample_note"].dropna()}) if "sample_note" in g else []
+        base = {"trust": trust, "as_of": as_of, "basis": share_col, "clamped_edges": ";".join(clamped),
+                "score_type": ",".join(sorted(g["score_type"].dropna().astype(str).unique())),
+                "unscored": float(share[~scored].sum()), "mapping_flags": ",".join(flags), "sample_note": ";".join(notes)}
+        if mass.sum() <= 0:
+            rows.append({**base, "error": "no scored bucket: every balance is unscored"})
             continue
-        rows.append({"trust": trust, "as_of": as_of, "basis": share_col, "clamped_edges": ";".join(clamped),
-                     "score_type": ",".join(sorted(g["score_type"].dropna().astype(str).unique())),
-                     "sample_note": ";".join(sorted(g["sample_note"].dropna().astype(str).unique())) if "sample_note" in g else "",
-                     **{t: mix.get(t, 0.0) for t in TIERS}})
+        rows.append({**base, **{t: float(v) for t, v in zip(TIERS, mass / mass.sum())}})
     return pd.DataFrame(rows)
 
 
@@ -128,6 +141,7 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="absrisk analyze cards")
     ap.add_argument("--monthly", default="data/cards_monthly.csv")
     ap.add_argument("--composition", default="data/cards_composition.csv")
+    ap.add_argument("--crosswalk", default=DEFAULT_CROSSWALK, help="bucket-to-tier weights (absrisk cards composition)")
     ap.add_argument("--out", default="data/results/cards")
     ap.add_argument("--series", default="ccip", choices=["ccip", "ccp"])
     ap.add_argument("--rate", default="gross_co_rate")
@@ -137,8 +151,9 @@ def main(argv: list[str]) -> int:
     out.mkdir(parents=True, exist_ok=True)
     monthly = pd.read_csv(a.monthly)
     composition = pd.read_csv(a.composition)
+    crosswalk = pd.read_csv(a.crosswalk)
     shapes, level = default_shapes(), load_level()
-    mix = mix_by_trust(composition)
+    mix = mix_by_trust(composition, crosswalk)
     mix.to_csv(out / "mix_by_trust.csv", index=False)
     pred = predicted(monthly, mix, shapes, level, a.series, a.rate)
     pred.to_csv(out / "a1_predicted.csv", index=False)

@@ -66,11 +66,15 @@ def tiers_from_buckets(buckets: Iterable[Bucket], *, tol: float = 1e-6) -> dict[
     split in proportion to the number of integer scores on each side (module docstring).
 
     Buckets for accounts with no score cannot be mapped; drop them and renormalise before calling, and
-    record that you did.
+    record that you did. A bucket open at both ends, (None, None, share), is how an unscored row arrives, so it
+    is refused rather than read as 300-850: spreading unscored balances over the whole scale put half of them in
+    deep subprime (REVIEW.md R1-1).
     """
     buckets = list(buckets)
     if not buckets:
         raise ValueError("no buckets")
+    if any(lo is None and hi is None for lo, hi, _ in buckets):
+        raise ValueError("a bucket open at both ends is an unscored row: drop it and renormalise before mapping")
     total = sum(float(s) for _, _, s in buckets)
     if abs(total - 1.0) > tol:
         raise ValueError(f"bucket shares sum to {total!r}, not 1 (tol {tol})")

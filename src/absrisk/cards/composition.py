@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+from ..shape.tiers import SCORE_MAX, SCORE_MIN, TIER_BOUNDS, overlap_fraction
 from .tables import ParseError, Row, is_number_cell, normalise, parse_date, read_text, tables
 
 COLUMNS = ["trust", "as_of", "table", "bucket_lo", "bucket_hi", "share_receivables", "share_accounts", "score_type",
@@ -29,9 +30,8 @@ COLUMNS = ["trust", "as_of", "table", "bucket_lo", "bucket_hi", "share_receivabl
 CROSSWALK_COLUMNS = ["trust", "score_type", "bucket_label", "bucket_lo", "bucket_hi", "w_deep_subprime", "w_subprime",
                      "w_near_prime", "w_prime", "w_prime_plus", "w_superprime", "rule", "flags"]
 
-TIERS = [("deep_subprime", 300, 579), ("subprime", 580, 619), ("near_prime", 620, 659),
-         ("prime", 660, 719), ("prime_plus", 720, 799), ("superprime", 800, 850)]
-SCORE_MIN, SCORE_MAX = 300, 850
+# The tier edges and the straddle rule live in absrisk.shape.tiers; this is the same table in (name, lo, hi) form.
+TIERS = [(name, lo, hi) for name, (lo, hi) in TIER_BOUNDS.items()]
 PCT_TOL = 2e-3  # printed share vs recomputed share; one-decimal tables are shaved to sum to 100.0 (0.1pp)
 
 KINDS = ("fico", "credit_limit", "account_age")
@@ -390,17 +390,15 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def tier_weights(lo: int | None, hi: int | None) -> dict[str, float]:
-    """Uniform-in-score split of [lo, hi] over the six tiers; open ends clamped to 300 / 850."""
+    """Uniform-in-score split of [lo, hi] over the six tiers; open ends and off-scale edges clamped to 300 / 850.
+
+    The split itself is `absrisk.shape.tiers.overlap_fraction`, so the crosswalk and every other mapping in the
+    project use one implementation of the straddle rule."""
     a = SCORE_MIN if lo is None else max(lo, SCORE_MIN)
     b = SCORE_MAX if hi is None else min(hi, SCORE_MAX)
     if b < a:
         raise ParseError(f"empty bucket {lo}-{hi}")
-    width = b - a + 1
-    out = {}
-    for name, t_lo, t_hi in TIERS:
-        overlap = max(0, min(b, t_hi) - max(a, t_lo) + 1)
-        out[name] = overlap / width
-    return out
+    return {name: overlap_fraction(a, b, name) for name, _, _ in TIERS}
 
 
 def build_crosswalk(comp_rows: list[dict]) -> list[dict]:

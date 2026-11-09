@@ -162,9 +162,23 @@ def build(results: Path, out: Path) -> Path:
         h.append(f"<p>{line}</p>")
 
     h.append("<h2>1. Score mix by trust</h2>")
-    cols = ["trust", "as_of", "basis", "score_type", "clamped_edges", "deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
+    h.append("<p>Each prospectus bucket is spread over the six CFPB tiers uniformly in score, as written in "
+             "crosswalks/fico_buckets.csv; the analysis reads that file and nothing else for the mapping.")
+    if "unscored" in mix and mix["unscored"].notna().any():
+        u = mix.dropna(subset=["unscored"])
+        lo_u, hi_u = u.loc[u["unscored"].idxmin()], u.loc[u["unscored"].idxmax()]
+        h.append(f" Balances with no score ({lo_u['unscored']:.2%} at {escape(str(lo_u['trust']))} to "
+                 f"{hi_u['unscored']:.2%} at {escape(str(hi_u['trust']))}) cannot be placed on the scale, so they are dropped "
+                 f"and the scored balances renormalised.")
+        if "mapping_flags" in mix:
+            mixed = sorted(mix.loc[mix["mapping_flags"].fillna("").str.contains("includes_unscored"), "trust"])
+            if mixed:
+                h.append(f" {escape(', '.join(mixed))} print{'s' if len(mixed) == 1 else ''} unscored accounts inside the lowest "
+                         f"score bucket rather than on a row of their own, so there they stay in that bucket's score range.")
+    h.append("</p>")
+    cols = ["trust", "as_of", "basis", "score_type", "clamped_edges", "unscored", "deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
     cols = [c for c in cols if c in mix]
-    h.append(table(mix.sort_values(["trust", "as_of"]), cols=cols, fmt={t: "{:.1%}" for t in ("deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime")}))
+    h.append(table(mix.sort_values(["trust", "as_of"]), cols=cols, fmt={"unscored": "{:.2%}", **{t: "{:.1%}" for t in ("deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime")}}))
     if "error" in mix and mix["error"].notna().any():
         h.append("<p class='muted'>Not mapped: " + escape("; ".join(f"{r['trust']} ({r['error']})" for _, r in mix[mix['error'].notna()].iterrows())) + "</p>")
 
