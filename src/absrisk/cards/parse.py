@@ -862,14 +862,80 @@ def filing_dirs(raw: Path, trusts: tuple[str, ...] = TRUSTS) -> list[tuple[str, 
 
 
 def parse_raw(raw: Path, trusts: tuple[str, ...] = TRUSTS) -> tuple[list[dict], list[tuple[str, str, str]]]:
-    """Parse every filing directory; returns (rows sorted by trust and period, [(trust, accession, error)])."""
-    out, errors = [], []
+    """Parse every filing directory; returns (one row per trust and period, sorted, [(trust, accession, error)]).
+
+    A statement filed twice (an amendment, or a re-filing by a second agent) parses to two rows for one month;
+    `dedupe_rows` keeps the one that supersedes and logs any conflict among the errors."""
+    out, errors, meta = [], [], {}
     for slug, d in filing_dirs(raw, trusts):
+        meta[d.name] = filing_meta(d)
         try:
             out.append(parse_filing_dir(d, slug))
         except Exception as e:  # noqa: BLE001 - reported, not hidden
             errors.append((slug, d.name, f"{type(e).__name__}: {e}"))
+    out, dup_errors = dedupe_rows(out, meta)
     out.sort(key=lambda r: (r["trust"], r["period_end"]))
+    return out, errors + dup_errors
+
+
+# Fields that name the filing rather than the statement: two filings of one statement differ only here.
+IDENTITY_FIELDS = ("source_accession", "source_file", "row_labels_json")
+DATA_FIELDS = tuple(c for c in COLUMNS if c not in IDENTITY_FIELDS)
+AMENDMENT_FORMS = ("10-D/A",)
+
+
+def filing_meta(d: Path) -> dict:
+    """Form and filing date from the fetcher's manifest.json; empty for a directory without one."""
+    p = Path(d) / "manifest.json"
+    if not p.exists():
+        return {}
+    m = json.loads(p.read_text(encoding="utf-8"))
+    return {"form": m.get("form"), "filing_date": m.get("filing_date")}
+
+
+def dedupe_rows(rows_: list[dict], meta: dict[str, dict]) -> tuple[list[dict], list[tuple[str, str, str]]]:
+    """One row per (trust, period_end). Returns (rows, [(trust, superseded accession, message)]).
+
+    The filing that supersedes wins: an amendment (10-D/A) over an original, then the later filing date, then
+    the higher accession number. Every superseded filing is recorded in the winner's `row_labels_json` under
+    `superseded`, with whether its numbers were identical. Different numbers from an amendment are what an
+    amendment is for; different numbers with no amendment are unexpected and go to the error log, while the
+    later filing is still kept. Rows of months filed once are returned unchanged.
+    """
+    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for r in rows_:
+        groups[(r["trust"], r["period_end"])].append(r)
+
+    def key(r: dict) -> tuple:
+        m = meta.get(r["source_accession"], {})
+        return (m.get("form") in AMENDMENT_FORMS, m.get("filing_date") or "", r["source_accession"])
+
+    out, errors = [], []
+    for (trust, period), grp in groups.items():
+        if len(grp) == 1:
+            out.append(grp[0])
+            continue
+        grp = sorted(grp, key=key, reverse=True)
+        win = grp[0]
+        wm = meta.get(win["source_accession"], {})
+        superseded = []
+        for lose in grp[1:]:
+            lm = meta.get(lose["source_accession"], {})
+            differs = [f for f in DATA_FIELDS if lose[f] != win[f]]
+            entry = {"accession": lose["source_accession"], "form": lm.get("form"),
+                     "filing_date": lm.get("filing_date"), "identical": not differs}
+            if differs:
+                entry["differs"] = differs
+                if wm.get("form") not in AMENDMENT_FORMS:
+                    errors.append((trust, lose["source_accession"],
+                                   f"DuplicateMonth: {trust} {period} filed again as {win['source_accession']} "
+                                   f"({wm.get('filing_date')}) with different values in {differs}; kept the later"))
+            superseded.append(entry)
+        audit = json.loads(win["row_labels_json"])
+        audit["filing"] = {"accession": win["source_accession"], "form": wm.get("form"),
+                           "filing_date": wm.get("filing_date")}
+        audit["superseded"] = superseded
+        out.append({**win, "row_labels_json": json.dumps(audit, separators=(",", ":"))})
     return out, errors
 
 

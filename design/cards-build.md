@@ -45,7 +45,7 @@ total. Older exhibits (pre-2020 filer agents) have not been seen from this machi
 per filing and `parse` prints the failures and a trust x year coverage table, so the first full run is
 also the audit of which years need label variants.
 
-## 2. Parser (`parse.py`): one `cards_monthly` row per filing
+## 2. Parser (`parse.py`): one `cards_monthly` row per trust-month
 
 Rules: exhibit found by content, every number by row label, rates as fractions, the trust's printed rate
 kept and recomputed from the dollar rows (agreement within 1e-4 or the filing fails), `row_labels_json`
@@ -371,10 +371,16 @@ disagreement everywhere. They stay recorded failures.
 
 The fetch runs from filing date 2019-01-01, so the period range is Dec-2018 to Jul-2026, 92 months.
 Nothing is unfetched: every trust has a directory for all 92 months. The only gaps are the three
-unparsed COMET months above. `parse` writes one row per filing, so the row counts are higher where a
-10-D/A repeats a month: BofA 94 rows (Dec-2018 and May-2020 amended), Citi 94 (Sep-2019 and Oct-2019),
-COMET 90 rows from 93 filings (Feb-2019 amended, three failures). The amendments reproduce the original
-values exactly.
+unparsed COMET months above. Until 2026-11-09 `parse` wrote one row per filing, so five months appeared
+twice where a statement was filed again: BofA Dec-2018 and May-2020, Citi Sep-2019 and Oct-2019, COMET
+Feb-2019. Each pair reproduces the original values exactly.
+
+`parse_raw` now collapses these (`dedupe_rows`): one row per (trust, period_end), the superseding filing
+kept (10-D/A over 10-D, then the later filing date from `manifest.json`, then the higher accession), every
+superseded filing listed in the winner's `row_labels_json` under `superseded` with `identical` true or
+false, and the winner's own form and filing date under `filing`. Different numbers from a 10-D/A are
+expected; different numbers with no amendment are logged to `cards_parse_failures.csv` as
+`DuplicateMonth` (the later filing is still kept). Test: `tests/test_cards_dedupe.py`.
 
 ### Fixtures
 
