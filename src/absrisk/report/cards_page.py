@@ -15,7 +15,8 @@ SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. Th
          "latest prospectus and is held fixed between prospectus dates. Charge-off bases differ by trust and are "
          "kept as reported. The residual is actual minus what the pool's score mix predicts under a stated "
          "loss-by-tier shape; it mixes underwriting, product, customer mix within a score band, pool selection and "
-         "behaviour, and it cannot say which. Nothing here is a payment-hierarchy estimate.")
+         "behaviour, and it cannot say which. It can say that a trust loses more than its score mix predicts, by how "
+         "many points, and since when. It cannot say why. Nothing here is a payment-hierarchy estimate.")
 
 
 def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> list[str]:
