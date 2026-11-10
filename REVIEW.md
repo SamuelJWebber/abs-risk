@@ -32,6 +32,8 @@ not hold as stated; LOW = cosmetic, stale, or a weakness without a wrong number 
 
 ### R1-1 · HIGH · The card analysis spreads unscored balances across the whole 300-850 range, against its own crosswalk
 
+Status: Fixed in fbbeac8. The analysis reads crosswalks/fico_buckets.csv (unscored dropped, renormalised), the dead path is gone, one implementation of the straddle rule; BofA fico_fed2007 now +1.13%, acms2018_dpd90 ranks BofA 2 / COMET 3; tests/test_cards_mix.py (5 of 6 fail on the old code) and tests/test_cards_results.py.
+
 **What is wrong.** Take the limit case: a trust whose prospectus put 100% of balances in "Unscored". The documented
 rule (`src/absrisk/shape/tiers.py:68-69`: "Buckets for accounts with no score cannot be mapped; drop them and
 renormalise") and the committed crosswalk (`crosswalks/fico_buckets.csv`, `src/absrisk/cards/composition.py:422`:
@@ -76,6 +78,8 @@ reads +1.13%.
 
 ### R1-2 · HIGH · This public repo carries absolute local paths that name the user's account, sync folder and a private project
 
+Status: Fixed in 8d98a73 for 21 of the 22 files, plus the home IP and the second account's name found on the way; tests/test_no_leaks.py fails on the old tree and on planted leaks. Deferred: the CLAUDE.md line (an assistant may not edit its own instruction file on a workflow's say-so) and the history rewrite (a force push to the public main is the user's decision); both are in HANDOFF.md under what needs the user.
+
 **What is wrong.** Commit 8cf68b2 says the free-riding tree was "scanned before committing ... no local paths". It
 was not clean:
 
@@ -108,6 +112,8 @@ git grep -c -I -E "C:[/\\]Users|AppData[/\\]Local|OneDrive" -- . ':!uv.lock'
 
 ### R1-3 · MEDIUM · The weekly refresh stays green when a new month fails to parse, so a trust can go stale unnoticed
 
+Status: Fixed in 9847d92. `absrisk cards check` fails on a new parse failure or a trust more than a month behind and warns on a mix snapshot over 18 months old; the refresh commits what parsed, then fails the run; tests/test_cards_check.py plants a broken BA filing.
+
 **What is wrong.** Take the limit case: a trust changes filer agent and its October 10-D layout breaks the parser. That
 has already happened three times in this corpus (Synchrony 2019, BofA 2025, Amex 2025).
 
@@ -137,6 +143,8 @@ they are already committed.
 non-zero. On the unmodified tree it passes.
 
 ### R1-4 · MEDIUM · The card "direction test" compares two periods with the same delinquency; a real tightening shows the opposite
+
+Status: Fixed in 4f261d1. Tight and loose months come from a delinquency index (a3_regimes.csv), the one step that raised every trust's 30+ share is found from the data, both pages print the 30+ share by period and say the result is mixed (Amex -0.10 and Citi +0.09 in tight months; BofA -0.12 and COMET -0.06 across the one tightening).
 
 **What is wrong.** The test reads conversion moving the wrong way "in a squeeze" as evidence against prioritisation.
 The cards page section 5 and the conclusions page "second test" put it this way: "Between pre-covid 2019 and squeeze
@@ -178,6 +186,8 @@ transition in which delinquency rose.
 
 ### R1-5 · MEDIUM · The conclusions page's two-factor formula does not reproduce the numbers in its own table
 
+Status: Fixed in 4f261d1. Three-factor identity and progression on both pages; trust averages are geometric means, so entry x progression x conversion equals co_monthly exactly and the shares sum to one (tests/test_cards_stages.py).
+
 **What is wrong.** The page states "loss = entry x conversion", with conversion "the chance that falling behind
 becomes a write-off" (`report/conclusions_page.py:81-83`). It then tables only those two factors (`:97-100`). But the
 computed `conversion` is monthly charge-off divided by the 90+ share (`estimate/cards_roll.py:49`), and the identity
@@ -200,6 +210,8 @@ carries the correct three-factor identity and the progression column, so the two
 means.
 
 ### R1-6 · MEDIUM · Lender intervals and p-values on the autos page are clustered over 10 deals; four lenders own a single deal
+
+Status: Fixed in 89a27e4. Lender intervals add the deal-to-deal spread (3 df, t critical values; simulation coverage 89-97% against 41-47% clustered); clustered intervals use t(9); months in pool now controlled. Exeter 1.10 [0.31, 3.85] is indistinguishable from Santander; Honda, Toyota and CarMax stay distinguishable.
 
 **What is wrong.** The hazard logits use cluster-robust errors by deal with normal critical values
 (`src/absrisk/estimate/hazard.py:91-92`). There are 10 deals and about 90 parameters. AmeriCredit, Capital One, Honda
@@ -249,6 +261,8 @@ real data, the rerun interval for Exeter is printed next to the old one.
 
 ### R1-7 · MEDIUM · 92% of predicted card months use a mix snapshot from the future, and each new prospectus rewrites all of history
 
+Status: Fixed in fc25eca as the short-term fix the review asks for: the cards page states the 92% look-ahead, the snapshot dates and the 22% of months on the 2024 CFPB level. The proper fix, a composition history (bigger improvement 2), is not built; HANDOFF.md carries it as the next step.
+
 **What is wrong.** `prospectus_files` keeps only the newest prospectus per trust (`cards/composition.py:337-350`).
 `predicted` back-fills that single snapshot to every earlier month (`estimate/run_cards.py:84-88`). So the Amex
 prediction for December 2018 uses the Amex pool of July 2026.
@@ -279,6 +293,8 @@ date once snapshots are kept.
 
 ### R1-8 · LOW · Five of seven auto lenders report on a 250-900 auto-industry scale; the page treats only Exeter as a scale problem
 
+Status: Fixed in 89a27e4. The headline adds a one-scale check over the five lenders whose scores run past 850 (median 38 times, the same as without Exeter) and names the scale objection separately from Exeter's VantageScore.
+
 The autos headline says the lender gap "survives the obvious objections, score scale and vintage: leaving out Exeter,
 whose score is VantageScore ... 38 times". `design/methods.md` section 1 adds that every other lender reports "a bureau
 score that is FICO where it says which". But only the industry-option FICO Auto scores reach 900:
@@ -300,6 +316,8 @@ to "survives Exeter's VantageScore". **Verify.** The headline sentence matches s
 
 ### R1-9 · LOW · Zero-event cells are still in the hazard table, as odds ratios near 1e-10 with p-values near 1e-200
 
+Status: Fixed in 89a27e4. Sparse edge levels are merged (under 500 loans) and no-event levels blanked; the review's command returns no rows (tests/test_autos_inference.py).
+
 The 11-09 pass fixed the 2017Q2 cohort baseline, which had made every quarter about 1e10. The same artefact remains
 for cells with no events:
 
@@ -319,6 +337,8 @@ python -m uv run python -c "import pandas as pd; h = pd.read_csv('data/results/a
 
 ### R1-10 · LOW · "0 of 14 at every bandwidth" hides that 4 of 14 clear zero at one bandwidth
 
+Status: Fixed in 89a27e4. The page gives 0 of 14 at the optimal bandwidth and 4 of 56 off-optimal refits, about the 3 chance gives, and names the four.
+
 The page (`report/autos_page.py:273`) says no cutoff-horizon keeps a robust interval clear of zero "at every
 bandwidth". That is true, but it is the weakest possible criterion for a null. Four of 14 do clear zero at one
 multiplier: Honda 605 at 12 and 24 months and Honda 700 at 24 months at 2x, and Santander 725 at 12 months at 0.5x.
@@ -334,6 +354,8 @@ python -m uv run python -c "import pandas as pd; b = pd.read_csv('data/results/a
 **Verify.** The sentence on the page carries both numbers.
 
 ### R1-11 · LOW · Page text contradicts the numbers next to it in five places
+
+Status: Fixed: items 1-3 in fc25eca (shape count computed, 'no single ordering' removed, a since-when table), items 4-5 in 89a27e4 (price share against the terms gradient, 27%; methods.md no longer says the gradient collapses).
 
 1. Cards section 2 is headed "The three loss-by-tier shapes" over a table of four (`report/cards_page.py:171`).
 2. Cards section 4 always prints "no single ordering is reported as a finding" (`:203-205`). The headline above it
@@ -352,6 +374,8 @@ beside it.
 
 ### R1-12 · LOW · The three generated pages have no doctype, no viewport and no links, so phones get a zoomed-out desktop page
 
+Status: Fixed in fc25eca. One page shell (doctype, charset, viewport, nav, data month); tests/test_pages.py; seen live at 375 px on all three generated pages: standards mode, no horizontal scroll.
+
 `docs/autos.html`, `docs/cards.html` and `docs/conclusions.html` start with `<title>`. They have no `<!doctype html>`
 (quirks mode), no `<meta name="viewport">` and no `<meta charset>`. GitHub Pages sends UTF-8 and the files are pure
 ASCII, so encoding is safe. On a phone, though, each page lays out at about 980 px and scales down. HANDOFF says phone
@@ -365,6 +389,8 @@ they name as plain text. Code: the `h = [f"<title>..."]` lines in `report/cards_
 builders. **Verify.** A test asserts every `docs/*.html` starts with `<!doctype html>` and contains a viewport meta.
 
 ### R1-13 · LOW · The entry/roll split drops charge-offs that never show a 30-day delinquency (75% of Capital One's)
+
+Status: Fixed in 89a27e4. b6 tables carry co_without_30_share and split_holds (Capital One 75%, others at most 6.5%); the page says the product approximates the charge-off rate and that the split says little about Capital One.
 
 `estimate/decompose.py:36-41` codes a charge-off without a recorded 30+ month as a competing exit in the entry stage,
 so it appears in neither factor. That is 75.3% of Capital One's charge-offs (133 of 223 are at 0 days: bankruptcy-type
@@ -384,6 +410,8 @@ has no Capital One row, and the section 5 sentence says "approximates".
 
 ### R1-14 · LOW · The weekly schedule sits on GitHub's 7-day cache eviction limit
 
+Status: Fixed in 9847d92. The refresh runs Mondays and Thursdays, so the restored cache is at most four days old. Not yet seen live: the first scheduled run is Thursday 2026-11-12.
+
 The workflow comment says weekly runs keep the cache alive (`cards-refresh.yml:7-10, 15`). Each run restores the cache
 saved at the end of the previous run, which is about 7 days minus the run's 6.5 minutes old. A scheduled start delayed
 by more than that can find it evicted. The fallback still works: a full re-fetch of 569 filings, about 27 minutes and
@@ -393,6 +421,8 @@ about 2,800 EDGAR requests (run 42691131162).
 **Verify.** In `gh api repos/SamuelJWebber/abs-risk/actions/caches`, `last_accessed_at` is never older than 4 days.
 
 ### R1-15 · LOW · Wrong or stale numbers and promises in HANDOFF, TASKS and PLAN
+
+Status: Fixed in a9d7df3 (PLAN marks the refresh commands as not built and the CFPB re-check as local only; TASKS A2 separates fixture and committed counts; the straddle sensitivity PLAN promised is now built) and in the HANDOFF.md rewrite at the end of this round (569 skipped, not 573).
 
 - `HANDOFF.md:30` says run 42699120327 "0 filings fetched and 573 skipped". The log's skipped counts are
   94+95+94+96+94+96 = 569.
@@ -408,6 +438,8 @@ about 2,800 EDGAR requests (run 42691131162).
 
 ### R1-16 · LOW · A personal email address is the author on 43 of 64 commits in this public repo
 
+Status: Deferred: rewriting the author email on 43 commits needs git filter-repo and a force push to the public main, which breaks every existing clone, including the other assistant's on this machine; the review leaves it to the user. New commits are guarded by tests/test_no_leaks.py (8d98a73).
+
 `git log --all --format=%ae | sort | uniq -c`: 43 commits carry a personal Gmail address, 16 the GitHub noreply
 address, and 5 the bot. Current git config already uses the noreply address, so nothing new will add to it. GitHub
 shows commit emails in every `.patch` view.
@@ -416,6 +448,8 @@ shows commit emails in every `.patch` view.
 needs a force push. **Verify.** The command above shows no personal address.
 
 ### R1-17 · LOW · The diagnostic workflow still sends the User-Agent the SEC refuses, outside `make_session()`
+
+Status: Fixed in 20f1435. diag.yml and scripts/scout/ua_diag.py are deleted; `grep -rn "(+https" scripts .github` returns nothing.
 
 `.github/workflows/diag.yml` runs `scripts/scout/ua_diag.py`. That script sends
 `absrisk/0.1.0 research (+https://github.com/...)`, the URL-in-parentheses form AGENTS.md says is refused
@@ -452,6 +486,15 @@ the probe that risks an "Undeclared Automated Tool" block. It is dispatch-only a
    AGENTS.md asks for a manual read before committing agent output and that read has already missed once (R1-2).
 8. **Golden checks for the autos track**, which PLAN section 4 promised: one loan count and one charge-off count per
    deal, traced to an EX-102 fixture and to the committed parquet.
+
+Status of these after round 1: 1 done in fbbeac8 (the analysis reads the crosswalk; tests pin analysis mix to crosswalk
+mix and committed results to a rebuild). 2 not built: it needs every 424B per trust fetched on a runner and the
+composition parser taught the older layouts; HANDOFF.md carries it as the next step. 3 done in 9847d92, with the
+snapshot-age rule as a warning rather than a failure (Citi has filed no prospectus since March 2025, so failing on age
+would turn every run red with nothing to fix). 4 done in 89a27e4, with months in pool added after the deal-spread
+estimate exposed young-deal effects. 5 done in 4f261d1. 6 done in fc25eca and seen live at 375 px. 7 done in 8d98a73.
+8 done in 2767a8b, as one loan record per deal and two charge-offs rather than counts, because the fixtures are
+300-record cuts of each filing, so no deal-level count can be traced to them.
 
 ---
 
