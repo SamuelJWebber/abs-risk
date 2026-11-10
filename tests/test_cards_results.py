@@ -40,7 +40,8 @@ def test_committed_card_table_matches_a_rebuild(rebuilt, name):
     rtol = 1e-6 if name == "a2_panel.csv" else 1e-9
     for c in a.columns:
         if pd.api.types.is_numeric_dtype(a[c]) and pd.api.types.is_numeric_dtype(b[c]):
-            assert np.allclose(a[c].to_numpy(float), b[c].to_numpy(float), rtol=rtol, atol=1e-12, equal_nan=True), (name, c)
+            # atol 1e-9: tables rounded to ten decimals can differ by one unit there between platforms
+            assert np.allclose(a[c].to_numpy(float), b[c].to_numpy(float), rtol=rtol, atol=1e-9, equal_nan=True), (name, c)
         else:
             assert a[c].fillna("").astype(str).tolist() == b[c].fillna("").astype(str).tolist(), (name, c)
 

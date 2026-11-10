@@ -221,11 +221,12 @@ def main(argv: list[str]) -> int:
         st.to_csv(out / "a3_stages.csv", index=False)
         bt = cards_roll.by_trust(st)
         # Geometric means go through log and exp, whose last bit differs between the Windows and Linux maths
-        # libraries; twelve significant digits keep a rebuild on the runner from rewriting every number (seen on run
-        # 42724889951). Plain arithmetic tables (a1_*, a3_stages) are identical across platforms and keep full precision.
-        bt.to_csv(out / "a3_by_trust.csv", index=False, float_format="%.12g")
-        cards_roll.stress_test(st, STRESS_PERIODS).to_csv(out / "a3_stress.csv", index=False, float_format="%.12g")
-        cards_roll.regimes(st).to_csv(out / "a3_regimes.csv", index=False, float_format="%.12g")
+        # libraries, and a share of a gap near zero (log of a ratio near one) loses relative precision; ten decimal
+        # places keep a rebuild on the runner from rewriting numbers (seen on runs 42724889951 and 42726294384). Plain
+        # arithmetic tables (a1_*, a3_stages) are identical across platforms and keep full precision.
+        bt.round(10).to_csv(out / "a3_by_trust.csv", index=False, float_format="%.12g")
+        cards_roll.stress_test(st, STRESS_PERIODS).round(10).to_csv(out / "a3_stress.csv", index=False, float_format="%.12g")
+        cards_roll.regimes(st).round(10).to_csv(out / "a3_regimes.csv", index=False, float_format="%.12g")
     except Exception as e:  # noqa: BLE001
         (out / "a3_stages.csv").write_text(f"not computed: {e}\n")
 
