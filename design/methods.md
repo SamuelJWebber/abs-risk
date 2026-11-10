@@ -162,8 +162,12 @@ is published under each shape, and if the ranking of trusts changes with the sha
 The residual mixes underwriting, product, customer mix within a score band, pool selection, servicing, and
 borrower behaviour. It can say "this trust loses more than its score mix predicts, by this much, consistently."
 It cannot say why, and it cannot be turned into a payment-hierarchy statement. Trust pools are also selected,
-seasoned accounts, not the issuer's book, and the mix is a prospectus snapshot held fixed between prospectus
-dates.
+seasoned accounts, not the issuer's book. The mix is one prospectus snapshot per trust, dated 2025-03 to 2026-07,
+applied to every month back to December 2018: 92% of trust-months are predicted from a snapshot dated after them,
+and a new prospectus rewrites every earlier month for that trust (REVIEW.md R1-7; keeping each prospectus's
+snapshot and stepping the mix forward from its date is the fix, not yet built). Months in 2025-26 use the 2024 CFPB
+level, the last year published. How much a residual depends on the straddle rule is bounded in a1_straddle.csv:
+up to 1.47 points under the steep consumer-level shapes.
 
 ## 6. Comparability caveats carried in the data
 
