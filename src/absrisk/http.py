@@ -3,6 +3,10 @@
 SEC fair-access rules: declare a User-Agent that names the project and a way to reach it, stay under
 10 requests per second (we cap at 5), never disguise as a browser. Set ABSRISK_CONTACT to append an
 email address to the User-Agent if the SEC ever asks for one.
+
+The SEC's limit is per user, not per process. Jobs that fetch in parallel under one User-Agent (autos-build runs
+two deal jobs at once) split the project's 5 a second between them with ABSRISK_MAX_RPS (REVIEW.md R2-12); it can
+lower the rate, never raise it.
 """
 
 from __future__ import annotations
@@ -18,7 +22,20 @@ from urllib3.util.retry import Retry
 from . import __version__
 
 DEFAULT_TIMEOUT = 120
-MIN_INTERVAL = 0.2  # seconds between requests, 5/s
+MAX_RPS = 5.0
+MIN_INTERVAL = 1.0 / MAX_RPS  # seconds between requests, 5/s
+
+
+def min_interval() -> float:
+    """Seconds between requests in this process: 1 / ABSRISK_MAX_RPS, never faster than the project's 5 a second."""
+    raw = os.environ.get("ABSRISK_MAX_RPS", "").strip()
+    try:
+        rps = float(raw) if raw else MAX_RPS
+    except ValueError:
+        raise ValueError(f"ABSRISK_MAX_RPS={raw!r} is not a number") from None
+    if not rps > 0:
+        raise ValueError(f"ABSRISK_MAX_RPS={raw!r} must be positive")
+    return 1.0 / min(rps, MAX_RPS)
 
 
 class _ThrottledAdapter(HTTPAdapter):
@@ -26,11 +43,12 @@ class _ThrottledAdapter(HTTPAdapter):
         super().__init__(*a, **kw)
         self._lock = threading.Lock()
         self._last = 0.0
+        self.interval = min_interval()
 
     def send(self, request, **kwargs):  # type: ignore[override]
         kwargs.setdefault("timeout", DEFAULT_TIMEOUT)
         with self._lock:
-            wait = self._last + MIN_INTERVAL - time.monotonic()
+            wait = self._last + self.interval - time.monotonic()
             if wait > 0:
                 time.sleep(wait)
             self._last = time.monotonic()

@@ -46,7 +46,9 @@ jobs:
     timeout-minutes: 330
     strategy:
       fail-fast: false
-      max-parallel: 4
+      # two deal jobs at once, each at 2.5 requests a second: the SEC counts every job under one User-Agent as one
+      # user, and the project's cap is 5 a second in total (REVIEW.md R2-12)
+      max-parallel: 2
       matrix:
         deal: ${{ fromJson(needs.matrix.outputs.deals) }}
     steps:
@@ -56,6 +58,7 @@ jobs:
       - name: Fetch every EX-102 for ${{ matrix.deal }}
         env:
           ABSRISK_CONTACT: ${{ secrets.ABSRISK_CONTACT }}
+          ABSRISK_MAX_RPS: "2.5"
         run: uv run absrisk autos fetch --deal "${{ matrix.deal }}" --raw raw/autos
       - name: Build loans table for ${{ matrix.deal }}
         run: uv run absrisk autos build --deal "${{ matrix.deal }}" --raw raw/autos --out out/autos
