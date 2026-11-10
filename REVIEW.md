@@ -1,551 +1,509 @@
-# Review round 1 (2026-11-09)
+# Review round 2 (2026-11-09)
 
-Adversarial review of `main` at `d321697`, after the 2026-11-09 pass (dedupe on ingest, card pages rebuilt,
-section 6 corrected, golden checks, weekly refresh). There is no earlier REVIEW.md, so no previous finding was
-marked Fixed and none could regress. The fixes the 11-09 pass made were re-checked anyway; they hold, with one
-partial exception (R1-9).
+Adversarial review of `main` at `1086ee6`, after round 1 was implemented (fixes fbbeac8 through 1086ee6). Round 1
+(2 HIGH, 5 MEDIUM, 10 LOW) is in git history: `git show 1086ee6:REVIEW.md`.
 
-**Counts: 2 HIGH, 5 MEDIUM, 10 LOW.**
+**Counts: 1 HIGH, 5 MEDIUM, 7 LOW. Regressions: 0** (every round-1 finding marked Fixed still passes its check).
 
-The short version: every headline number re-derives from the raw inputs with independent code, so the arithmetic
-is sound. The wrong things are elsewhere:
+The short version. The arithmetic is sound again: every headline number re-derives from the raw filings and the raw
+CFPB workbook with code that does not import `absrisk`. What is wrong is how three headline claims are framed, and
+one chart:
 
-- one silent method slip that moves published card numbers (R1-1);
-- personal environment details in this public repo (R1-2);
-- a weekly job that can go stale while staying green (R1-3);
-- three claims the data does not carry as stated (R1-4, R1-5, R1-6);
-- one undisclosed look-ahead in the card mix (R1-7).
+- the autos headline "50 times" counts months in which a loan cannot charge off, because it had to be current to be
+  sold into the trust; the project measured this effect itself and corrected only the hazard model (R2-1);
+- Synchrony's trust is a retail pool, a quarter of it private label, but it is calibrated to the general-purpose
+  level; the one card result the page calls assumption-free depends on that (R2-2);
+- the "ends of the ranking" and "selection on every level comparison" claims outrun the project's own straddle
+  sensitivity, Citi's conversion and AmeriCredit's split (R2-3, R2-4);
+- in dark mode the "actual" line of every cards chart is invisible (R2-5);
+- one commit with a personal email address would stop every scheduled refresh for good (R2-6).
 
-How it was run: `python -m uv run pytest -o addopts=""` (252 passed, 169 s); both failed cards-refresh logs and both
-11-09 dispatched runs read in full; `git log -p -20` read line by line; the card rebuild branch run on an exported
-copy of HEAD; the live Pages fetched and compared; six headline numbers re-derived from raw inputs with code that does
-not import `absrisk`. The audit skill's four personas (silent wrong answer, stranger who cloned the repo, leak hunter,
-bad actor) were run in-process, because this reviewer had no subagent tool. Nothing touched EDGAR and nothing heavy
-ran; the 15-minute autos pipeline was not re-run.
+How it was run: `python -m uv run pytest -o addopts=""` (333 passed, 247 s with BLAS capped at two threads);
+`gh run list` and the full log of run 42727357720; `git log -p -20` read; the live Pages fetched, compared with
+`docs/` and inspected at 375 px; the audit skill's four personas (silent wrong answer, stranger with a clone, leak
+hunter, bad actor) run in-process, because this reviewer has no subagent tool. Nothing touched EDGAR. Heavy work
+stayed on two threads: autos b1, b2 and b6 were rebuilt into a scratch folder and compared byte for byte.
 
 Severity: HIGH = wrong result, data loss, broken run, privacy or security; MEDIUM = a claim or safeguard that does
 not hold as stated; LOW = cosmetic, stale, or a weakness without a wrong number today.
 
 ---
 
+## Round 1, re-checked
+
+| finding | status in round 1 | check re-run now | holds |
+|---|---|---|---|
+| R1-1 card mix from the crosswalk | Fixed | `mix_by_trust.csv` against `tier_shares(composition, crosswalk)`: max difference 1.4e-16; BofA fico_fed2007 on the page +1.13% | yes |
+| R1-2 local paths | Fixed for 21 of 22 files; CLAUDE.md line and history deferred | the round-1 `git grep` returns only `CLAUDE.md:5`, the deferred line | yes, as scoped |
+| R1-3 alert contract | Fixed | `tests/test_cards_check.py` passes; run 42727357720 logs "check passed"; an October month simulated below also passes, with the Citi warning | yes |
+| R1-4 direction test | Fixed | re-derived independently (below): Amex -0.10, Citi +0.09, BofA -0.12 and COMET -0.06 across the one tightening | yes |
+| R1-5 stages multiply back | Fixed | independent geometric means: Amex shares +1.254, +0.075, -0.329, sum 1.000 | yes |
+| R1-6 lender intervals | Fixed | simulation test passes; page intervals equal `b2_lender_intervals.csv`; b2 rebuilt byte-identical | yes |
+| R1-7 look-ahead disclosed | short-term fix | page states 92% and 22%; `tests/test_pages.py` holds it | yes |
+| R1-8 one-scale check | Fixed | re-derived: 37.7x on the past-850 lenders, the same as without Exeter | yes |
+| R1-9 degenerate odds ratios | Fixed | the round-1 command returns 0 rows | yes |
+| R1-10 RD sentence | Fixed | 0 of 14 at the optimal bandwidth (Honda 605 at 12 months: p 0.0504, interval -0.0001 to 0.138) | yes |
+| R1-11 five contradictions | Fixed | "four" shapes, no "no single ordering", since-when table, 27% price share, no "collapses" in methods.md | yes |
+| R1-12 page shell | Fixed | doctype, charset, viewport on all four pages; 375 px standards mode, no overflow (cards, autos) | yes (see R2-5) |
+| R1-13 charge-offs that skip 30+ | Fixed | `co_without_30_share` in b6 tables; b6 rebuilt byte-identical | yes |
+| R1-14 cache schedule | Fixed | cron `17 9 * * 1,4`; caches last accessed within a day | yes; first scheduled run not yet seen |
+| R1-15 stale numbers | Fixed | `grep -n "573\|153 rows"` finds only the qualified TASKS A2 line | yes |
+| R1-16 personal email in history | Deferred to the user | still on 43 commits, none since 6a18549 | open, as scoped |
+| R1-17 refused User-Agent workflow | Fixed | `grep -rn "(+https" scripts .github` returns nothing | yes |
+
+---
+
 ## Findings
 
-### R1-1 · HIGH · The card analysis spreads unscored balances across the whole 300-850 range, against its own crosswalk
+### R2-1 · HIGH · The autos headline gap counts months in which a loan cannot charge off, and rests on one to three charge-offs per bucket
 
-Status: Fixed in fbbeac8. The analysis reads crosswalks/fico_buckets.csv (unscored dropped, renormalised), the dead path is gone, one implementation of the straddle rule; BofA fico_fed2007 now +1.13%, acms2018_dpd90 ranks BofA 2 / COMET 3; tests/test_cards_mix.py (5 of 6 fail on the old code) and tests/test_cards_results.py.
+**What is wrong.** Take the limit case: a lender whose loans all enter its trust at age 12. A loan must be current to
+be sold into a trust, and a current loan usually needs three or four missed payments before it charges off. So by
+age 12 that lender's cumulative charge-off is close to zero by construction, whoever its borrowers are.
 
-**What is wrong.** Take the limit case: a trust whose prospectus put 100% of balances in "Unscored". The documented
-rule (`src/absrisk/shape/tiers.py:68-69`: "Buckets for accounts with no score cannot be mapped; drop them and
-renormalise") and the committed crosswalk (`crosswalks/fico_buckets.csv`, `src/absrisk/cards/composition.py:422`:
-"unscored: weight 0; tier shares renormalised over scored buckets") would refuse to place it. The analysis instead
-reads the empty edges as `(None, None)` (`src/absrisk/estimate/run_cards.py:49-58`), and `tiers_from_buckets` treats
-`(None, None)` as 300-850 (`tiers.py:43-48`). That puts 280/551 = 51% of the unscored balance in deep subprime.
+The project measured this. Its hazard model puts charge-off odds in the first three months in the pool at 0.13 of
+a seasoned loan's, and 0.66 to 0.72 in months 3-5 (`b2_hazard_ratios.csv`, `pool_b`; `hazard.py:43-44`). It added
+months in pool to the hazard model in round 1, but not to the Aalen-Johansen curves behind the headline
+(`survival.py` `ages`: delayed entry at first observation; `autos_page.py:281`). HANDOFF next step 2 records the gap,
+and the page says the result "survives the obvious objections" (`autos_page.py:276`).
 
-The analysis never reads the crosswalk file at all. `estimate/cards.py:16` `tier_mix_by_trust` and `:38`
-`predict_by_trust`, the crosswalk-based path, are dead code. So the file that PLAN section 2 calls "explicit", and
-that the refresh regenerates and tests every week, has no effect on any published number.
+The lenders at the bottom of the ratio are the seasoned ones. In the 660-799 cells, median age at entry is 10 to 13
+months at Honda, 13 to 14 at Toyota and 13 to 15 at Capital One, against 3 at Exeter and 4 to 6 at Santander in
+660-700 (`b1_at_12.csv`, `entry_age_median`). At age 12 the seasoned lenders' risk sets are mostly loans in their
+first months in the pool.
 
-Unscored shares are small (0.03% Amex to 0.69% BofA), so the headline ordering survives. But printed numbers move:
+On top of that, every one of the seven ratios divides by a cell with one to three charge-offs by age 12. The
+bottom cells are Honda 660 (2), Toyota 680 (1), Honda 700 (3), Capital One 720 (1), Honda 740 (3), Toyota 760 (1) and
+Honda 780 (1). Taking the lowest of several noisy small cells biases the ratio further up, and no interval is shown.
 
-| page cell | published | under the documented rule |
-|---|---|---|
-| cards section 1, BofA deep subprime | 2.3% | 1.9% |
-| cards section 4, BofA residual, fico_fed2007 | +1.07% | +1.13% |
-| cards section 4, BofA residual, fico_odds | +0.95% | +1.00% |
-| cards section 4, Citi residual, fico_fed2007 | +0.53% | +0.57% |
-| cards section 4, rank under acms2018_dpd90, BofA / COMET | 3 / 2 | 2 / 3 (a near tie: -0.371% vs -0.373%) |
+The fresh-entrant cut cannot answer this. It exists only at 24 months (`run_autos.py:84`), and it has no Exeter,
+Santander, Toyota or Capital One cell.
 
-**Evidence.**
-
-```
-python -m uv run python -c "import pandas as pd; from absrisk.cards.composition import read_csv, tier_shares; from absrisk.estimate.run_cards import mix_by_trust; xw = tier_shares(read_csv('data/cards_composition.csv'), read_csv('crosswalks/fico_buckets.csv')); m = mix_by_trust(pd.read_csv('data/cards_composition.csv')).set_index('trust'); print({t: round(m.loc[t,'deep_subprime'] - xw[(t,'receivables')]['deep_subprime'], 4) for t in m.index})"
--> {'amex': 0.0002, 'bofa': 0.0034, 'chase': 0.0007, 'citi': 0.0019, 'comet': 0.001, 'synchrony': 0.0}
-```
-
-An independent re-implementation of predicted = level(year) x (mix . shape) reproduces every committed
-`a1_ranking.csv` residual to 0.001 pp with the committed mix. With unscored dropped it gives the right-hand column
-above.
-
-**Fix.**
-1. Build the analysis mix from the crosswalk: call `tier_shares` on the committed crosswalk, or drop `lo is None and
-   hi is None` rows in `mix_by_trust` and renormalise.
-2. Delete the dead crosswalk functions in `estimate/cards.py`.
-3. Rerun `absrisk analyze cards`, `report cards` and `report conclusions`.
-
-**Verify.** Add a test that `mix_by_trust(composition)` equals `tier_shares(composition, crosswalk)` for every trust to
-1e-9. It fails today with a 0.0034 gap at BofA. After the rebuild, the BofA fico_fed2007 residual on the cards page
-reads +1.13%.
-
-### R1-2 · HIGH · This public repo carries absolute local paths that name the user's account, sync folder and a private project
-
-Status: Fixed in 8d98a73 for 21 of the 22 files, plus the home IP and the second account's name found on the way; tests/test_no_leaks.py fails on the old tree and on planted leaks. Deferred: the CLAUDE.md line (an assistant may not edit its own instruction file on a workflow's say-so) and the history rewrite (a force push to the public main is the user's decision); both are in HANDOFF.md under what needs the user.
-
-**What is wrong.** Commit 8cf68b2 says the free-riding tree was "scanned before committing ... no local paths". It
-was not clean:
-
-- 22 tracked files hold 52 lines of absolute Windows paths.
-- Most sit under `design/freeride/`; the rest are `design/free-riding-bias.html:239`, `design/scout-autos.md:3`,
-  `design/scout-cards.md` and `CLAUDE.md`.
-- They expose the Windows account name, the cloud-sync folder layout, and in 8 files the name of a sibling project.
-  That project's repository is private (confirmed with `gh repo list`).
-- This repo is public under the real-name account, so anyone can read them, including on GitHub's code search.
-- No credentials or third-party personal data were found. A scan of all 64 commits for tokens and keys was clean.
-
-The same paths make the free-riding scripts unrunnable from a clone (`design/freeride/trust-cycle/run.py:15`
-hard-codes the repo root; the LendingClub inputs are read from a temp folder of another project).
-
-**Evidence.** This pattern deliberately avoids the private names, so this file does not repeat them:
-
-```
-git grep -c -I -E "C:[/\\]Users|AppData[/\\]Local|OneDrive" -- . ':!uv.lock'
--> 22 files, 52 lines (design/freeride/workflow-results.json:25, lc-decisive/*.py: 2 each, ...)
-```
-
-**Fix.**
-1. In one commit, replace every absolute path with a repo-relative path or a placeholder such as `<scratch>/`.
-   Do this in the `.py`, `.txt`, `.json` and `.html` files under `design/`, in `design/scout-*.md` and in `CLAUDE.md`.
-2. Add a test that fails when tracked text matches `C:[/\\]Users|AppData|OneDrive`.
-3. Removing the strings from history needs `git filter-repo --replace-text` and a force push to the public `main`.
-   That rewrite is destructive, so it is the user's call.
-
-**Verify.** The `git grep` above returns nothing. The new test fails on a planted path and passes on the scrubbed tree.
-
-### R1-3 · MEDIUM · The weekly refresh stays green when a new month fails to parse, so a trust can go stale unnoticed
-
-Status: Fixed in 9847d92. `absrisk cards check` fails on a new parse failure or a trust more than a month behind and warns on a mix snapshot over 18 months old; the refresh commits what parsed, then fails the run; tests/test_cards_check.py plants a broken BA filing.
-
-**What is wrong.** Take the limit case: a trust changes filer agent and its October 10-D layout breaks the parser. That
-has already happened three times in this corpus (Synchrony 2019, BofA 2025, Amex 2025).
-
-- `absrisk cards parse` logs the failure and still exits 0 (`src/absrisk/cards/__init__.py:79-104`: `return 1 if not
-  rows else 0`).
-- The workflow runs it without `--strict` (`.github/workflows/cards-refresh.yml:47-48`).
-- The post-parse checks (`cards-refresh.yml:51-53`: dedupe, golden for July 2026, composition) never look at the
-  failure log.
-
-So the run commits the grown failure log, reports success, and leaves both pages ending in September. Nobody is
-emailed, because nothing failed. The user follows this repo from a phone.
-
-**Evidence.** A copy of the BofA fixture with its charge-off label altered:
-
-```
-absrisk cards parse --raw <tmp>/raw --trust bofa --out <tmp>/m.csv --failures <tmp>/f.csv; echo $?
--> ERROR bofa 0001140361-26-099999: ParseError: bofa: no charge-off table headed 2026-07-31
--> 1 filings failed to parse, 0 months filed twice ... ; exit code 0
-```
-
-**Fix.** Add a post-parse check: fail when `data/cards_parse_failures.csv` gains an accession that is not in the
-committed copy (`git show HEAD:data/cards_parse_failures.csv`). Also fail when any live trust's latest `period_end`
-trails the newest trust's by more than one calendar month. The three known COMET 2019 failures stay allowed because
-they are already committed.
-
-**Verify.** Plant a corrupted copy of a fixture filing under a new accession in a temp raw dir. The new check exits
-non-zero. On the unmodified tree it passes.
-
-### R1-4 · MEDIUM · The card "direction test" compares two periods with the same delinquency; a real tightening shows the opposite
-
-Status: Fixed in 4f261d1. Tight and loose months come from a delinquency index (a3_regimes.csv), the one step that raised every trust's 30+ share is found from the data, both pages print the 30+ share by period and say the result is mixed (Amex -0.10 and Citi +0.09 in tight months; BofA -0.12 and COMET -0.06 across the one tightening).
-
-**What is wrong.** The test reads conversion moving the wrong way "in a squeeze" as evidence against prioritisation.
-The cards page section 5 and the conclusions page "second test" put it this way: "Between pre-covid 2019 and squeeze
-2023H2 on it did the opposite ... fell for none".
-
-By the trusts' own delinquency, though, "squeeze 2023H2 on" is not tighter than "pre-covid 2019". Every trust's 30+
-share is lower in the squeeze (x0.75 to x0.93). The low-delinquency periods are the middle two. The one transition in
-which every trust's delinquency rose is normalising 2022-23H1 to squeeze 2023H2 on (x1.15 to x1.55). Across it,
-BofA's conversion ratio fell 0.13 and COMET's 0.07, which is the direction prioritisation predicts. Amex, Chase and
-Citi were flat.
-
-"Delinquency itself swung with the cycle, so the pressure was real" (`cards_page.py:120-128`) uses the max/min swing
-across all four periods, not the two endpoints the test compares.
-
-**Evidence.**
-
-```
-python -m uv run python -c "import pandas as pd; m = pd.read_csv('data/cards_monthly.csv', parse_dates=['period_end']); P = {'pre': ('2019-01-01','2020-02-29'), 'norm': ('2022-01-01','2023-06-30'), 'squeeze': ('2023-07-01','2030-12-31')}; print(pd.DataFrame({k: m[m.period_end.between(a, b)].groupby('trust').delinq_30plus_share.mean() for k, (a, b) in P.items()}).round(4))"
--> 30+ share       pre      norm   squeeze   conversion ratio  pre   norm  squeeze
-   amex          0.0098   0.0055   0.0076                    1.13   1.46   1.48
-   bofa          0.0161   0.0100   0.0139                    0.99   1.21   1.08
-   chase         0.0117   0.0075   0.0087                    1.13   1.24   1.22
-   citi          0.0157   0.0095   0.0141                    0.86   0.84   0.88
-   comet         0.0199   0.0119   0.0184                    0.91   1.01   0.95
-```
-
-The ratios come from `data/results/cards/a3_stress.csv`, re-derived independently from `cards_monthly.csv`
-(amex 1.126 / 1.342 / 1.463 / 1.477).
-
-**Fix.**
-1. Define loose and tight periods from the data, for example months above or below the pooled median 30+ share, or
-   report every period pair.
-2. Rewrite both paragraphs to say the result is mixed. Amex rises against the low-delinquency periods; BofA and
-   COMET fall on the only clean tightening.
-3. Code: `estimate/run_cards.py:25-30`, `report/cards_page.py:108-145`, `report/conclusions_page.py:117-131`.
-
-**Verify.** The page prints each period's mean 30+ share next to the ratios. The "fell for" list is computed from a
-transition in which delinquency rose.
-
-### R1-5 · MEDIUM · The conclusions page's two-factor formula does not reproduce the numbers in its own table
-
-Status: Fixed in 4f261d1. Three-factor identity and progression on both pages; trust averages are geometric means, so entry x progression x conversion equals co_monthly exactly and the shares sum to one (tests/test_cards_stages.py).
-
-**What is wrong.** The page states "loss = entry x conversion", with conversion "the chance that falling behind
-becomes a write-off" (`report/conclusions_page.py:81-83`). It then tables only those two factors (`:97-100`). But the
-computed `conversion` is monthly charge-off divided by the 90+ share (`estimate/cards_roll.py:49`), and the identity
-needs a third factor, progression (90+/30+, about 0.47 to 0.51).
-
-A reader checking Amex gets 0.74% x 44.9% = 0.33%, not the 0.153% in the same row. The note under the table
-(`:101-102`) says "the three shares ... their product is the charge-off rate" while showing two. The shares of the gap
-shown (Amex entry 124%, conversion -33%) sum to 91%. The missing 9% is progression, which is never shown on this page.
-
-**Evidence.** `docs/conclusions.html` table row: `amex | 94 | 0.153% | 0.74% | 44.9% | ...`. The cards page section 5
-carries the correct three-factor identity and the progression column, so the two pages disagree.
-
-**Fix.**
-1. Print the three-factor identity and the `progression` and `progression_share_of_gap` columns on the conclusions
-   page.
-2. Define conversion as "the monthly charge-off as a share of balances 90+ days late".
-
-**Verify.** For every row, entry x progression x conversion equals co_monthly to rounding, and the three shares sum to
-1 +/- 0.03. They do not sum exactly, because `by_trust` takes ratios of means; say so in one line or use geometric
-means.
-
-### R1-6 · MEDIUM · Lender intervals and p-values on the autos page are clustered over 10 deals; four lenders own a single deal
-
-Status: Fixed in 89a27e4. Lender intervals add the deal-to-deal spread (3 df, t critical values; simulation coverage 89-97% against 41-47% clustered); clustered intervals use t(9); months in pool now controlled. Exeter 1.10 [0.31, 3.85] is indistinguishable from Santander; Honda, Toyota and CarMax stay distinguishable.
-
-**What is wrong.** The hazard logits use cluster-robust errors by deal with normal critical values
-(`src/absrisk/estimate/hazard.py:91-92`). There are 10 deals and about 90 parameters. AmeriCredit, Capital One, Honda
-and Toyota own exactly one deal each.
-
-For those four, the lender dummy coincides with one cluster. At the MLE that cluster's score for the dummy is zero, so
-the sandwich carries no between-deal variance for them. Their intervals measure within-deal noise only. In a simulation
-with deal-level shocks (the reason to cluster at all), the reported SE is about a third of the true sampling spread
-for single-deal lenders and two thirds for two-deal lenders.
-
-Affected on the page:
-- chart 2's lender bars;
-- the prepayment table's p-values (AmeriCredit "p 0.000");
-- Exeter vs Santander, 1.13 [1.004, 1.276], p = 0.043, which is not distinguishable from 1 under honest errors.
-
-The captive gaps (Honda 0.16 [0.11, 0.23]) would survive intervals three times wider. The amount, PTI and LTV
-estimates vary within deals and are not degenerate, but 10 clusters still understate their width somewhat.
-
-**Evidence.** Simulation: 10 deals, lenders A-D own one deal, E-F own two, G is the baseline, deal shock sd 0.3,
-300 replications, the same `GLM(...).fit(cov_type="cluster")` call:
+**Evidence.** The same estimator with each loan counted from its third month in the pool, from the committed
+parquet, without `absrisk`. At shift 0 it reproduces every published `b1_at_12.csv` cell (Honda 660 0.102%, Exeter
+660 5.064%) and the published 49.6x:
 
 ```python
-import numpy as np, statsmodels.api as sm
-rng = np.random.default_rng(0); deals = list("ABCDEEFFGG"); L = list("ABCDEF")
-est, se = [], []
-for _ in range(300):
-    u = rng.normal(0, 0.3, 10); X, Y, G = [], [], []
-    for d, l in enumerate(deals):
-        for _ in range(60):
-            x = rng.normal(); k = rng.binomial(400, 1 / (1 + np.exp(4 - 0.5 * x - u[d])))
-            X.append([1, x] + [float(l == m) for m in L]); Y.append([k, 400 - k]); G.append(d)
-    r = sm.GLM(np.array(Y), np.array(X, dtype=float), family=sm.families.Binomial()).fit(
-        cov_type="cluster", cov_kwds={"groups": np.array(G)})
-    est.append(r.params[2:]); se.append(r.bse[2:])
-print(dict(zip(L, (np.array(se).mean(0) / np.array(est).std(0)).round(2))))   # 1.0 = honest SE
--> {'A': 0.35, 'B': 0.34, 'C': 0.33, 'D': 0.33, 'E': 0.65, 'F': 0.67}
+import glob, numpy as np, pandas as pd
+d = pd.concat(pd.read_parquet(f) for f in glob.glob("data/autos/*.parquet")).reset_index(drop=True)
+mi = lambda s: pd.to_datetime(s).dt.year * 12 + pd.to_datetime(s).dt.month
+fp, om, lp = mi(d.first_period), mi(d.orig_month), mi(d.last_period)
+ev = np.where(d.exit_type == "chargeoff", "co", np.where(d.exit_type.isin(["prepay", "repurchase", "other", "absent"]), "x", "c"))
+ex = mi(d.zb_date).where(d.zb_date.notna(), mi(d.exit_period)).fillna(fp + d.months_observed - 1).where(ev != "c", lp)
+lag = pd.Series(0, index=d.index)
+for _, g in d.groupby("deal"):            # methods.md section 1: pool cutoff lag
+    first = g.first_period == g.first_period.min()
+    if ((ex[g.index] < fp[g.index]) & first & (ev[g.index] != "c")).any():
+        lag[g.index[first]] = 1
+e0 = (fp - lag - om).clip(lower=0).to_numpy()
+x0 = (e0 + (ex - (fp - lag)).clip(lower=0)).to_numpy()
+def aj12(m, k):                           # AJ charge-off by age 12; a loan counts from k months after it entered the pool
+    e, x, v = e0[m] + k, x0[m], ev[m]
+    e, x, v = e[x >= e], x[x >= e], v[x >= e]
+    n = np.array([((e <= t) & (x >= t)).sum() for t in range(13)])
+    co = np.array([((x == t) & (v == "co")).sum() for t in range(13)])
+    out = np.array([((x == t) & (v != "c")).sum() for t in range(13)])
+    s = np.concatenate([[1.0], np.cumprod(1 - out / np.maximum(n, 1))[:-1]])
+    return (s * co / np.maximum(n, 1)).sum(), n[-1]
+b = (d.score // 20 * 20).to_numpy()
+for k in (0, 3):
+    r = []
+    for lo in range(660, 800, 20):
+        c = {l: aj12((b == lo) & (d.lender == l).to_numpy(), k) for l in d.lender.unique()
+             if ((b == lo) & (d.lender == l).to_numpy()).sum() >= 1500}
+        c = {l: v[0] for l, v in c.items() if aj12((b == lo) & (d.lender == l).to_numpy(), 0)[1] >= 250 and v[0] > 0}
+        if len(c) >= 3:
+            r.append(float(max(c.values()) / min(c.values())))
+    print(k, "median", round(float(np.median(r)), 1), [round(v, 1) for v in r])
+-> 0 median 49.6 [49.6, 41.3, 73.2, 25.0, 69.3, 62.7, 3.6]
+-> 3 median 33.3 [33.3, 20.2, 45.1, 17.1, 77.7, 38.9, 3.1]
+```
+
+| bucket | published | from the third month in pool |
+|---|---|---|
+| 660 | Exeter 5.06% / Honda 0.10% = 50x | Exeter 5.64% / Honda 0.17% = 33x |
+| 680 | Exeter 4.70% / Toyota 0.11% = 41x | Exeter 4.95% / Honda 0.25% = 20x |
+| median of seven | 50x (range 4 to 73) | 33x (range 3 to 78); 36x if, as `bucket_ratios` does, a bucket whose lowest cell has no charge-off (Toyota 680 here) is dropped |
+
+In most buckets Honda's and Toyota's 12-month rates rise 1.5 to 3 times (Toyota 740: 0.16% to 0.52%). Exeter's rise
+5 to 11% and Santander's 9 to 17% in 660-720. Three months is a lower bound on the correction, because months 3-5
+still run at about two thirds of the seasoned hazard.
+
+The entry/roll split is not inflated the same way. Its 30+ entry rates barely move or fall when the first three pool
+months are dropped (Honda 660 0.064 to 0.060, CarMax 660 0.094 to 0.096), because a loan current at sale can be 30
+days late a month later. The qualitative finding survives; the number does not.
+
+**Fix.**
+1. Compute the headline cells with delayed entry at three months in the pool (`ages()` gets a `pool_offset`). Better:
+   use the hazard model's predicted 12-month cumulative incidence with `pool_b` fixed at `9+`.
+2. Require at least ten charge-offs in a cell before it can be the denominator of a ratio.
+3. Put a bootstrap interval on each bucket ratio and on the median, resampling loans within lender.
+4. Publish the fresh-entrant cut at 12 months too, and say on the page what the pool window does to seasoned lenders.
+   Also update "survives the obvious objections", the 700-779 "61 times" and methods.md section 1.
+
+**Verify.** The snippet above, run at the shift the fix chooses, reproduces the page's median. No headline ratio has
+a denominator cell with fewer than ten events. Each ratio on the page carries an interval.
+
+### R2-2 · MEDIUM · Synchrony's "assumption-free" residual is calibrated to general-purpose cards, but its trust is a retail pool, a quarter of it private label
+
+**What is wrong.** The level that turns a score mix into a predicted loss comes only from the CFPB's
+general-purpose series (`shape/build_level.py:130,160`). The Synchrony trust is not a general-purpose pool. The
+project's own notes say so (`cards/composition.py:53-54`, `design/scout-cards.md:414`: "private-label/retail pool").
+
+Its prospectus (0001104659-26-092741, "Program Partner" table) splits receivables as follows:
+- private label credit cards (Amazon, Lowe's): 24.3%;
+- dual cards, which the CFPB's market report counts as general purpose: 70.4%;
+- Synchrony Mastercard: 5.3%.
+
+The CFPB's private-label charge-off rate in the same Figure 53 runs about twice the general-purpose one: 7.1% against
+3.7% in 2019, and 8.5% against 5.3% in 2024.
+
+The cards page says Synchrony "keeps the same sign under all 4, so it is the one trust whose gap does not depend on
+the assumption" (`report/cards_page.py:130`), and that it is above its prediction "in every year since 2018" (the
+since-when note). It also reports the gap as +1.07% to +1.73%. Both rest on a product assumption the page never
+states.
+
+**Evidence.** The same construction as `build_level.py`, using the "Private label" column of Figures 53 and 3,
+applied to the private-label share of the pool (the workbook is the local copy under `data/raw/scout/cfpb/`):
+
+| shape | published (all general purpose) | 24.3% private label | all private label |
+|---|---|---|---|
+| acms2018 | +1.07% | +0.41% | -1.63% |
+| acms2018_dpd90 | +1.10% | +0.45% | -1.56% |
+| fico_fed2007 | +1.73% | +1.15% | -0.66% |
+| fico_odds | +1.64% | +1.05% | -0.77% |
+
+At the 24.3% blend the sign survives, but Synchrony's lead over BofA under the two FICO shapes falls to 0.02 and
+0.05 points (BofA +1.13% and +1.00%). Calibrated wholly as private label, Synchrony becomes the trust that loses
+least against its mix.
+
+```python
+import openpyxl, pandas as pd
+wb = openpyxl.load_workbook("data/raw/scout/cfpb/cfpb_consumer-credit-card-market-report-figure-data_2025.xlsm", read_only=True, data_only=True)
+def fig(title):
+    for ws in wb.worksheets:
+        rows = list(ws.iter_rows(values_only=True))
+        for i, r in enumerate(rows):
+            if title in [c for c in r if isinstance(c, str)]:
+                hdr, out = list(rows[i + 1]), []
+                for r2 in rows[i + 2:]:
+                    if r2[0] is None: break
+                    out.append(r2)
+                return pd.DataFrame(out, columns=hdr)
+T = ["Deep subprime", "Subprime", "Near-prime", "Prime", "Prime plus", "Superprime"]
+co = fig("MONTHLY ANNUALIZED RATE OF BALANCES CHARGED OFF (CCIP)"); co["y"] = pd.to_datetime(co["Date"]).dt.year
+cons = fig("CREDIT CARD CONSUMERS, YEAR-END 2023 (CCIP)").set_index("Credit score tier")
+bal = fig("MONTHLY AVERAGE PER-CARDHOLDER CYCLE-ENDING BALANCES (CCIP)"); bal["y"] = pd.to_datetime(bal["Date"]).dt.year
+bal = bal.groupby("y")[T].mean()
+syn = dict(zip(T, [0.0576, 0.0631, 0.1180, 0.2720, 0.2988, 0.1905]))       # data/results/cards/mix_by_trust.csv
+sh = pd.read_csv("data/loss_shape.csv").dropna(subset=["relative_loss"])
+names = dict(zip(T, ["deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]))
+m = pd.read_csv("data/cards_monthly.csv", parse_dates=["period_end"]).query("trust == 'synchrony'")
+for s, g in sh.groupby("shape_source"):
+    v = {t: float(g.set_index("tier").loc[names[t], "relative_loss"]) for t in T}
+    def level(p, y):
+        mix = {t: cons.loc[t, p] * bal.loc[y, t] for t in T}
+        return co[co.y == y][p].mean() / (sum(mix[t] * v[t] for t in T) / sum(mix.values()))
+    res = {}
+    for w in (0.0, 0.243, 1.0):                                              # share of the pool calibrated as private label
+        y = m.period_end.dt.year.clip(2014, 2024)
+        lv = y.map(lambda yy: (1 - w) * level("General purpose", yy) + w * level("Private label", yy))
+        res[w] = (m.gross_co_rate - lv * sum(syn[t] * v[t] for t in T)).mean()
+    print(f"{s:<15}" + "  ".join(f"PL {w:.0%}: {r:+.2%}" for w, r in res.items()))
 ```
 
 **Fix.**
-1. Report lender effects with a wild cluster bootstrap over deals (Webb weights, 10 clusters).
-2. Alternatively, drop intervals and p-values for lenders with one deal and say why.
-3. Use t(G-1) critical values for the within-deal factors.
-4. Reword "Exeter 1.13" as indistinguishable from Santander unless the new interval excludes 1.
+1. Record each trust's private-label share from its prospectus program table in the composition step (Synchrony
+   24.3%; zero for the general-purpose trusts).
+2. Calibrate a blended level per trust from both CFPB columns, and add the private-label series to `ccmr_level.csv`.
+3. Until then, the cards page states the assumption next to the Synchrony sentence and drops "does not depend on the
+   assumption". The conclusions page says the same where it uses Synchrony as the baseline.
 
-**Verify.** On the simulation above, the new method's mean SE / sampling SD is close to 1 for every lender. On the
-real data, the rerun interval for Exeter is printed next to the old one.
+**Verify.** `mix_by_trust.csv` (or a new column) carries the private-label share. The Synchrony row on the page
+matches the blended column above. A test pins that a trust with a nonzero private-label share is not calibrated to
+the general-purpose level alone.
 
-### R1-7 · MEDIUM · 92% of predicted card months use a mix snapshot from the future, and each new prospectus rewrites all of history
+### R2-3 · MEDIUM · "The ends of the ranking hold" ignores the project's own straddle sensitivity, and the conclusions page calls Citi an end
 
-Status: Fixed in fc25eca as the short-term fix the review asks for: the cards page states the 92% look-ahead, the snapshot dates and the 22% of months on the 2024 CFPB level. The proper fix, a composition history (bigger improvement 2), is not built; HANDOFF.md carries it as the next step.
+**What is wrong.** Round 1 asked for a straddle-rule sensitivity, and `a1_straddle.csv` now has one. Its answer
+contradicts two headline sentences:
 
-**What is wrong.** `prospectus_files` keeps only the newest prospectus per trust (`cards/composition.py:337-350`).
-`predicted` back-fills that single snapshot to every earlier month (`estimate/run_cards.py:84-88`). So the Amex
-prediction for December 2018 uses the Amex pool of July 2026.
+- The cards page says Amex "charges off least relative to its mix under every shape" (`report/cards_page.py:108-118`).
+  Under the upper straddle bound with acms2018_dpd90, Citi is last and Amex fifth.
+- Under the lower bound, Citi ranks fourth under every shape.
+- The conclusions page says "Under all four, the ends of the ranking hold (amex, citi, synchrony keep their place)
+  ... The ordering of the extremes is a finding" (`report/conclusions_page.py:157-163`). Citi is fifth of six, not
+  an end, and both its rank and Amex's move with the straddle rule.
 
-Across the six trusts, 92.3% of trust-months are predicted from a snapshot dated after them. When a trust files a new
-prospectus, the weekly refresh silently changes every historical residual for that trust. This happened on 11-09 for
-Amex and COMET.
-
-In the same way, 22.5% of months (all of 2025-2026) use the 2024 CFPB level (`run_cards.py:90`, `level_year_clamped`).
-The page states neither. Its scope note says the mix "is held fixed between prospectus dates"
-(`report/cards_page.py:14-15`), which never applies, because only one date is ever kept.
+Only Synchrony keeps one rank in all twelve shape-rule cells, and R2-2 qualifies even that. The cards page's own
+straddle paragraph says the rank statements hold under the uniform rule only. The conclusions page has no such
+qualifier.
 
 **Evidence.**
 
 ```
-python -m uv run python -c "import pandas as pd; p = pd.read_csv('data/results/cards/a1_predicted.csv'); p = p[p.shape_source == 'acms2018']; print(round(p.mix_extrapolated.mean(), 3), round(p.level_year_clamped.mean(), 3))"
--> 0.923 0.225
+python -m uv run python -c "import pandas as pd; s = pd.read_csv('data/results/cards/a1_straddle.csv'); print(s.pivot_table(index=['shape_source','trust'], columns='straddle_rule', values='rank').loc[(slice(None), ['amex','citi','synchrony']), :])"
+-> acms2018_dpd90 amex: lower 6, uniform 6, upper 5;  citi: lower 4, uniform 5, upper 6
+   every shape, citi under 'lower': 4;  synchrony: 1 in all twelve cells
 ```
 
-**Fix.**
-1. Short term: print both shares on the cards page and replace "held fixed between prospectus dates" with "one
-   snapshot per trust, dated 2025-03 to 2026-07, applied to every month since December 2018". Also say that 2025-26
-   months use the 2024 industry level.
-2. Proper fix: see Bigger improvements item 2.
+**Fix.** Compute "keeps its place" over shape x straddle rule, not over shape alone, in both page builders (one
+function, shared). Name only trusts at rank 1 or rank N as ends. With today's data the sentence becomes: Synchrony
+ranks first in all twelve cells; Amex is last in eleven of twelve.
 
-**Verify.** The page shows the extrapolated share. A new prospectus no longer changes any month before its own as-of
-date once snapshots are kept.
+**Verify.** A test builds both pages from a rank table in which the bottom trust moves under one straddle rule, and
+asserts that neither page calls it a held end.
 
-### R1-8 · LOW · Five of seven auto lenders report on a 250-900 auto-industry scale; the page treats only Exeter as a scale problem
+### R2-4 · MEDIUM · "Selection on every level comparison" is contradicted by Citi in cards and by AmeriCredit, which the conclusions page silently drops
 
-Status: Fixed in 89a27e4. The headline adds a one-scale check over the five lenders whose scores run past 850 (median 38 times, the same as without Exeter) and names the scale objection separately from Exeter's VantageScore.
+**What is wrong.** The landing page says "On every level comparison it is selection, in cards and in auto loans"
+(`docs/index.html:21-22`). The conclusions page's computed heading says "selection, on every level comparison"
+(`conclusions_page.py:98-101`). The fixed text then says:
 
-The autos headline says the lender gap "survives the obvious objections, score scale and vintage: leaving out Exeter,
-whose score is VantageScore ... 38 times". `design/methods.md` section 1 adds that every other lender reports "a bureau
-score that is FICO where it says which". But only the industry-option FICO Auto scores reach 900:
+- "priority would show up as accounts rescued from deep delinquency and the opposite is observed" (`:166-169`);
+- "their late accounts are not rescued more often than anyone else's" (`:184-188`).
 
-- Toyota ("FICO Score 8 Auto") has 12.7% of loans above 850, Honda 11.6%, CarMax 7.3%, Capital One 2.5% and
-  Santander 0.6%.
-- AmeriCredit tops out at 854 and Exeter at 845.
+Two comparisons on the project's own tables say otherwise:
 
-So with Exeter left out, comparisons still cross scales: AmeriCredit (max 854) against Honda or Toyota, and Santander,
-whose filings leave its scale unstated (`design/autos-build.md:154`). `design/methods.md` section 6 already says the
-scales differ; the headline does not.
+- **Citi.** It is the second-lowest card trust by residual. Its 90-day-late balances convert to loss least of all six
+  trusts (27.2% a month, 0.85 times Synchrony's), and conversion carries +0.20 of its gap. Citi's late accounts are
+  rescued more often than anyone else's. The cards page says so (`cards_page.py:182`); the conclusions page says the
+  opposite.
+- **AmeriCredit.** It loses 26% less than Santander at the same score (median total ratio 0.74 over ten buckets).
+  Only 42% of that is entry; 58% is the roll from 30 days late to charge-off (roll ratio 0.84). The conclusions page
+  shows lenders with an entry share of at least 0.7 as selection and at most 0.3 as the exception
+  (`conclusions_page.py:44-45`). AmeriCredit, at 0.42, appears nowhere.
 
-```
-python -m uv run python -c "import pandas as pd, glob; d = pd.concat(pd.read_parquet(f, columns=['lender','score']) for f in glob.glob('data/autos/*.parquet')); print(d.groupby('lender').score.agg(['max', lambda s: round((s > 850).mean(), 3)]))"
-```
-
-**Fix.** Add a same-family robustness line (lenders whose scores reach 900 only), or soften "survives ... score scale"
-to "survives Exeter's VantageScore". **Verify.** The headline sentence matches section 6 of methods.md.
-
-### R1-9 · LOW · Zero-event cells are still in the hazard table, as odds ratios near 1e-10 with p-values near 1e-200
-
-Status: Fixed in 89a27e4. Sparse edge levels are merged (under 500 loans) and no-event levels blanked; the review's command returns no rows (tests/test_autos_inference.py).
-
-The 11-09 pass fixed the 2017Q2 cohort baseline, which had made every quarter about 1e10. The same artefact remains
-for cells with no events:
-
-- score buckets 360 and 900;
-- cohorts 2017Q2 and 2017Q4.
-
-That is 13 rows of `data/results/autos/b2_hazard_ratios.csv`, with p down to 1.3e-208. The autos page prints the
-score rows as "0.00", which reads as zero risk rather than "no events".
+**Evidence.**
 
 ```
-python -m uv run python -c "import pandas as pd; h = pd.read_csv('data/results/autos/b2_hazard_ratios.csv'); print(h[(h.odds_ratio < 1e-3) | (h.odds_ratio > 1e3)][['spec','event','factor','level','odds_ratio','p']])"
--> 13 rows: cohort_q 2017Q2, 2017Q4; score_b 360, 900
+python -m uv run python -c "import pandas as pd; a = pd.read_csv('data/results/autos/b6_attribution_by_score.csv'); a = a[a.n_ever30 >= 100]; print(a.groupby('lender')[['entry_share_of_gap','roll_ratio','total_ratio']].median().round(3))"
+-> americredit 0.421 0.844 0.741; carmax 1.032 1.072 0.164; exeter 0.004 1.408 1.368; honda 0.842 0.754 0.087; toyota 0.856 0.759 0.161
+   data/results/cards/a3_by_trust.csv citi: conversion 0.2721, conversion_ratio 0.8475, conversion_share_of_gap +0.1954
 ```
 
-**Fix.** Merge sparse edge levels (scores <380 into 380, >=880 into 880; cohorts with fewer than 500 loans into one
-"early" level) before fitting, or print "no events" for them. **Verify.** The command above returns no rows.
+**Fix.** Compute the sentences from the tables.
+1. List every lender and trust with its entry share. Name the ones where entry is under half: AmeriCredit, and Citi's
+   conversion share.
+2. Replace "not rescued more often than anyone else's" with a statement about the lowest-loss trust (Amex) that the
+   table carries.
+3. Rewrite the landing page line to match ("mostly selection; AmeriCredit and Citi partly after trouble").
 
-### R1-10 · LOW · "0 of 14 at every bandwidth" hides that 4 of 14 clear zero at one bandwidth
+**Verify.** The conclusions page names every lender in `b6_attribution_by_score.csv` with enough cells. A test fails
+when a fixed sentence asserts something about "issuers with low losses" that one of them contradicts.
 
-Status: Fixed in 89a27e4. The page gives 0 of 14 at the optimal bandwidth and 4 of 56 off-optimal refits, about the 3 chance gives, and names the four.
+### R2-5 · MEDIUM · In dark mode the "actual" line of every cards chart is invisible
 
-The page (`report/autos_page.py:273`) says no cutoff-horizon keeps a robust interval clear of zero "at every
-bandwidth". That is true, but it is the weakest possible criterion for a null. Four of 14 do clear zero at one
-multiplier: Honda 605 at 12 and 24 months and Honda 700 at 24 months at 2x, and Santander 725 at 12 months at 0.5x.
-That is 4 of 56 off-optimal fits, near what chance gives. The null still stands, but the page should say this rather
-than lean on "every".
+**What is wrong.** Section 3 of the cards page ("Actual against predicted, by trust") draws the actual charge-off
+series with a hard-coded stroke `#1d1d1b` (`report/cards_page.py:301`). The page shell defines a dark theme
+(`report/svg.py:134-136`) whose chart card is `#1d1f25`. The contrast is 1.03:1. A reader whose phone is in dark mode
+sees four "predicted" lines and no actual line in all six charts. The legend still lists "actual", with an invisible
+swatch.
+
+Round 1 checked these pages at 375 px but not in dark mode. Cosmetic, same charts: x-axis ticks read 11.6375, 23.275,
+34.9125 ("months from 2018-12-31"), because `line_chart` prints `{xv:g}` of fractional months (`report/svg.py:38`).
+
+**Evidence.** Live page in the browser pane, 375 x 812, `prefers-color-scheme: dark`: the polyline titled "actual" has
+stroke `#1d1d1b` on a `rgb(21, 22, 26)` page. Contrast of every chart colour against the dark card: `#1d1d1b` 1.03,
+every other series 2.5 to 7.5.
+
+**Fix.** Let `line_chart` take a theme colour: `{"color": "fg"}` emits `style='stroke:var(--fg)'` (and the same for
+the legend swatch). Use it for "actual". Round x ticks to whole months or years.
+
+**Verify.** A test over `docs/*.html` fails on any chart stroke or fill whose contrast against either theme's card
+colour is under 3:1. The live cards page in dark mode shows a light "actual" line.
+
+### R2-6 · MEDIUM · One commit with a personal email address would stop every scheduled refresh, and only a history rewrite could restart it
+
+**What is wrong.** The refresh's first real step runs the whole test suite, before it fetches anything
+(`.github/workflows/cards-refresh.yml:51-52`). The suite includes
+`test_commits_since_the_review_carry_noreply_addresses`, which fails on any commit since 6a18549 whose author or
+committer address is not a noreply one (`tests/test_no_leaks.py:99-112`).
+
+So suppose the user edits a file on github.com without email privacy on, or commits from another machine. From then
+on every Monday and Thursday run fails at "Tests". No data is fetched and no page is rebuilt. Only two things undo
+it: rewriting public history, the decision HANDOFF leaves to the user, or editing the test. The leak check is right
+to exist. What is wrong is gating the data pipeline on commit metadata the pipeline cannot repair.
+
+**Evidence.** In a local clone of HEAD, one commit authored with an ordinary webmail address, then
+`pytest tests/test_no_leaks.py` -> `FAILED tests/test_no_leaks.py::test_commits_since_the_review_carry_noreply_addresses`
+(1 failed, 2 passed).
+
+**Fix.** Mark the commit-metadata test (e.g. `@pytest.mark.repo_hygiene`) and run `pytest -m "not repo_hygiene"`
+in the refresh. Keep it in the local suite, and as a check on pushes from people rather than on the bot's schedule.
+
+**Verify.** With the planted commit, the refresh's Tests command passes and the local full suite still fails.
+
+### R2-7 · LOW · HANDOFF expects October rows from the Monday 2026-11-16 run, which runs before EDGAR opens
+
+All six trusts file their 10-D on the 15th or the next business day. The July 2026 statements were all accepted on
+2026-08-17, between 06:02 and 14:00 Eastern (the `ACCEPTANCE-DATETIME` in each scouted index-headers file). 15
+November 2026 is a Sunday, so the October 10-Ds land during Monday the 16th. The cron fires at 09:17 UTC, which is
+04:17 Eastern, before EDGAR accepts filings at 06:00. The first run that can commit October rows and exercise the
+rebuild branch with changed tables is Thursday 2026-11-19.
+
+HANDOFF.md:90 tells the next session to expect it on the 16th. A session that sees "no changes" that day may hunt
+for a bug that is not there. HANDOFF.md:3 also dates itself 2026-11-10, against 2026-11-09 local time in the commit.
+
+**Fix.** Say "the Thursday 2026-11-19 run"; date the handoff in local time. **Verify.** `grep -n "Monday run should" HANDOFF.md` returns nothing.
+
+### R2-8 · LOW · Templated headline sentences assert what they never check
+
+`report/cards_page.py:94-118` picks the stable trust with the best rank and prints that it "charges off more than its
+own score mix predicts under every one of the N shapes". It never checks that the residual is positive under every
+shape. It prints "The ends of the ranking hold; the middle does not" even when no trust moves. Fed a rank table in
+which Synchrony is first but negative under one shape, it prints:
 
 ```
-python -m uv run python -c "import pandas as pd; b = pd.read_csv('data/results/autos/b3_rd_bandwidths.csv'); b['c'] = (b.ci_lo > 0) | (b.ci_hi < 0); print(b.groupby('bw_mult').c.sum().to_dict())"
--> {0.5: 1, 0.75: 0, 1.0: 0, 1.5: 0, 2.0: 3}
+synchrony charges off more than its own score mix predicts under every one of the 4 shapes (residual -0.10% to +1.50%);
+... 0 of 3 trusts change rank ... So the ordering of the extremes is a finding and the ordering of the middle is not.
 ```
 
-**Fix.** Print "at the optimal bandwidth 0 of 14; across 56 other fits, 4 clear zero, about what chance gives".
-**Verify.** The sentence on the page carries both numbers.
+`direction_sentences` similarly calls a move "the direction prioritisation predicts" whenever it is negative, even
+inside the 0.05 band it calls flat elsewhere. Today every sentence is true. But the refresh rebuilds these pages
+unattended twice a week, and `tests/test_pages.py` only checks that a page equals its own rebuild.
 
-### R1-11 · LOW · Page text contradicts the numbers next to it in five places
+**Fix.** Guard each templated claim with the condition it states, and fall back to a neutral sentence. Add a test
+that feeds adversarial tables and checks the wording. **Verify.** The table above yields no "more than ... under every
+one" sentence.
 
-Status: Fixed: items 1-3 in fc25eca (shape count computed, 'no single ordering' removed, a since-when table), items 4-5 in 89a27e4 (price share against the terms gradient, 27%; methods.md no longer says the gradient collapses).
+### R2-9 · LOW · A failure in the stage or panel step leaves last run's tables in place, and both pages publish them
 
-1. Cards section 2 is headed "The three loss-by-tier shapes" over a table of four (`report/cards_page.py:171`).
-2. Cards section 4 always prints "no single ordering is reported as a finding" (`:203-205`). The headline above it
-   says "the ordering of the extremes is a finding".
-3. The new scope sentence promises the residual can say "by how many points, and since when" (`:18`). The same page
-   then says "The size of the gap is not identified" (5 of 6 trusts change sign with the shape), and nothing on the
-   page addresses "since when".
-4. Autos: "Adding price removes about 37% of the remaining score gradient". The share is computed against the score
-   specification (`report/autos_page.py:235`; `_score_gradient` gives 9.40x to 4.12x, so 36.9%). Against the 7.04x
-   that remains after structure, price removes 27.5%.
-5. `design/methods.md:79-80` says adding APR "collapses the bureau score's own gradient almost to nothing". The page's
-   own number is 4.2x.
+`estimate/run_cards.py:219-231` catches any exception in the stage step. It overwrites `a3_stages.csv` with
+"not computed: ..." and leaves `a3_by_trust.csv`, `a3_stress.csv` and `a3_regimes.csv` as the previous run wrote
+them. Both pages read those three, so a refresh with a new month publishes stage numbers from the old data.
+`tests/test_cards_results.py` compares a rebuild with itself on the runner, so the run stays green. The panel step
+(`:233-246`) does the same with `a2_panel_summary.txt`.
 
-**Fix.** Edit each string (or compute the share against `terms`). **Verify.** Each sentence agrees with the table
-beside it.
+**Fix.** Delete or overwrite every output of a step before running it, or let the exception fail the run. **Verify.**
+Monkeypatch `cards_roll.regimes` to raise; `absrisk analyze cards` exits non-zero or leaves no stale a3 file.
 
-### R1-12 · LOW · The three generated pages have no doctype, no viewport and no links, so phones get a zoomed-out desktop page
+### R2-10 · LOW · Two promises the code does not keep
 
-Status: Fixed in fc25eca. One page shell (doctype, charset, viewport, nav, data month); tests/test_pages.py; seen live at 375 px on all three generated pages: standards mode, no horizontal scroll.
+- `cards/check.py:12-14` says the stale-mix warning "is printed in the run log and on the cards page". No page code
+  reads `stale_mixes`. From the October data on, Citi's 19-month-old mix will warn in the log only.
+- The landing page is hand-written (`docs/index.html`), and the refresh rebuilds only the cards and conclusions pages.
+  Its "a test on how losses move with the cycle is mixed" and the R2-4 sentence will not follow a change in the
+  computed verdict.
 
-`docs/autos.html`, `docs/cards.html` and `docs/conclusions.html` start with `<title>`. They have no `<!doctype html>`
-(quirks mode), no `<meta name="viewport">` and no `<meta charset>`. GitHub Pages sends UTF-8 and the files are pure
-ASCII, so encoding is safe. On a phone, though, each page lays out at about 980 px and scales down. HANDOFF says phone
-width was never checked, and the user reads from a phone.
+**Fix.** Print the warning in the cards page header, and either generate the index's two result sentences from the
+same tables or drop them. **Verify.** A stale-mix fixture shows the warning on the built page.
 
-None of the three pages links anywhere: not back to the index, not to the repo or `design/methods.md`, both of which
-they name as plain text. Code: the `h = [f"<title>..."]` lines in `report/cards_page.py:155`,
-`report/conclusions_page.py:66` and `report/autos_page.py:393`.
+### R2-11 · LOW · The runner and the local machine build results with different Python versions
 
-**Fix.** Add one shared page shell in `report/svg.py` (doctype, charset, viewport, a nav line) used by all three
-builders. **Verify.** A test asserts every `docs/*.html` starts with `<!doctype html>` and contains a viewport meta.
+Run 42727357720's log reads "Using CPython 3.14.4 interpreter at: /usr/bin/python3" (ubuntu-latest is now an
+Ubuntu 26.04 image). Local runs use 3.12.10. There is no `.python-version`, and `setup-uv` gets no `python-version`.
+`uv.lock` pins packages but not the interpreter, so committed results come from whichever machine ran last. One
+forced rebuild was byte-identical, but nothing holds that. A runner image moving to a Python without wheels for a
+locked package would break `uv sync` on a scheduled run.
 
-### R1-13 · LOW · The entry/roll split drops charge-offs that never show a 30-day delinquency (75% of Capital One's)
+**Fix.** Add `.python-version` with `3.12`, and `python-version: "3.12"` to `setup-uv`. **Verify.** The run log
+shows CPython 3.12.
 
-Status: Fixed in 89a27e4. b6 tables carry co_without_30_share and split_holds (Capital One 75%, others at most 6.5%); the page says the product approximates the charge-off rate and that the split says little about Capital One.
+### R2-12 · LOW · autos-build can exceed the SEC's 10 requests a second in aggregate
 
-`estimate/decompose.py:36-41` codes a charge-off without a recorded 30+ month as a competing exit in the entry stage,
-so it appears in neither factor. That is 75.3% of Capital One's charge-offs (133 of 223 are at 0 days: bankruptcy-type
-events, already noted in `design/scout-autos.md`) and 6.5% of AmeriCredit's.
+`.github/workflows/autos-build.yml:49` runs up to four deal jobs at once. Each has its own `make_session()` throttle
+at 5 requests a second, all under the same User-Agent and contact address, so the aggregate can reach 20 a second
+during the index and listing phase. The SEC's limit is per user. The workflow is dispatch-only and EX-102 downloads
+are slow, so real bursts are short. CLAUDE.md's 5-a-second cap reads as a project limit, not a per-job one.
 
-Capital One's pooled row in `data/results/autos/b6_attribution.csv` (entry share 0.977) is therefore meaningless. It is
-not on the page, because the by-score table needs 100 ever-30 loans per cell. The page's "Their product is the
-charge-off rate" holds only approximately.
+**Fix.** `max-parallel: 2`, or pass a per-job rate of 5 divided by `max-parallel`. **Verify.** A dispatched run's
+log shows no more than 10 requests in any second across jobs.
 
-```
--> charge-offs with no 30+ month: americredit 0.065, capone 0.753, carmax 0.015, exeter 0.018, honda 0.029, santander 0.002, toyota 0.038
-```
+### R2-13 · LOW · The direction test's "tight" months are mostly two calendar eras
 
-**Fix.** Add a third path, "charge-off without delinquency", or report its share per lender. Drop Capital One from the
-pooled table. Change "is" to "approximates". **Verify.** `b6_attribution.csv` either carries a no-30 share column or
-has no Capital One row, and the section 5 sentence says "approximates".
+Months above the median delinquency index run from December 2018 to June 2020 (19) and from September 2023 to May
+2025 (21), plus seven months of 2025-26. The loose months are mid-2020 to mid-2023, the stimulus and forbearance
+years. So "tight against loose" largely compares 2019 and 2024-26 with 2020-23, eras that also differ in charge-off
+and re-aging practice. The page does not list the months.
 
-### R1-14 · LOW · The weekly schedule sits on GitHub's 7-day cache eviction limit
+**Fix.** Print the tight months (or a strip chart of the index) under the table, and add the split inside 2024-26
+alone. **Verify.** The page shows which months are tight.
 
-Status: Fixed in 9847d92. The refresh runs Mondays and Thursdays, so the restored cache is at most four days old. Not yet seen live: the first scheduled run is Thursday 2026-11-12.
+---
 
-The workflow comment says weekly runs keep the cache alive (`cards-refresh.yml:7-10, 15`). Each run restores the cache
-saved at the end of the previous run, which is about 7 days minus the run's 6.5 minutes old. A scheduled start delayed
-by more than that can find it evicted. The fallback still works: a full re-fetch of 569 filings, about 27 minutes and
-about 2,800 EDGAR requests (run 42691131162).
+## Still open from round 1 (the user's decision, not counted above)
 
-**Fix.** `cron: "17 9 * * 1,4"` (Monday and Thursday), or a tiny Thursday job that only restores the cache.
-**Verify.** In `gh api repos/SamuelJWebber/abs-risk/actions/caches`, `last_accessed_at` is never older than 4 days.
-
-### R1-15 · LOW · Wrong or stale numbers and promises in HANDOFF, TASKS and PLAN
-
-Status: Fixed in a9d7df3 (PLAN marks the refresh commands as not built and the CFPB re-check as local only; TASKS A2 separates fixture and committed counts; the straddle sensitivity PLAN promised is now built) and in the HANDOFF.md rewrite at the end of this round (569 skipped, not 573).
-
-- `HANDOFF.md:30` says run 42699120327 "0 filings fetched and 573 skipped". The log's skipped counts are
-  94+95+94+96+94+96 = 569.
-- `TASKS.md:20` (A2) says "153 rows, 41 crosswalk rows". That is the seven-prospectus fixture build. The committed
-  tables have 138 and 36.
-- `PLAN.md:99` promises `absrisk cards refresh` and `absrisk autos refresh`; neither exists.
-- `PLAN.md:101` says CFPB golden numbers are "re-verified each run". The workbook test is skipped on the runner,
-  because the workbooks are not there.
-- `PLAN.md:41` says the straddle rule is shown "with the sensitivity". No straddle sensitivity is on the page.
-
-**Fix.** Correct the numbers and mark the PLAN items as not built (or build the straddle sensitivity). **Verify.**
-`grep -n "573\|153 rows" HANDOFF.md TASKS.md` returns nothing stale.
-
-### R1-16 · LOW · A personal email address is the author on 43 of 64 commits in this public repo
-
-Status: Deferred: rewriting the author email on 43 commits needs git filter-repo and a force push to the public main, which breaks every existing clone, including the other assistant's on this machine; the review leaves it to the user. New commits are guarded by tests/test_no_leaks.py (8d98a73).
-
-`git log --all --format=%ae | sort | uniq -c`: 43 commits carry a personal Gmail address, 16 the GitHub noreply
-address, and 5 the bot. Current git config already uses the noreply address, so nothing new will add to it. GitHub
-shows commit emails in every `.patch` view.
-
-**Fix.** Optional, as part of R1-2's history decision: `git filter-repo --mailmap` to the noreply address, which also
-needs a force push. **Verify.** The command above shows no personal address.
-
-### R1-17 · LOW · The diagnostic workflow still sends the User-Agent the SEC refuses, outside `make_session()`
-
-Status: Fixed in 20f1435. diag.yml and scripts/scout/ua_diag.py are deleted; `grep -rn "(+https" scripts .github` returns nothing.
-
-`.github/workflows/diag.yml` runs `scripts/scout/ua_diag.py`. That script sends
-`absrisk/0.1.0 research (+https://github.com/...)`, the URL-in-parentheses form AGENTS.md says is refused
-(`ua_diag.py:20-28`). It calls `requests.get` and `curl` directly, not `make_session()`. One more dispatch would repeat
-the probe that risks an "Undeclared Automated Tool" block. It is dispatch-only and has done its job.
-
-**Fix.** Delete `diag.yml`, or drop the refused variants and route through `make_session()`. **Verify.**
-`grep -rn "(+https" scripts .github` returns nothing.
+- `CLAUDE.md:5` names a local path with the Windows account name (R1-2, deferred). The fix is a one-line edit to a
+  relative mention, then deleting the `KNOWN` entry in `tests/test_no_leaks.py`.
+- 43 commits carry a personal email address (R1-16), and the old paths sit in public history (R1-2 item 3). Removing
+  them needs `git filter-repo` and a force push to `main`.
 
 ---
 
 ## Bigger improvements (ranked)
 
-1. **One source of truth for bucket-to-tier.** The analysis reads `crosswalks/fico_buckets.csv` (or `tier_shares`),
-   the dead crosswalk path in `estimate/cards.py` goes, and a test pins analysis mix = crosswalk mix. This removes the
-   whole R1-1 class: two implementations of one rule drifting apart.
-2. **Keep a composition history instead of one snapshot.**
-   - Fetch every 424B per trust since 2019 once (a few dozen documents at 5 requests a second).
-   - Key `cards_composition.csv` by prospectus accession, and step each trust's mix forward from each as-of date.
-   - Back-fill only before the earliest one, and say how many months that is.
-   - This removes most of the 92% look-ahead (R1-7), makes old residuals stable when a trust files a new prospectus,
-     and is the only way the month + trust fixed-effects panel can ever be identified.
-3. **An alert contract for the unattended refresh.** Fail the run on a new parse failure, on a trust whose latest
-   month trails the newest by more than one, or on a composition snapshot older than 18 months. The existing "Run
-   failed" email then carries the signal (R1-3).
-4. **Honest inference with few clusters.** Use a wild cluster bootstrap over deals for every interval on the autos
-   page, and keep the chart but stop drawing intervals that measure only within-deal noise (R1-6).
-5. **A data-defined stress test for cards.** Split months by the pooled 30+ share rather than by named calendar
-   periods, and report the conversion ratio in tight against loose months per trust. This is the version of the
-   "direction" argument the data can carry (R1-4).
-6. **One page shell for every generated page.** Doctype, charset, viewport, nav links, and the last data month in the
-   header, with a test across `docs/*.html` (R1-12). Then check one page at 375 px.
-7. **A leak test on tracked text.** Absolute paths, AppData, OneDrive and non-noreply emails fail `pytest`, because
-   AGENTS.md asks for a manual read before committing agent output and that read has already missed once (R1-2).
-8. **Golden checks for the autos track**, which PLAN section 4 promised: one loan count and one charge-off count per
-   deal, traced to an EX-102 fixture and to the committed parquet.
-
-Status of these after round 1: 1 done in fbbeac8 (the analysis reads the crosswalk; tests pin analysis mix to crosswalk
-mix and committed results to a rebuild). 2 not built: it needs every 424B per trust fetched on a runner and the
-composition parser taught the older layouts; HANDOFF.md carries it as the next step. 3 done in 9847d92, with the
-snapshot-age rule as a warning rather than a failure (Citi has filed no prospectus since March 2025, so failing on age
-would turn every run red with nothing to fix). 4 done in 89a27e4, with months in pool added after the deal-spread
-estimate exposed young-deal effects. 5 done in 4f261d1. 6 done in fc25eca and seen live at 375 px. 7 done in 8d98a73.
-8 done in 2767a8b, as one loan record per deal and two charge-offs rather than counts, because the fixtures are
-300-record cuts of each filing, so no deal-level count can be traced to them.
+1. **Pool-time-adjusted incidence for autos** (R2-1). Report cumulative charge-off from the hazard model with months
+   in pool held at `9+`, or with delayed entry at pool month three. Add a minimum of ten events per cell and a
+   bootstrap interval on every ratio. This replaces the headline that is most likely to be quoted and is now
+   overstated.
+2. **Product-consistent card calibration** (R2-2). Carry each trust's private-label share from its prospectus, add the
+   CFPB private-label series to `ccmr_level.csv`, and calibrate each trust to its own blend. Show Synchrony under all
+   three calibrations until the blend is the default.
+3. **One robustness grid behind every card sentence** (R2-3, R2-4, R2-8). Compute "holds" over shape x straddle rule
+   x product calibration in one place. Have every templated sentence assert its own precondition, and test the
+   wording against adversarial tables.
+4. **Composition history** (round 1 improvement 2, still the main card gap). Back-fill only before each trust's first
+   snapshot; the panel's trust effects may then be identified.
+5. **CI that the bot can always pass** (R2-6). Split repo-hygiene tests from data tests. Add a calendar check that
+   fails when the newest month is more than 50 days older than the run date, which covers every trust stalling at
+   once.
+6. **Theme-aware charts** (R2-5): colours as CSS variables, and a contrast test over `docs/*.html` in both themes.
+7. **An autos freshness test like `test_cards_results.py`.** b1 and b6 rebuild in about 90 seconds and are
+   byte-stable. A code change that is not followed by `absrisk analyze autos` would then fail locally, as it already
+   does for cards.
+8. **Pin the interpreter** (R2-11) so the local and runner builds use one Python.
 
 ---
 
 ## Checked and solid
 
-**Tests.** 252 pass locally (`python -m uv run pytest -o addopts=""`, 169 s, one SingularMatrixWarning from the
-saturated panel test). On the runner, `test_level_rebuild_from_workbooks_matches_committed` skips (the CFPB workbooks
-are not there); it runs and passes locally.
+**Tests.** 333 passed locally, 1 warning (the saturated-panel SingularMatrixWarning), 247 s with BLAS at two
+threads. On the runner, one workbook test skips, as documented.
 
-**Failed runs explained.**
-- 39438090561 (2026-10-20, scheduled): failed on `test_committed_csvs_match_fixtures` comparing Amex's new 2026-07-31
-  prospectus with the 2025 fixture. Fixed by b231d71 and 08fa4bc; the test now passes.
-- 42698996217: failed at setup because `astral-sh/setup-uv@v10` does not exist. Fixed by pinning v10.3.3.
-- 42699120327 log confirms "Cache restored from key: cards-raw-42691131162", 0 fetched, "tables unchanged; pages left
-  as they are", "no changes", "Cache saved with key: cards-raw-42699120327", and no Node 20 warning.
+**Runs.** `gh run list`: no failed run since 42698996217. That one, and 39438090561 (2026-10-20), are the two
+failures round 1 explained; both are fixed and every later run succeeded. Run 42727357720's log, read in full:
+- cache restored from cards-raw-42726294384;
+- 569 filings skipped, 0 fetched;
+- the three known COMET 2019 failures, 561 rows;
+- composition 138 rows, 36 crosswalk rows;
+- "check passed";
+- forced rebuild, both result tests passed, "no changes".
 
-**Dedupe.** The committed `data/cards_monthly.csv` has 561 rows and no duplicate by (trust, period_end) or by (trust,
-calendar month). All five former pairs kept the 10-D/A with `identical: true`. The COMET gap is exactly the three
-documented 2019 failures.
+The caches list `last_accessed_at` within a day.
 
-**Golden checks.** For all six entries, the first occurrence of the label in the fixture text leads to the intended
-printed number (Amex's first hit is the gross line; BofA's first of two hits is the current column), and the committed
-row matches the value.
+**An October refresh, simulated.** Appending an October row per trust and running `analyze cards`, both page builders
+and `cards check` works: "Data through October 2026", 95 months split 47/48, the Citi 19-month warning, "check
+passed".
 
-**Six headline numbers re-derived from raw inputs with code that does not import `absrisk`.**
-- Card residuals: all 24 trust-shape means and ranks match to 0.001 pp (from `mix_by_trust.csv`, `loss_shape.csv`,
-  `ccmr_level.csv`, `cards_monthly.csv`).
-- CFPB level: all 11 CCIP annual means and year-end values in `ccmr_level.csv` read straight from Figure 53 of the
-  2025 workbook.
-- Card stage stress table: amex conversion ratio 1.126 / 1.342 / 1.463 / 1.477, matching `a3_stress.csv`.
-- Autos Aalen-Johansen cells: Exeter 660 at 12 months 5.0644%, Honda 660 0.1021%, Santander 580 at 24 months 13.7399%,
-  Toyota 700 1.2582%, AmeriCredit 620 5.8907%. All exact.
-- Same-bucket gap: 49.6x (range 3.6 to 73.2) over 7 buckets; 37.7x without Exeter.
-- Vintage test: 67 pairs (64 in 2024), median 1.00; the 7 big pairs are 33.7x within against 37.7x pooled. Loan
-  totals 759,808 / 10 deals / 7 lenders.
+**Independent re-derivations from raw inputs** (no `absrisk` import):
+- *Card residuals.* FICO tables parsed with BeautifulSoup from the raw BofA, Chase, Citi, COMET and Synchrony
+  prospectuses (bucket shares equal the committed ones to six decimals). Mapped uniformly in score to the six tiers,
+  unscored dropped. Level from Figures 3, 16 and 53 of the raw 2025 CFPB workbook via openpyxl: rates equal
+  `ccmr_level.csv` to 3.3e-7, tier shares to 7.6e-7. All 24 trust-shape mean residuals equal `a1_ranking.csv` to
+  under 0.00005 points. Amex's 2026 prospectus is not on this machine, so its committed composition rows were used.
+- *Delinquency inputs.* Every July 2026 30+ and 90+ bucket amount for all six trusts was found in the raw 10-D text
+  (Citi's denominator is the sum of current and buckets). The shares equal `cards_monthly.csv` to 5e-9.
+- *Stages and the direction test,* from `cards_monthly.csv`. Amex 0.370 / 0.288 / 1.387, entry share 1.254; largest
+  difference from `a3_by_trust.csv` 5e-11. Tight minus loose: Amex -0.099, Citi +0.090, BofA, Chase and COMET flat.
+- *Autos.* The loan count in one month's raw EX-102 equals the loans the parquet shows present that month, for six
+  deals: 72,469; 46,343; 78,455; 36,112; 52,812; 55,323. Capital One's 223 charge-offs and CarMax 2026-2's 37 equal
+  the raw `zeroBalanceCode` 4 counts. Every 12-month AJ cell in 660-799 was reproduced exactly; the same-bucket gap
+  is 49.6x, and 37.7x without Exeter or on the past-850 lenders.
 
-**RD.** 0 of 14 robust intervals clear zero at the optimal bandwidth, as stated.
+**Rebuilds.** Autos b1 (eight tables), b6 (five tables) and b2 (`b2_hazard_ratios.csv`, `b2_lender_intervals.csv`,
+`b2_fit.json`; 7 minutes on two threads) rebuilt from the committed parquet into a scratch folder are byte-identical
+to the committed files. b2x and the RD stages were not rebuilt.
 
-**Rebuild branch** (unverified on a runner per HANDOFF). On an exported copy of HEAD, `analyze cards`, `report cards`
-and `report conclusions` rebuild `docs/cards.html` and `docs/conclusions.html` byte-identical. `a2_panel.csv` differs
-only by 1e-15 float noise and the summary only by its timestamp. CSV writers emit CRLF on both platforms and the index
-matches, so a Linux runner creates no line-ending churn.
+**Live pages.** All four return 200 and equal `docs/` after newline normalisation. Cards and autos at 375 px: standards
+mode, `scrollWidth` 375, nothing overflowing outside table scrollers.
 
-**Live pages.** All four pages on samueljwebber.github.io/abs-risk return 200 and match `docs/` after line-ending
-normalisation.
+**Leaks and secrets.** The round-1 path grep finds only the deferred CLAUDE.md line. The diffs since 6a18549 have no
+token, key or private-key pattern. Every commit since 6a18549 uses a noreply address.
 
-**EDGAR etiquette.** `make_session()` waits 0.2 s between requests (5 a second), retries 429/5xx with backoff, and
-sends `abs-risk/<version> <contact>`. The full fetch in 42691131162 took 27 minutes for 569 filings, under 2 requests
-a second. `scripts/scout/edgar_scout.py` uses `make_session()`. Tests never touch the network.
+**Input handling.** EX-102 is parsed with lxml 6.1.3 `iterparse`, which since lxml 5 does not resolve external
+entities. HTML is parsed with BeautifulSoup. There is no pickle, `eval` or `shell=True`, and `git show` runs with a
+list argv.
 
-**Secrets and unsafe input.**
-- No tokens, keys or private keys in any of the 64 commits.
-- `yaml.safe_load` only; no pickle, eval or `shell=True` in `src/`.
-- The upload artifact holds only filings and manifests, with no User-Agent or contact.
+**EDGAR etiquette.** `make_session()` is unchanged: `abs-risk/<version> <contact>`, 0.2 s between requests, retries
+honouring Retry-After. Tests never touch the network.
