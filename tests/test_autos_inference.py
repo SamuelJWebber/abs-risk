@@ -147,3 +147,17 @@ def test_committed_entry_roll_tables_carry_the_skipped_share():
     assert att.loc["capone", "co_without_30_share"] > 0.5 and not bool(att.loc["capone", "split_holds"])
     others = att.drop(index="capone")
     assert (others["co_without_30_share"] < 0.1).all()
+
+
+def test_terms_without_one_lender_drops_it_and_keeps_the_others(tmp_path):
+    pytest.importorskip("statsmodels")
+    from absrisk.estimate import run_autos
+    from tests.test_estimate import make_loans
+
+    loans = pd.concat([make_loans(n=8000, seed=s, lender=l).assign(deal=f"{l}-1") for s, l in ((1, "exeter"), (2, "a"), (3, "b"))],
+                      ignore_index=True)
+    t = run_autos.run_b2_without(loans, tmp_path)
+    assert t is not None and (tmp_path / "b2_terms_without_exeter.csv").exists()
+    lenders = set(t.loc[t["factor"] == "lender", "level"]) | set(t["baseline_lender"])
+    assert lenders == {"a", "b"}
+    assert run_autos.run_b2_without(loans[loans["lender"] != "exeter"], tmp_path / "none") is None

@@ -429,6 +429,6 @@
   "raw": "loan age and months in pool only: the gap as it appears in the data, composition included",
   "score": "adds the bureau score bucket: same score, different lender",
   "terms": "adds origination quarter, loan amount, payment-to-income and loan-to-value quintiles: same score and same loan structure",
-  "price": "adds the lender's own APR quintile. APR is set by the lender from its private view of the borrower, so it is a mediator of lender differences, not a confounder; conditioning on it answers a narrower question and absorbs most of the score gradient. Reported for that reason, not as the preferred specification."
+  "price": "adds the lender's own APR quintile. APR is set by the lender from its private view of the borrower, so it is a mediator of lender differences, not a confounder; conditioning on it answers a narrower question and absorbs part of the score gradient (about a quarter of what remains after loan structure). Reported for that reason, not as the preferred specification."
  }
 }

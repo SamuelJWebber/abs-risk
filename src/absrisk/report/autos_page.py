@@ -444,6 +444,41 @@ def _terms_forest(hr: pd.DataFrame, baseline: dict, li: pd.DataFrame | None = No
               "with t(9) critical values.</p>")
 
 
+def _without_exeter(results: Path, hr: pd.DataFrame) -> str:
+    """The terms specification without Exeter, whose score is VantageScore, next to the full one (HANDOFF open item)."""
+    p = results / "b2_terms_without_exeter.csv"
+    if not p.exists():
+        return ""
+    x = pd.read_csv(p)
+    full = hr[(hr["spec"] == "terms") & (hr["event"] == "chargeoff")]
+
+    def top(d, f):
+        s = d[d["factor"] == f]
+        return s.sort_values("level").iloc[-1] if not s.empty else None
+    parts = []
+    for f, name in (("amount_q", "loan amount"), ("pti_q", "payment-to-income"), ("ltv_q", "loan-to-value")):
+        a, b = top(full, f), top(x, f)
+        if a is not None and b is not None:
+            parts.append(f"{name} {b['odds_ratio']:.2f} (all lenders {a['odds_ratio']:.2f})")
+    lx = x[x["factor"] == "lender"].set_index("level")["odds_ratio"]
+    lf = full[full["factor"] == "lender"].set_index("level")["odds_ratio"]
+    both = [k for k in lx.index if k in lf.index]
+    lend = ", ".join(f"{k} {lx[k]:.2f} ({lf[k]:.2f})" for k in sorted(both, key=lambda k: lx[k]))
+    ratios = {k: lx[k] / lf[k] for k in both}
+    for f in ("amount_q", "pti_q", "ltv_q"):
+        a, b = top(full, f), top(x, f)
+        if a is not None and b is not None:
+            ratios[f] = b["odds_ratio"] / a["odds_ratio"]
+    worst = max(ratios, key=lambda k: abs(np.log(ratios[k]))) if ratios else None
+    verdict = ("" if worst is None else
+               f" The largest move is {worst} by a factor of {ratios[worst]:.2f}"
+               + (", so the one lender on a different score scale does not drive these estimates." if abs(np.log(ratios[worst])) < np.log(1.25)
+                  else ", so leaving out the lender on a different score scale matters for that estimate."))
+    return (f"<p class='muted'>Without Exeter, whose score is VantageScore rather than FICO, the terms specification gives, "
+            f"top quintile against bottom: {escape('; '.join(parts))}. Lenders against "
+            f"{escape(str(x['baseline_lender'].iloc[0]))}, with all lenders in brackets: {escape(lend)}.{escape(verdict)}</p>")
+
+
 def _bandwidth_section(bw: pd.DataFrame | None) -> list[str]:
     """TASKS B5 bandwidth sensitivity: the charge-off effect at 0.5-2x the MSE-optimal bandwidth, usable cutoffs."""
     if bw is None or bw.empty:
@@ -542,6 +577,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
              "conditioning on it answers the narrower question of whether two lenders who priced a borrower the same then see the "
              "same losses. Read <b>terms</b> as the main result and <b>price</b> as a decomposition.</p>")
     h.append(_terms_forest(hr, fit.get("baseline", {}), li))
+    h.append(_without_exeter(results, hr))
     for factor, title in (("lender", "Lender, charge-off"), ("amount_q", "Loan amount quintile, charge-off"), ("pti_q", "Payment-to-income quintile, charge-off"),
                           ("ltv_q", "Loan-to-value quintile, charge-off"), ("apr_q", "APR quintile, charge-off"),
                           ("score_b", "Score bucket, charge-off")):

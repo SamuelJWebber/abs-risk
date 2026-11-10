@@ -7,6 +7,7 @@ Outputs (all CSV unless noted):
   b2_hazard_ratios.csv       odds ratios by factor level for charge-off and prepay, with and without controls; clustered
                              intervals with t(G-1) critical values; levels with no events blanked
   b2_lender_intervals.csv    terms-specification lender odds ratios with intervals that include the deal-to-deal spread
+  b2_terms_without_exeter.csv  the terms specification refitted without Exeter, whose score is VantageScore (stage b2x)
   b2_fit.json                fit metadata (cells, exposure, columns, deal-shock estimates)
   b3_cutoffs.csv             candidate pricing cutoffs per lender (APR and amount jumps)
   b3_rd.csv                  density test, first stage and outcome RD at each flagged cutoff
@@ -193,10 +194,43 @@ def run_b2(loans: pd.DataFrame, out: Path):
         "terms": "adds origination quarter, loan amount, payment-to-income and loan-to-value quintiles: same score and same loan structure",
         "price": "adds the lender's own APR quintile. APR is set by the lender from its private view of the borrower, so it is a"
                  " mediator of lender differences, not a confounder; conditioning on it answers a narrower question and absorbs"
-                 " most of the score gradient. Reported for that reason, not as the preferred specification.",
+                 " part of the score gradient (about a quarter of what remains after loan structure). Reported for that reason,"
+                 " not as the preferred specification.",
     }
     pd.concat(rows, ignore_index=True).to_csv(out / "b2_hazard_ratios.csv", index=False)
     (out / "b2_fit.json").write_text(json.dumps(meta, indent=1, default=str))
+
+
+def run_b2_without(loans: pd.DataFrame, out: Path, lender: str = "exeter") -> pd.DataFrame | None:
+    """The terms specification refitted without one lender: by default Exeter, whose "Consumer Credit Bureau" score is
+    VantageScore for 98.9% of its pool, so its score buckets are not the FICO buckets the others share. Design
+    columns (quintile edges, merged levels) come from the full sample so the two fits compare like with like.
+    Writes b2_terms_without_<lender>.csv: charge-off odds ratios for the lenders and the three structure measures."""
+    if lender not in set(loans["lender"]):
+        return None
+    df = hazard.add_design_columns(loans)
+    df = df[df["lender"] != lender]
+    keep = [k for k in ["deal", "lender", "score_b", "cohort_q", "amount_q", "pti_q", "ltv_q"] if k in df]
+    lm = hazard.expand_loan_months(df, keep=keep)
+    structure = [k for k in ("amount_q", "pti_q", "ltv_q") if k in df]
+    pool = ["pool_b"] if survival.ages(df)["entry_age"].nunique() > 1 else []
+    factors = ["age_b", *pool, "score_b", "lender", "cohort_q"] + structure
+    baseline = {"score_b": "660", "age_b": "7-9", "pool_b": "9+", "lender": str(df["lender"].value_counts().idxmax()),
+                "amount_q": "0", "pti_q": "0", "ltv_q": "0", "cohort_q": str(df["cohort_q"].value_counts().idxmax())}
+    cells = hazard.aggregate_cells(lm, cells=[f for f in factors if f not in ("age_b", "pool_b")] + ["deal"])
+    res = hazard.fit_hazards(cells, factors=factors, cluster="deal", baseline=baseline)
+    rows = []
+    for f in ["lender", *structure]:
+        ev = cells.groupby(f, observed=True)["d_chargeoff"].sum().to_dict()
+        hr = hazard.hazard_ratios(res["chargeoff"], f, t_df=res["design_info"].get("t_df"),
+                                  events={str(k): v for k, v in ev.items()})
+        hr.insert(0, "factor", f)
+        rows.append(hr)
+    t = pd.concat(rows, ignore_index=True)
+    t.insert(0, "without", lender)
+    t["baseline_lender"] = baseline["lender"]
+    t.to_csv(out / f"b2_terms_without_{lender}.csv", index=False)
+    return t
 
 
 def run_b6(loans: pd.DataFrame, out: Path):
@@ -278,7 +312,7 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="absrisk analyze autos")
     ap.add_argument("--in", dest="in_dir", default="data/autos")
     ap.add_argument("--out", default="data/results/autos")
-    ap.add_argument("--skip", default="", help="comma list of stages to skip: b1,b1c,b2,b3,b3bw,b6")
+    ap.add_argument("--skip", default="", help="comma list of stages to skip: b1,b1c,b2,b2x,b3,b3bw,b6")
     a = ap.parse_args(argv)
     warnings.filterwarnings("ignore")
     out = Path(a.out)
@@ -292,6 +326,8 @@ def main(argv: list[str]) -> int:
         run_b1_cohort(loans, out)
     if "b2" not in skip:
         run_b2(loans, out)
+    if "b2x" not in skip:
+        run_b2_without(loans, out)
     if "b3" not in skip:
         run_b3(loans, out)
     if "b3bw" not in skip:
