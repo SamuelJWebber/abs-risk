@@ -1,3 +1,46 @@
+# Independent Fable review, 2026-11-10 (not a pipeline round)
+
+An outside check of what was pushed on 2026-11-09, by a different model from the one that built and
+reviewed it: first-line reviewers attacked the work and compared it with other people's, then a
+second reviewer tried to refute each HIGH and MEDIUM finding. Only the verified result is below.
+Full reports, with commands and sources: `reviews/fable-2026-11-10/` (`abs-V.md` is the verification;
+the others are the first-line reports, including claims the verifier narrowed or rejected).
+**Nothing here has been implemented.** Mark each row Fixed / Rejected / Deferred as it is handled.
+
+## Verdict table
+
+| Finding | Their severity | Verdict | Your severity | Corrected one-line statement |
+|---|---|---|---|---|
+| abs-A-1 Santander buy-backs | HIGH | UPHELD | HIGH (narrow) | Santander buys back loans that never or barely paid, at 120-150 days late, in their 4th to 6th month in the pool; the code counts them as harmless exits. Counting them as defaults raises Santander's 12-month cells by 28% to 49%, its 24-month deep-subprime figure from 15.1% to 16.8%, the "without Exeter" check from 9 to 13 times and the bucket range from 9-17 to 12-22. The headline median 16 does not move, and lender odds ratios move by about a tenth, not a third. |
+| abs-A-2 card conversion above its ceiling | HIGH | UPHELD | HIGH | Same fact as abs-B-2. Over 93 months Chase charged off 1.21 times the dollars sitting in its 150-179 day bucket a month earlier, and Amex 1.4 to 1.5 times its oldest cohort, so at least 17% (Chase) and about 30% (Amex) of charge-offs never aged through late delinquency. A conversion ratio above 1 is not evidence about rescue. |
+| abs-A-3 "16" is a knife edge | MEDIUM | WEAKENED | MEDIUM | The knife edge is real (13 with an 11-event floor, 8 with 10-point buckets, bootstrap centre 12.6 to 13.3, the published 15.6 at the 81st-90th percentile of its own bootstrap) but it cuts both ways (17 with 25-point buckets, 16.6 at 18 months under the page's own rule). "4.5 at two years" is one pair with CarMax underneath; the same bucket against Honda is 10.5. What does fall with loan age is the ratio for a fixed pair: 10-12 in year one, 5-7 in year two. |
+| abs-A-4 "12-month" covers 2 to 7 months | MEDIUM | UPHELD | MEDIUM | Capital One is at risk only at ages 11-12, Toyota 9-12, Honda 6-12; unobserved ages count as zero hazard (`survival.py:119`). The cells are printed in the same column as Exeter's ages 3-12. Headline unaffected. |
+| abs-A-5 scores not comparable | MEDIUM | UPHELD | MEDIUM | Every quoted passage is on disk and says what abs-A says. Size of the CarMax filter cannot be measured without the CarMax Select files. |
+| abs-A-6 Honda/Toyota roll is not "close" | MEDIUM | UPHELD | MEDIUM | Honda's roll ratio is below 1 in all 10 of its buckets (0.54 to 0.92), Toyota's in 5 of 8. "Mostly entry" stands; "no sign after trouble" is true of CarMax only. |
+| abs-B-1 Citi column is net | HIGH | UPHELD | HIGH | 63 of 63 comparable months (Jan 2020 to Mar 2025) equal the prospectus's monthly net-loss table to 0.01 point. Gross is 1.21 to 1.47 times net by year, so Citi's residual rank moves from 5 to between 2 and 4 and it no longer "converts least". |
+| abs-B-2 conversion is not rescue; policies are stated | HIGH | UPHELD | HIGH | As abs-A-2. The four prospectus policy quotes are verbatim on disk; "which the filings do not state" is false. |
+| abs-B-3 same score, different loan | MEDIUM | WEAKENED | MEDIUM | Curated shelves: confirmed in the prospectuses. But "9 without one score-selected pool" is a cell-size artefact (the 700 cell drops under 1,500 loans; allowed, the median is 14.1 and Exeter 2025-1 alone is 5.67% there), and "3 to 7 matched" is low: pooled over strata it is 6 to 10 in year one and about 4 in year two. |
+| abs-B-4 loan size "settled" | MEDIUM | WEAKENED | LOW | Klee and Shin's figures are quoted correctly and agree in sign. Adams-Einav-Levin does not "run the other way": a bigger loan to the same buyer raises payment and loan-to-value, which the page also says raise default. What stands: the word "settled" and the sentence about "a bigger line", which no data here observes. |
+
+Counts: 7 UPHELD, 3 WEAKENED, 0 REFUTED, 0 UNVERIFIABLE as whole findings. Parts I could not verify are listed
+under each finding and at the end. LOW findings not re-checked except abs-B-5, which is right (the cached Exeter
+prospectus names 2025-2, 2025-3, 2025-4 and 2025-5 and stars those four in its static pool tables).
+
+## Fix first
+
+1. Relabel Citi's series as net and compare all six card trusts on the net rate (five already carry it), then
+   rewrite the three sentences that name Citi.
+2. Take "rules out", "selection, on every level comparison" and "which the filings do not state" off the cards,
+   conclusions and landing pages, and say instead that low-loss trusts have far fewer delinquent balances and that
+   public data cannot say whether their late accounts are rescued more or less often.
+3. Count a repurchase of a loan that was 90 or more days late as a default beside the trust-loss figure, and replace
+   the "median 16 times" sentence with: "At the same 20-point score, loans in Exeter's and Santander's public pools
+   defaulted about 12 to 13 times as often as loans in CarMax's in their first year and 5 to 7 times as often in
+   their second (8 to 10 and about 4 with loan-to-value, payment burden, term and new or used also matched)."
+   On the page's current charge-off definition the same sentence reads 10 to 12, then 6 to 10.
+
+---
+
 # Review round 2 (2026-11-09)
 
 Adversarial review of `main` at `1086ee6`, after round 1 was implemented (fixes fbbeac8 through 1086ee6). Round 1
