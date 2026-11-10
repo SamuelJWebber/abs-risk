@@ -220,19 +220,27 @@ def main(argv: list[str]) -> int:
         st = cards_roll.stages(monthly, a.rate)
         st.to_csv(out / "a3_stages.csv", index=False)
         bt = cards_roll.by_trust(st)
-        bt.to_csv(out / "a3_by_trust.csv", index=False)
-        cards_roll.stress_test(st, STRESS_PERIODS).to_csv(out / "a3_stress.csv", index=False)
-        cards_roll.regimes(st).to_csv(out / "a3_regimes.csv", index=False)
+        # Geometric means go through log and exp, whose last bit differs between the Windows and Linux maths
+        # libraries; twelve significant digits keep a rebuild on the runner from rewriting every number (seen on run
+        # 42724889951). Plain arithmetic tables (a1_*, a3_stages) are identical across platforms and keep full precision.
+        bt.to_csv(out / "a3_by_trust.csv", index=False, float_format="%.12g")
+        cards_roll.stress_test(st, STRESS_PERIODS).to_csv(out / "a3_stress.csv", index=False, float_format="%.12g")
+        cards_roll.regimes(st).to_csv(out / "a3_regimes.csv", index=False, float_format="%.12g")
     except Exception as e:  # noqa: BLE001
         (out / "a3_stages.csv").write_text(f"not computed: {e}\n")
 
     mm = monthly_mix(mix, monthly)
     try:
         fits, tidy = cards_est.panel_regression(monthly.assign(period_end=pd.to_datetime(monthly["period_end"])), mm, rate_col=a.rate)
-        # ten significant digits: the saturated fit is exact up to the solver, and solver noise in the last digits
-        # should not turn an unchanged rebuild into a diff
-        tidy.to_csv(out / "a2_panel.csv", index=False, float_format="%.10g")
-        (out / "a2_panel_summary.txt").write_text(_undated("\n\n".join(f"== {k} ==\n{v.summary()}" for k, v in fits.items())))
+        # six significant digits: the saturated fit is exact only up to the solver, and its p-values near 1e-50 move in
+        # the tenth digit between platforms
+        tidy.to_csv(out / "a2_panel.csv", index=False, float_format="%.6g")
+        status = tidy.drop_duplicates("spec").set_index("spec")["status"].to_dict() if not tidy.empty else {}
+        (out / "a2_panel_summary.txt").write_text(_undated("\n\n".join(
+            f"== {k} ==\n" + (f"not identified: {tidy.loc[tidy['spec'] == k, 'note'].iloc[0]}. The solver still returns "
+                              f"numbers for a rank-deficient design, and they differ by platform; none is printed."
+                              if status.get(k) == "not identified" else str(v.summary()))
+            for k, v in fits.items())))
     except Exception as e:  # noqa: BLE001
         (out / "a2_panel.csv").write_text(f"not estimated: {e}\n")
     print(f"wrote {out}: {len(pred)} trust-month-shape rows, {mix['trust'].nunique() if not mix.empty else 0} trusts with a mix", file=sys.stderr)
