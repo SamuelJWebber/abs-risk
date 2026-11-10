@@ -40,6 +40,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v10.3.3   # no floating major tag is published for v10
+        with:
+          python-version: "3.12"           # the interpreter local builds use (.python-version; REVIEW.md R2-11)
       - run: uv sync
       - name: Restore raw filings cache
         uses: actions/cache@v6
@@ -49,7 +51,10 @@ jobs:
           restore-keys: |
             cards-raw-
       - name: Tests
-        run: uv run pytest -q
+        # commit-metadata checks run on people's pushes instead (hygiene.yml): a bad address in history cannot be
+        # repaired by this job, so it must not stop the refresh (REVIEW.md R2-6). Slow autos re-derivations are
+        # skipped too: autos results never change here.
+        run: uv run pytest -q -m "not repo_hygiene and not slow"
       - name: Keep the committed parse-failure log for the alert check
         run: git show HEAD:data/cards_parse_failures.csv > "$RUNNER_TEMP/failures_before.csv" || true
       - name: Fetch 10-D filings and prospectuses

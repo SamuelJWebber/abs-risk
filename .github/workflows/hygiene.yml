@@ -1,0 +1,32 @@
+name: hygiene
+
+# Repository hygiene on every push by a person: no local paths, home paths or personal email addresses in tracked
+# text, and none in commit metadata since review round 1. Kept apart from cards-refresh on purpose (REVIEW.md R2-6):
+# a commit's metadata can only be repaired by rewriting public history, so it must not gate the scheduled data
+# refresh, which runs `pytest -m "not repo_hygiene"`. Pushes made by the refresh itself use GITHUB_TOKEN, and GitHub
+# starts no workflow for those, so this runs only for people's pushes.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.3.3   # no floating major tag is published for v10
+        with:
+          python-version: "3.12"
+      - run: uv sync
+      - name: Commit metadata since review round 1
+        run: uv run pytest -q -m repo_hygiene
+      - name: Local paths and personal addresses in tracked text
+        run: uv run pytest -q tests/test_no_leaks.py -m "not repo_hygiene"
