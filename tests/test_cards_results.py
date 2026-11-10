@@ -48,3 +48,42 @@ def test_committed_card_table_matches_a_rebuild(rebuilt, name):
 
 def test_every_rebuilt_table_is_committed(rebuilt):
     assert sorted(p.name for p in rebuilt.glob("*.csv")) == sorted(p.name for p in RESULTS.glob("*.csv"))
+
+
+def _run_into(out: Path) -> int:
+    return run_cards.main(["--monthly", str(REPO / "data" / "cards_monthly.csv"),
+                           "--composition", str(REPO / "data" / "cards_composition.csv"),
+                           "--crosswalk", str(REPO / "crosswalks" / "fico_buckets.csv"), "--out", str(out)])
+
+
+def test_a_failed_stage_step_leaves_no_stale_table_and_fails_the_run(tmp_path, monkeypatch):
+    """REVIEW.md R2-9: the stage step's exception left last run's a3_by_trust, a3_stress and a3_regimes in place, and
+    both pages published them beside a new month's data while the run stayed green."""
+    from absrisk.estimate import cards_roll
+
+    for n in run_cards.A3_OUTPUTS:
+        (tmp_path / n).write_text("trust,stale\nx,1\n")
+
+    def boom(*a, **k):
+        raise RuntimeError("regimes broke")
+
+    monkeypatch.setattr(cards_roll, "regimes", boom)
+    assert _run_into(tmp_path) == 1
+    assert (tmp_path / "a3_stages.csv").read_text().startswith("not computed: regimes broke")
+    for n in ("a3_by_trust.csv", "a3_stress.csv", "a3_regimes.csv"):
+        assert not (tmp_path / n).exists(), n
+    assert (tmp_path / "a1_ranking.csv").exists() and (tmp_path / "a2_panel.csv").exists()
+
+
+def test_a_failed_panel_step_leaves_no_stale_summary(tmp_path, monkeypatch):
+    from absrisk.estimate import cards as cards_est
+
+    (tmp_path / "a2_panel_summary.txt").write_text("stale summary")
+
+    def boom(*a, **k):
+        raise RuntimeError("panel broke")
+
+    monkeypatch.setattr(cards_est, "panel_regression", boom)
+    assert _run_into(tmp_path) == 1
+    assert not (tmp_path / "a2_panel_summary.txt").exists()
+    assert (tmp_path / "a2_panel.csv").read_text().startswith("not estimated: panel broke")

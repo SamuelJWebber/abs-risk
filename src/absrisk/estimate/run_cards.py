@@ -188,7 +188,21 @@ def monthly_mix(mix: pd.DataFrame, monthly: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=["trust", "period_end", *TIERS])
 
 
+A1_OUTPUTS = ("a1_ranking.csv", "a1_straddle.csv")
+A3_OUTPUTS = ("a3_stages.csv", "a3_by_trust.csv", "a3_stress.csv", "a3_regimes.csv")
+A2_OUTPUTS = ("a2_panel.csv", "a2_panel_summary.txt")
+
+
+def _clear(out: Path, names) -> None:
+    """Remove a step's outputs before it runs, so a step that fails leaves no table from an earlier run for the pages
+    to publish as if it were current (REVIEW.md R2-9)."""
+    for n in names:
+        (out / n).unlink(missing_ok=True)
+
+
 def main(argv: list[str]) -> int:
+    """Returns 1 when the stage or panel step failed: its outputs are then a one-line 'not computed' note, never last
+    run's tables, and the refresh workflow stops before committing anything."""
     import argparse
 
     ap = argparse.ArgumentParser(prog="absrisk analyze cards")
@@ -206,16 +220,19 @@ def main(argv: list[str]) -> int:
     composition = pd.read_csv(a.composition)
     crosswalk = pd.read_csv(a.crosswalk)
     shapes, level = default_shapes(), load_level()
+    failed: list[str] = []
     mix = mix_by_trust(composition, crosswalk)
     mix.to_csv(out / "mix_by_trust.csv", index=False)
     pred = predicted(monthly, mix, shapes, level, a.series, a.rate)
     pred.to_csv(out / "a1_predicted.csv", index=False)
+    _clear(out, A1_OUTPUTS)
     if not pred.empty:
         ranking(pred).to_csv(out / "a1_ranking.csv", index=False)
         straddle_sensitivity(monthly, composition, crosswalk, shapes, level, a.series, a.rate).to_csv(
             out / "a1_straddle.csv", index=False)
     # A3: the loss rate factors exactly into entry x progression x conversion; where a trust's advantage sits
     # separates "its accounts rarely get into trouble" from "its accounts survive trouble".
+    _clear(out, A3_OUTPUTS)
     try:
         st = cards_roll.stages(monthly, a.rate)
         st.to_csv(out / "a3_stages.csv", index=False)
@@ -228,9 +245,12 @@ def main(argv: list[str]) -> int:
         cards_roll.stress_test(st, STRESS_PERIODS).round(10).to_csv(out / "a3_stress.csv", index=False, float_format="%.12g")
         cards_roll.regimes(st).round(10).to_csv(out / "a3_regimes.csv", index=False, float_format="%.12g")
     except Exception as e:  # noqa: BLE001
+        _clear(out, A3_OUTPUTS)
         (out / "a3_stages.csv").write_text(f"not computed: {e}\n")
+        failed.append(f"stages: {e}")
 
     mm = monthly_mix(mix, monthly)
+    _clear(out, A2_OUTPUTS)
     try:
         fits, tidy = cards_est.panel_regression(monthly.assign(period_end=pd.to_datetime(monthly["period_end"])), mm, rate_col=a.rate)
         # six significant digits: the saturated fit is exact only up to the solver, and its p-values near 1e-50 move in
@@ -243,6 +263,10 @@ def main(argv: list[str]) -> int:
                               if status.get(k) == "not identified" else str(v.summary()))
             for k, v in fits.items())))
     except Exception as e:  # noqa: BLE001
+        _clear(out, A2_OUTPUTS)
         (out / "a2_panel.csv").write_text(f"not estimated: {e}\n")
+        failed.append(f"panel: {e}")
     print(f"wrote {out}: {len(pred)} trust-month-shape rows, {mix['trust'].nunique() if not mix.empty else 0} trusts with a mix", file=sys.stderr)
-    return 0
+    for f in failed:
+        print(f"FAILED {f}", file=sys.stderr)
+    return 1 if failed else 0
