@@ -41,8 +41,24 @@ prepayment, repurchase and disappearance as competing exits; the Kaplan-Meier cu
 is always higher. Both are published. The gap between them is the prepayment effect, and it is large for the
 captives, whose borrowers refinance and trade in faster.
 
+**Pool window (added 2026-11-10, REVIEW.md R2-1).** A loan has to be current to be sold into a trust, so in its first
+months there it can hardly charge off: the hazard model (section 2) puts months 0-2 in the pool at 0.12 times a
+seasoned loan's charge-off odds and months 3-5 at 0.66. Delayed entry at the first month in the trust therefore
+counted months in which a loan cannot fail, and for lenders whose loans enter old (median age at entry 10 at Honda,
+13 at Toyota and Capital One, against 3 at Exeter and Santander) most of the first year in the data is such months.
+Every b1 table now counts a loan from its fourth month in the trust (`survival.POOL_OFFSET` = 3); a loan that leaves
+earlier never enters a risk set. Months 3-5 still run at about two thirds of the seasoned hazard, so this is a lower
+bound on the correction; from the seventh month the headline median moves from 16 to 11, from the first it is 13.
+
 **Uncertainty.** 95 percent percentile bootstrap over loans, 200 resamples. It is not clustered, so it understates
-uncertainty where a cell is one deal (which is most cells at the extremes of score).
+uncertainty where a cell is one deal (which is most cells at the extremes of score). The lender ratios on the page
+(`lender_gap.py`, `b1_gap.csv`) carry their own interval: 500 resamples of loans within each lender, with the usable
+cells and the cells allowed to divide fixed on the data. A cell needs ten charge-offs by the horizon before it can be
+the lower end of a ratio. Until 2026-11-10 every one of the seven headline ratios divided by a cell with one to three
+charge-offs, and the lowest of several noisy small cells is biased low; the page printed 50 times. With the rule and
+the pool window the median is 16 times (95% interval 10 to 19) over five buckets from 660 to 759, CarMax is the
+lower end in all five, and Honda, Toyota and Capital One sit lower still in some buckets on fewer than ten
+charge-offs. None of these intervals carries deal-to-deal luck.
 
 **Survivor selection.** A seasoned loan is in a pool because it survived to the cutoff, and lenders differ in how
 they select loans into deals. The fresh-entrant cut (first seen within six months of origination) is published
@@ -50,20 +66,24 @@ next to the full table for that reason. Where they agree, seasoning is not drivi
 
 **Vintage (added 2026-11-09).** Each lender's public pools hold one or two origination years, and vintages differ
 across the industry, so a pooled lender gap could be a vintage gap. The test compares the same two lenders in the
-same 20-point bucket inside one origination year against their pooled ratio (`pair_ratios`, page section 2). If
-vintage drove the gap, the within-year ratio would sit nearer one. Result: a median 1.00 of the pooled ratio over
-67 pairs (64 in the 2024 vintage, 3 in 2025; no other year has two lenders in one usable bucket); the seven pairs more
-than ten times apart pooled are 34 times apart inside 2024 against 38 pooled. The one pair that moves is Exeter
-against AmeriCredit at 620 (1.9 within 2024 against 3.8 pooled), because AmeriCredit's pool is the 2023 vintage.
+same 20-point bucket inside one origination year against their pooled ratio (`lender_gap.pair_ratios`, page section
+2). If vintage drove the gap, the within-year ratio would sit nearer one. Result since 2026-11-10, with the pool
+window and the lower lender needing ten charge-offs both inside the year and pooled: a median 0.93 of the pooled
+ratio (95% interval 0.90 to 1.02) over 29 pairs. Before the rule it was 1.00 over 67 pairs, most of which divided by
+a handful of charge-offs.
 
 **Score scale.** Exeter's "Consumer Credit Bureau" score is VantageScore for 98.9% of its pool (its 424B5,
 design/scout-autos.md section 8); every other lender reports a bureau score that is FICO where it says which. A 700
 there and a 700 at Honda are close but not the same number. The headline same-bucket ratio is therefore also
-reported without Exeter: a median 38 times across seven buckets, against 50 with it. Exeter is not the only scale
-issue (REVIEW.md R1-8): Toyota, Honda, CarMax, Capital One and Santander report scores above 850 (12.7%, 11.6%,
-7.3%, 2.5% and 0.6% of loans), which only the 250-900 auto-industry FICO scale allows, while AmeriCredit tops out at
-854 and Exeter at 845. Restricted to those five, the median is again 38 times over the same seven buckets: the one
-lender off that scale besides Exeter is never the highest or the lowest in them.
+reported without Exeter: a median 9 times (95% interval 8 to 15) across five buckets, against 16 with it, which is
+outside the main interval because Exeter is the highest lender in the 660, 680 and 700 buckets. Part of the headline
+gap is a comparison across score scales, and the page says so. Exeter is not the only scale issue (REVIEW.md R1-8):
+Toyota, Honda, CarMax, Capital One and Santander report scores above 850 (12.7%, 11.6%, 7.3%, 2.5% and 0.6% of
+loans), which only the 250-900 auto-industry FICO scale allows, while AmeriCredit tops out at 854 and Exeter at 845.
+Restricted to those five, the median is again 9 times over the same buckets: the one lender off that scale besides
+Exeter is never the highest or the lowest lender with enough charge-offs in them. Against the score gradient inside
+one lender (about 9 times in monthly odds, 500-599 against 760-839) the lender gap is therefore about as large, not
+larger, and the page's heading says "about as much as" from those intervals (`autos_page.gap_verb`).
 
 ## 2. The hazard ladder (Track B)
 

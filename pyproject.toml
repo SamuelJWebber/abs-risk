@@ -36,3 +36,7 @@ packages = ["src/absrisk"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "slow: rebuilds or re-derives results from the committed loan data; the card refresh skips these",
+    "repo_hygiene: checks commit metadata, which the scheduled refresh cannot repair; runs locally and on pushes",
+]

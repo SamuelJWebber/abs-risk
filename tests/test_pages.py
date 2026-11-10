@@ -84,3 +84,92 @@ def test_cards_page_text_agrees_with_its_tables():
     assert f"2. The {words[n]} loss-by-tier shapes" in t
     assert "no single ordering is reported as a finding" not in t     # the headline reports the extremes as a finding
     assert "Since when" in t                                            # the scope sentence promises it
+
+
+# ----------------------------------------------------------------------------- charts in both themes (REVIEW.md R2-5)
+
+MARK = re.compile(r"<(polyline|rect|circle|line)\b([^>]*)>")
+
+
+def _theme_vars(html: str) -> dict[str, dict[str, str]]:
+    """The CSS custom properties of each theme: light from `:root{...}`, dark from both dark scopes, which must agree."""
+    css = html[html.index("<style>"):html.index("</style>")]
+    parse = lambda block: dict(re.findall(r"--([\w-]+):([^;}]+)", block))   # noqa: E731
+    light = parse(re.search(r":root\{([^}]*)\}", css).group(1))
+    media = parse(re.search(r":root:not\(\[data-theme=\"light\"\]\)\{([^}]*)\}", css).group(1))
+    toggle = parse(re.search(r":root\[data-theme=\"dark\"\]\{([^}]*)\}", css).group(1))
+    assert media == toggle, "the prefers-color-scheme block and the data-theme block define different dark colours"
+    return {"light": light, "dark": {**light, **toggle}}
+
+
+def _hex_luminance(c: str) -> float:
+    c = c.strip().lstrip("#")
+    if len(c) == 3:
+        c = "".join(x * 2 for x in c)
+    rgb = [int(c[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    lin = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in rgb]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((_hex_luminance(a), _hex_luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def _resolve(colour: str, theme: dict[str, str]) -> str:
+    colour = colour.strip()
+    if colour == "currentColor":
+        return theme["fg"]
+    m = re.fullmatch(r"var\(--([\w-]+)\)", colour)
+    return theme[m.group(1)].strip() if m else colour
+
+
+def chart_colours(html: str) -> list[str]:
+    """Every stroke and fill colour on a data mark (gridlines, class 'grid', are meant to recede and are skipped)."""
+    out = []
+    for _, attrs in MARK.findall(html):
+        if "class='grid'" in attrs:
+            continue
+        for prop in ("stroke", "fill"):
+            for v in re.findall(rf"\b{prop}='([^']+)'", attrs) + re.findall(rf"{prop}:([^;']+)", attrs):
+                if v.strip() not in ("none", "transparent"):
+                    out.append(v)
+    return out
+
+
+def test_contrast_helper_matches_the_review_measurement():
+    assert contrast("#1d1d1b", "#1d1f25") == pytest.approx(1.03, abs=0.01)    # the invisible "actual" line
+    assert contrast("#000000", "#ffffff") == pytest.approx(21.0)
+
+
+@pytest.mark.parametrize("name", GENERATED)
+def test_every_chart_mark_clears_3_to_1_against_the_card_in_both_themes(name):
+    h = (DOCS / name).read_text(encoding="utf-8")
+    themes = _theme_vars(h)
+    colours = chart_colours(h)
+    if name != "conclusions.html":
+        assert colours, name
+    bad = sorted({(c, t, round(contrast(_resolve(c, v), v["card"]), 2)) for c in colours for t, v in themes.items()
+                  if contrast(_resolve(c, v), v["card"]) < 3.0})
+    assert not bad, f"{name}: chart colours under 3:1 against the chart card: {bad}"
+
+
+def test_the_cards_actual_line_is_drawn_in_the_text_colour():
+    h = (DOCS / "cards.html").read_text(encoding="utf-8")
+    actual = re.findall(r"<polyline[^>]*style='stroke:([^']+)'[^>]*><title>actual</title>", h)
+    assert actual and set(actual) == {"var(--fg)"}
+
+
+@pytest.mark.parametrize("name", GENERATED)
+def test_axis_ticks_are_round_numbers(name):
+    ticks = re.findall(r"text-anchor='middle' class='tick'>([^<]*)<", (DOCS / name).read_text(encoding="utf-8"))
+    assert not [t for t in ticks if re.search(r"\.\d{3,}", t)], name                  # 11.6375 months, before R2-5
+
+
+def test_nice_ticks():
+    from absrisk.report.svg import nice_ticks
+
+    assert nice_ticks(0, 36) == [0, 5, 10, 15, 20, 25, 30, 35]
+    assert nice_ticks(2019.0, 2026.75) == [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+    assert nice_ticks(480, 840) == [500, 550, 600, 650, 700, 750, 800]
+    assert nice_ticks(3, 3) == [3]

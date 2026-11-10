@@ -11,7 +11,8 @@ import pandas as pd
 import pytest
 
 from absrisk.estimate import rd, run_autos
-from absrisk.report.autos_page import bandwidth_stability, bucket_ratios, usable_cells
+from absrisk.estimate.lender_gap import bucket_ratios, usable_cells
+from absrisk.report.autos_page import bandwidth_stability
 from absrisk.report.svg import forest_chart
 from tests.test_estimate import make_loans
 
@@ -64,7 +65,7 @@ def test_bandwidth_stability_needs_every_bandwidth_clear_of_zero():
 
 def _cells(rows):
     df = pd.DataFrame(rows, columns=["orig_year", "lender", "score_b", "aj_chargeoff"])
-    df["n_loans"], df["at_risk"] = 5000, 1000
+    df["n_loans"], df["at_risk"], df["cum_chargeoff"] = 5000, 1000, 50
     return usable_cells(df)
 
 
@@ -83,11 +84,13 @@ def test_bucket_ratios_compare_only_inside_one_bucket_and_year():
 
 def test_bucket_ratio_over_a_zero_rate_is_not_a_number():
     cells = _cells([(2024, "x", "700", 0.01), (2024, "y", "700", 0.0), (2024, "z", "700", 0.002)])
-    assert np.isnan(bucket_ratios(cells)["ratio"].iloc[0])
+    assert np.isnan(bucket_ratios(cells, min_events=0)["ratio"].iloc[0])
+    cells.loc[cells["lender"] == "y", "cum_chargeoff"] = 0          # a zero rate has no events: never the lower end
+    assert bucket_ratios(cells)["ratio"].iloc[0] == pytest.approx(5.0)
 
 
 def test_pair_ratios_compare_the_same_two_lenders_inside_and_across_vintages():
-    from absrisk.report.autos_page import pair_ratios
+    from absrisk.estimate.lender_gap import pair_ratios
 
     pooled = _cells([(0, "x", "700", 0.040), (0, "y", "700", 0.004), (0, "z", "700", 0.0)])
     within = _cells([(2024, "x", "700", 0.030), (2024, "y", "700", 0.006), (2024, "z", "700", 0.001)])

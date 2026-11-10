@@ -2,8 +2,12 @@
 
 Outputs (all CSV unless noted):
   loans_summary.csv          per deal: N, first/last period, exit_type shares, score coverage, PTI unit rule
-  b1_cif.csv                 cumulative incidence by lender x score bucket x age (AJ and KM), with N
+  b1_cif.csv                 cumulative incidence by lender x score bucket x age (AJ and KM), with N; every b1 table
+                             counts a loan from its fourth month in the trust (survival.POOL_OFFSET, REVIEW.md R2-1)
   b1_at_12.csv, b1_at_24.csv the 12- and 24-month cuts
+  b1_at_12_fresh.csv, b1_at_24_fresh.csv   the same for loans first seen within six months of origination
+  b1_gap.csv                 every lender ratio the page prints, with intervals from resampling loans within lender
+                             (estimate/lender_gap.py)
   b2_hazard_ratios.csv       odds ratios by factor level for charge-off and prepay, with and without controls; clustered
                              intervals with t(G-1) critical values; levels with no events blanked
   b2_lender_intervals.csv    terms-specification lender odds ratios with intervals that include the deal-to-deal spread
@@ -27,7 +31,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import decompose, hazard, rd, survival
+from . import decompose, hazard, lender_gap, rd, survival
 
 # securitization floors and cliffs that are selection, not pricing (design/scout-autos.md §6, §11)
 KNOWN_SELECTION_CUTOFFS = {"carmax": {650}, "toyota": {620}, "exeter": {640}, "americredit": {640}}
@@ -71,23 +75,31 @@ def summarize(loans: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def run_b1(loans: pd.DataFrame, out: Path, n_boot: int = 200):
+def run_b1(loans: pd.DataFrame, out: Path, n_boot: int = 200, pool_offset: int = survival.POOL_OFFSET,
+           gap_boot: int = lender_gap.N_BOOT):
+    """Cumulative incidence by lender and score bucket, every cut counting a loan from `pool_offset` months after it
+    entered its trust (REVIEW.md R2-1), and b1_gap.csv, the lender ratios the page prints with their intervals."""
     df = loans.copy()
     df["score_b"] = survival.score_bucket(df["score"])
-    cif = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36, n_boot=n_boot)
+    cif = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36, n_boot=n_boot, pool_offset=pool_offset)
     cif.to_csv(out / "b1_cif.csv", index=False)
     survival.incidence_at(cif, ["lender", "score_b"], 12).to_csv(out / "b1_at_12.csv", index=False)
     survival.incidence_at(cif, ["lender", "score_b"], 24).to_csv(out / "b1_at_24.csv", index=False)
-    by_lender = survival.cumulative_incidence(df, by=["lender"], horizon=36, n_boot=n_boot)
+    by_lender = survival.cumulative_incidence(df, by=["lender"], horizon=36, n_boot=n_boot, pool_offset=pool_offset)
     by_lender.to_csv(out / "b1_cif_by_lender.csv", index=False)
     # fresh-entrant cut: loans first observed within six months of origination
-    fresh = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36, n_boot=n_boot, max_entry_age=6)
+    fresh = survival.cumulative_incidence(df, by=["lender", "score_b"], horizon=36, n_boot=n_boot, max_entry_age=6,
+                                          pool_offset=pool_offset)
     fresh.to_csv(out / "b1_cif_fresh.csv", index=False)
+    survival.incidence_at(fresh, ["lender", "score_b"], 12).to_csv(out / "b1_at_12_fresh.csv", index=False)
     survival.incidence_at(fresh, ["lender", "score_b"], 24).to_csv(out / "b1_at_24_fresh.csv", index=False)
+    s900 = lender_gap.scale_900_lenders(summarize(loans))
+    lender_gap.gap_table(loans, s900, pool_offset=pool_offset, n_boot=gap_boot).to_csv(out / "b1_gap.csv", index=False)
     return cif
 
 
-def run_b1_cohort(loans: pd.DataFrame, out: Path, n_boot: int = 200, horizons: tuple[int, ...] = (12, 24)):
+def run_b1_cohort(loans: pd.DataFrame, out: Path, n_boot: int = 200, horizons: tuple[int, ...] = (12, 24),
+                  pool_offset: int = survival.POOL_OFFSET):
     """Same score, same origination year, different lender (TASKS B3: "by origination cohort").
 
     Each lender's public pools hold one or two vintages, and vintages differ industry-wide, so a pooled lender gap
@@ -99,7 +111,7 @@ def run_b1_cohort(loans: pd.DataFrame, out: Path, n_boot: int = 200, horizons: t
     df["score_b"] = survival.score_bucket(df["score"])
     df["orig_year"] = pd.to_datetime(df["orig_month"]).dt.year.astype("Int64")
     by = ["orig_year", "lender", "score_b"]
-    cif = survival.cumulative_incidence(df, by=by, horizon=max(horizons), n_boot=n_boot)
+    cif = survival.cumulative_incidence(df, by=by, horizon=max(horizons), n_boot=n_boot, pool_offset=pool_offset)
     for h in horizons:
         survival.incidence_at(cif, by, h).to_csv(out / f"b1_cohort_at_{h}.csv", index=False)
     return cif

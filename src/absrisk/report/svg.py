@@ -2,13 +2,46 @@
 
 from __future__ import annotations
 
+import math
 from html import escape
 
-PALETTE = ["#1f5fbf", "#d1495b", "#2a9d8f", "#e9a03b", "#7b4fa0", "#4c9f70", "#8a6d3b", "#5c5c5c", "#c2185b", "#00838f"]
+# Series colours are CSS variables with one value per theme (REVIEW.md R2-5: a hard-coded near-black "actual" line had
+# contrast 1.03:1 on the dark chart card). Both sets were checked with the dataviz palette validator against their own
+# card colour: every slot clears 3:1, adjacent slots stay apart under protan and deutan simulation (worst 8.6 light,
+# 8.4 dark, OKLab x100), and normal vision (worst 17.1 and 19.3). tests/test_pages.py re-checks the contrast on the
+# built pages. A series with "color": "fg" is drawn in the text colour, which is right in both themes.
+SERIES_LIGHT = ["#2a78d6", "#d95926", "#12896a", "#a87400", "#c74a7e", "#008300", "#6250d6", "#d13a3a"]
+SERIES_DARK = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+PALETTE = [f"var(--s{i})" for i in range(len(SERIES_LIGHT))]
 
 
-def line_chart(series: list[dict], width=720, height=300, y_label="", x_label="", y_fmt="{:.1%}", title="") -> str:
-    """series: [{"name": str, "x": [...], "y": [...]}]. Axes are auto-scaled; y starts at 0."""
+def _colour(s: dict, i: int) -> str:
+    c = s.get("color")
+    if c == "fg":
+        return "var(--fg)"
+    return c or PALETTE[i % len(PALETTE)]
+
+
+def nice_ticks(lo: float, hi: float, max_ticks: int = 8) -> list[float]:
+    """Round tick values (1, 2, 2.5 or 5 times a power of ten) inside [lo, hi], at most `max_ticks` + 1 of them.
+    The x axis used to print equal fractions of the range, such as 11.6375 months (REVIEW.md R2-5)."""
+    if not (hi > lo):
+        return [lo]
+    raw = (hi - lo) / max_ticks
+    mag = 10 ** math.floor(math.log10(raw))
+    step = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
+    first = math.ceil(lo / step - 1e-9) * step
+    out, v = [], first
+    while v <= hi + 1e-9 * step:
+        out.append(round(v, 10))
+        v += step
+    return out
+
+
+def line_chart(series: list[dict], width=720, height=300, y_label="", x_label="", y_fmt="{:.1%}", title="",
+               x_fmt="{:g}") -> str:
+    """series: [{"name": str, "x": [...], "y": [...], "color": optional "fg" or a CSS colour}]. Axes are auto-scaled;
+    y starts at 0; x ticks are round numbers printed with `x_fmt`."""
     pad_l, pad_r, pad_t, pad_b = 56, 16, 28, 40
     xs = [v for s in series for v in s["x"]]
     ys = [v for s in series for v in s["y"] if v == v]
@@ -32,23 +65,19 @@ def line_chart(series: list[dict], width=720, height=300, y_label="", x_label=""
         yv = y0 + (y1 - y0) * i / 4
         out.append(f"<line x1='{pad_l}' x2='{width - pad_r}' y1='{sy(yv):.1f}' y2='{sy(yv):.1f}' class='grid'/>")
         out.append(f"<text x='{pad_l - 6}' y='{sy(yv) + 4:.1f}' text-anchor='end' class='tick'>{escape(y_fmt.format(yv))}</text>")
-    nx = min(8, int(x1 - x0) or 1)
-    for i in range(nx + 1):
-        xv = x0 + (x1 - x0) * i / nx
-        out.append(f"<text x='{sx(xv):.1f}' y='{height - pad_b + 16}' text-anchor='middle' class='tick'>{xv:g}</text>")
+    for xv in nice_ticks(x0, x1):
+        out.append(f"<text x='{sx(xv):.1f}' y='{height - pad_b + 16}' text-anchor='middle' class='tick'>{escape(x_fmt.format(xv))}</text>")
     if y_label:
         out.append(f"<text transform='rotate(-90)' x='{-(pad_t + ih / 2):.1f}' y='14' text-anchor='middle' class='axis'>{escape(y_label)}</text>")
     if x_label:
         out.append(f"<text x='{pad_l + iw / 2:.1f}' y='{height - 6}' text-anchor='middle' class='axis'>{escape(x_label)}</text>")
     for i, s in enumerate(series):
         pts = " ".join(f"{sx(x):.1f},{sy(y):.1f}" for x, y in zip(s["x"], s["y"]) if y == y)
-        color = s.get("color", PALETTE[i % len(PALETTE)])
-        out.append(f"<polyline fill='none' stroke='{color}' stroke-width='2' points='{pts}'><title>{escape(s['name'])}</title></polyline>")
+        out.append(f"<polyline fill='none' style='stroke:{_colour(s, i)}' stroke-width='2' points='{pts}'><title>{escape(s['name'])}</title></polyline>")
     # legend
     lx, ly = pad_l + 8, pad_t + 8
     for i, s in enumerate(series[:10]):
-        color = s.get("color", PALETTE[i % len(PALETTE)])
-        out.append(f"<rect x='{lx}' y='{ly + i * 16 - 8}' width='12' height='3' fill='{color}'/>")
+        out.append(f"<rect x='{lx}' y='{ly + i * 16 - 8}' width='12' height='3' style='fill:{_colour(s, i)}'/>")
         out.append(f"<text x='{lx + 18}' y='{ly + i * 16 - 3}' class='tick'>{escape(s['name'])}</text>")
     out.append("</svg>")
     return "".join(out)
@@ -59,8 +88,6 @@ def forest_chart(rows: list[dict], width=720, row_h=20, x_label="odds ratio (log
 
     rows: [{"label": str, "est": float, "lo": float, "hi": float, "group": str}]; a change of `group` starts a new
     labelled block. Rows with a non-positive or missing value are skipped."""
-    import math
-
     rows = [r for r in rows if all(r.get(k) == r.get(k) and r.get(k) is not None and r[k] > 0 for k in ("est", "lo", "hi"))]
     if not rows:
         return "<p class='muted'>no data</p>"
@@ -98,8 +125,8 @@ def forest_chart(rows: list[dict], width=720, row_h=20, x_label="odds ratio (log
             continue
         color = PALETTE[0]
         out.append(f"<text x='{pad_l - 8}' y='{y + 4:.1f}' text-anchor='end' class='tick'>{escape(str(r['label']))}</text>")
-        out.append(f"<line x1='{sx(r['lo']):.1f}' x2='{sx(r['hi']):.1f}' y1='{y:.1f}' y2='{y:.1f}' stroke='{color}' stroke-width='2'/>")
-        out.append(f"<circle cx='{sx(r['est']):.1f}' cy='{y:.1f}' r='4' fill='{color}'><title>{escape(str(r['label']))}: "
+        out.append(f"<line x1='{sx(r['lo']):.1f}' x2='{sx(r['hi']):.1f}' y1='{y:.1f}' y2='{y:.1f}' style='stroke:{color}' stroke-width='2'/>")
+        out.append(f"<circle cx='{sx(r['est']):.1f}' cy='{y:.1f}' r='4' style='fill:{color}'><title>{escape(str(r['label']))}: "
                    f"{r['est']:.2f} [{r['lo']:.2f}, {r['hi']:.2f}]</title></circle>")
         out.append(f"<text x='{width - pad_r + 6}' y='{y + 4:.1f}' class='tick'>{r['est']:.2f}</text>")
     out.append("</svg>")
@@ -130,10 +157,12 @@ def table(df, cols=None, fmt=None, max_rows=200) -> str:
     return "".join(h)
 
 
+_S_LIGHT = "".join(f";--s{i}:{c}" for i, c in enumerate(SERIES_LIGHT))
+_S_DARK = "".join(f";--s{i}:{c}" for i, c in enumerate(SERIES_DARK))
 CSS = """
-:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6b66;--line:#e2dfd6;--card:#ffffff;--accent:#1f5fbf}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15161a;--fg:#ececea;--muted:#a0a09a;--line:#2d2f36;--card:#1d1f25}}
-:root[data-theme="dark"]{--bg:#15161a;--fg:#ececea;--muted:#a0a09a;--line:#2d2f36;--card:#1d1f25}
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6b66;--line:#e2dfd6;--card:#ffffff;--accent:#1f5fbf""" + _S_LIGHT + """}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15161a;--fg:#ececea;--muted:#a0a09a;--line:#2d2f36;--card:#1d1f25""" + _S_DARK + """}}
+:root[data-theme="dark"]{--bg:#15161a;--fg:#ececea;--muted:#a0a09a;--line:#2d2f36;--card:#1d1f25""" + _S_DARK + """}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
 main{max-width:1040px;margin:0 auto;padding:24px 20px 60px}
 h1{font-size:26px;margin:0 0 4px}h2{font-size:20px;margin:36px 0 8px;border-top:1px solid var(--line);padding-top:18px}h3{font-size:16px;margin:20px 0 6px}

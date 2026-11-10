@@ -82,6 +82,12 @@ def _straddle_note(results: Path) -> str:
     return "".join(lines)
 
 
+def _year_fraction(t: pd.Series) -> list[float]:
+    """A month-end as a fraction of the calendar: 2019-01-31 is 2019 + 1/12, so whole years fall on round ticks."""
+    t = pd.to_datetime(t)
+    return (t.dt.year + (t.dt.month - 1) / 12 + t.dt.day / t.dt.days_in_month / 12).round(4).tolist()
+
+
 def _sign_by_year(pred: pd.DataFrame) -> pd.DataFrame:
     """Per trust and calendar year: '+' if the mean residual is positive under every shape, '-' if negative under
     every shape, '+/-' if the shapes disagree. This is the page's 'since when'."""
@@ -295,14 +301,15 @@ def build(results: Path, out: Path) -> Path:
     for trust, g in pred.groupby("trust"):
         g = g.copy()
         g["t"] = pd.to_datetime(g["period_end"])
-        x0 = g["t"].min()
         series = []
         a = g[g["shape_source"] == g["shape_source"].iloc[0]].sort_values("t")
-        series.append({"name": "actual", "x": ((a["t"] - x0).dt.days / 30.4).round(1).tolist(), "y": a["actual"].tolist(), "color": "#1d1d1b"})
+        # the text colour, so the actual line shows in both themes (REVIEW.md R2-5)
+        series.append({"name": "actual", "x": _year_fraction(a["t"]), "y": a["actual"].tolist(), "color": "fg"})
         for s, gs in g.groupby("shape_source"):
             gs = gs.sort_values("t")
-            series.append({"name": f"predicted, {s}", "x": ((gs["t"] - x0).dt.days / 30.4).round(1).tolist(), "y": gs["predicted"].tolist()})
-        h.append(line_chart(series, y_label="annualised gross charge-off", x_label=f"months from {x0.date()}", title=trust))
+            series.append({"name": f"predicted, {s}", "x": _year_fraction(gs["t"]), "y": gs["predicted"].tolist()})
+        h.append(line_chart(series, y_label="annualised gross charge-off", x_label="year", title=trust,
+                            x_fmt="{:.0f}"))
     h.append("</div>")
 
     h.append("<h2>4. Ranking by residual, under each shape</h2>")

@@ -11,23 +11,51 @@ import numpy as np
 import pandas as pd
 
 from ..estimate import rd
+from ..estimate.lender_gap import (MIN_AT_RISK, MIN_EVENTS, MIN_LOANS, bucket_ratios, pair_ratios,  # noqa: F401
+                                   scale_900_lenders, usable_cells)
+from ..estimate.survival import POOL_OFFSET
 from .svg import forest_chart, line_chart, page, table
 
-MIN_LOANS = 1500        # loans in the cell
-MIN_AT_RISK = 250       # still under observation at the horizon: a cell can have many loans but few old enough
+ORDINAL = {1: "second", 2: "third", 3: "fourth", 4: "fifth", 5: "sixth", 6: "seventh", 7: "eighth"}
 
 SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole books. A loan enters when the trust "
          "is formed or replenished and leaves when it pays off, is repurchased, or charges off; some sponsors drop "
          "paid-off loans from the file the month after payoff and others keep them, which the exit rule handles. "
-         "Age is months since origination, and a loan counts only from the month it is first seen in the trust. Scores "
-         "are the score type the sponsor reports (FICO at most captives, a bureau score at Santander, VantageScore at "
-         "Exeter for 98.9% of its pool) and are never refreshed after origination, so a 700 at Exeter and a 700 at Honda "
-         "are close but not the same number.")
+         f"Age is months since origination, and a loan counts only from its {ORDINAL.get(POOL_OFFSET, 'first')} month in "
+         "the trust: it had to be current to be sold in, so its first months there can hardly end in a charge-off. "
+         "Scores are the score type the sponsor reports (FICO at most captives, a bureau score at Santander, VantageScore "
+         "at Exeter for 98.9% of its pool) and are never refreshed after origination, so a 700 at Exeter and a 700 at "
+         "Honda are close but not the same number.")
 
 KIND = ("<b>What kind of claim each section makes.</b> Sections 2, 3 and 5 are descriptive: who defaults, at which "
         "lender, holding what fixed. Controls narrow a comparison, they do not make it causal, because a lender's "
         "borrowers differ in ways no field in the filing records. Section 4 is the only design here that could carry a "
         "causal sentence, and only at a cutoff that passes its screens.")
+
+
+def _pool_window_note(hr: pd.DataFrame, summary: pd.DataFrame | None) -> str:
+    """Why every b1 table counts a loan from its fourth month in the trust (REVIEW.md R2-1), from the hazard table's
+    months-in-pool odds ratios and each deal's median age at entry."""
+    p = hr[(hr["spec"] == "terms") & (hr["event"] == "chargeoff") & (hr["factor"] == "pool_b")].set_index("level")
+    odds = ""
+    if {"0-2", "3-5"} <= set(p.index):
+        odds = (f": in the hazard model of section 3 the charge-off odds in a loan's first three months in the pool are "
+                f"{p.loc['0-2', 'odds_ratio']:.2f} times a seasoned loan's, and in months 3 to 5 still "
+                f"{p.loc['3-5', 'odds_ratio']:.2f} times")
+    ages = ""
+    if summary is not None and not summary.empty and "entry_age_median" in summary:
+        by = summary.groupby("lender")["entry_age_median"].agg(["min", "max"]).sort_values("max")
+        part = [f"{k} {int(r['min'])}" + (f" and {int(r['max'])}" if r["max"] != r["min"] else "")
+                for k, r in by.iterrows()]
+        ages = (f" A lender whose loans enter old spends much of its first year in the data inside that window. Median age "
+                f"at entry, in months, one figure per deal: {escape(_join(part))}.")
+    return (f"<p><b>The pool window.</b> A loan has to be current to be sold into a trust, so in its first months there it "
+            f"can hardly charge off{odds}.{ages} So every curve and table in this section, and every lender ratio in the "
+            f"summary above, counts a loan only from its {ORDINAL.get(POOL_OFFSET, 'first')} month in the trust; a loan that "
+            f"leaves before then is not counted. That "
+            f"removes most of the window; months 3 to 5 remain, so lenders whose loans enter old still look somewhat safer here "
+            f"than they would if every loan were followed from origination. Until November 2026 the page counted loans from "
+            f"their first month in the trust.</p>")
 
 
 def _interpret_decomposition(att: pd.DataFrame) -> str:
@@ -79,13 +107,6 @@ def _skipped_sentence(results: Path) -> str:
     return escape(s) + "."
 
 
-def usable_cells(at: pd.DataFrame) -> pd.DataFrame:
-    """Cells with enough loans and enough of them still under observation at the horizon."""
-    a = at[(at["score_b"].astype(str) != "none") & (at["n_loans"] >= MIN_LOANS) & (at["at_risk"] >= MIN_AT_RISK)].copy()
-    a["lo"] = a["score_b"].astype(int)
-    return a
-
-
 def _cif_chart(cif: pd.DataFrame, lender: str, buckets: list[str], measure: str) -> str:
     series = []
     for b in buckets:
@@ -116,47 +137,6 @@ def _score_gradient(hr: pd.DataFrame, spec: str) -> float:
     return lowb / highb if highb and highb == highb else float("nan")
 
 
-def bucket_ratios(cells: pd.DataFrame, lo: int = 660, hi: int = 780, min_lenders: int = 3,
-                  by: tuple[str, ...] = ()) -> pd.DataFrame:
-    """Inside each score bucket (and each `by` group), highest over lowest charge-off across lenders.
-
-    `cells` are usable cells at one horizon. Only buckets where at least `min_lenders` lenders have a cell count, so
-    every ratio is a comparison at one score. Columns: by..., lo, n_lenders, worst, best, ratio."""
-    c = cells[(cells["lo"] >= lo) & (cells["lo"] <= hi)]
-    rows = []
-    for keys, g in c.groupby(list(by) + ["lo"]):
-        if g["lender"].nunique() < min_lenders:
-            continue
-        keys = keys if isinstance(keys, tuple) else (keys,)
-        w, b = g.loc[g["aj_chargeoff"].idxmax()], g.loc[g["aj_chargeoff"].idxmin()]
-        rows.append({**dict(zip(list(by) + ["lo"], keys)), "n_lenders": g["lender"].nunique(), "worst": w["lender"],
-                     "best": b["lender"], "worst_rate": w["aj_chargeoff"], "best_rate": b["aj_chargeoff"],
-                     "ratio": w["aj_chargeoff"] / b["aj_chargeoff"] if b["aj_chargeoff"] > 0 else np.nan})
-    return pd.DataFrame(rows)
-
-
-def pair_ratios(cohort_cells: pd.DataFrame, pooled_cells: pd.DataFrame) -> pd.DataFrame:
-    """Same two lenders, same score bucket: their charge-off ratio inside one origination year against the pooled one.
-
-    If a pooled lender gap were a vintage gap, the ratio inside a single year would sit nearer 1 than the pooled
-    ratio. Both inputs are usable cells at one horizon; pairs whose lower rate is zero in either table are skipped,
-    because a ratio over zero is not a number. Columns: orig_year, lo, higher, lower, within, pooled, within_over_pooled.
-    """
-    import itertools
-
-    pooled = {(r.lender, r.lo): r.aj_chargeoff for r in pooled_cells.itertuples()}
-    rows = []
-    for (year, lo), g in cohort_cells.groupby(["orig_year", "lo"]):
-        rates = dict(zip(g["lender"], g["aj_chargeoff"]))
-        for a, b in itertools.permutations(rates, 2):
-            pa, pb = pooled.get((a, lo)), pooled.get((b, lo))
-            if not (rates[a] > rates[b] > 0) or pa is None or not pb:
-                continue
-            rows.append({"orig_year": year, "lo": lo, "higher": a, "lower": b, "within": rates[a] / rates[b],
-                         "pooled": pa / pb, "within_over_pooled": (rates[a] / rates[b]) / (pa / pb)})
-    return pd.DataFrame(rows)
-
-
 def bandwidth_stability(bw: pd.DataFrame) -> pd.DataFrame:
     """Per (lender, cutoff, horizon): does the robust interval exclude zero, with one sign, at every bandwidth?"""
     if bw is None or bw.empty:
@@ -172,17 +152,6 @@ def bandwidth_stability(bw: pd.DataFrame) -> pd.DataFrame:
                      "p_main": main["p_robust"], "est_min": g["estimate"].min(), "est_max": g["estimate"].max(),
                      "holds": bool(pos or neg)})
     return pd.DataFrame(rows)
-
-
-def scale_900_lenders(summary: pd.DataFrame | None) -> list[str]:
-    """Lenders whose reported scores run past 850: the 250-900 auto-industry FICO scale (FICO Auto Score). A lender on
-    the 300-850 scale cannot report a 900, so these are the lenders that can be compared on one scale (R1-8)."""
-    if summary is None or summary.empty or "score_above_850_share" not in summary:
-        return []
-    # at least one loan in a thousand above 850: a handful of 851-854 scores (AmeriCredit's) is noise, not a scale
-    w = summary.assign(above=summary["score_above_850_share"] * summary["n_loans"]).groupby("lender")[["above", "n_loans"]].sum()
-    share = w["above"] / w["n_loans"]
-    return sorted(share[share >= 0.001].index)
 
 
 def _lender_interval_sentence(li: pd.DataFrame | None, baseline: dict | None, fit: dict | None) -> str:
@@ -212,79 +181,128 @@ def _lender_interval_sentence(li: pd.DataFrame | None, baseline: dict | None, fi
     return "".join(parts)
 
 
-def _headlines(at12: pd.DataFrame, at24: pd.DataFrame, hr: pd.DataFrame, rdres: pd.DataFrame,
-               cohort12: pd.DataFrame | None = None, baseline: dict | None = None,
+def _iv(r, fmt: str = "{:.0f}") -> str:
+    """'(95% interval a to b)' for a row of b1_gap.csv, or '' when it has none."""
+    lo, hi = r.get("lo95"), r.get("hi95")
+    if lo is None or hi is None or lo != lo or hi != hi:
+        return ""
+    return f"(95% interval {fmt.format(lo)} to {fmt.format(hi)})"
+
+
+def _join(xs: list[str]) -> str:
+    xs = list(xs)
+    return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1] if xs else ""
+
+
+def gap_verb(main: dict, without_exeter: dict | None, gradient: float) -> str:
+    """How the same-bucket lender gap compares with the score gradient inside one lender, said only as strongly as
+    the intervals allow: 'more than' needs both the main median's interval and the median without Exeter (whose
+    score is on another scale) clear above the gradient; 'less than' needs the main interval wholly below it."""
+    lo, hi = main.get("lo95", np.nan), main.get("hi95", np.nan)
+    if gradient != gradient or lo != lo or hi != hi:
+        return "a great deal, beside"
+    nx_lo = (without_exeter or {}).get("lo95", np.nan)
+    if lo > gradient and (without_exeter is None or (nx_lo == nx_lo and nx_lo > gradient)):
+        return "more than"
+    if hi < gradient:
+        return "less than"
+    return "about as much as"
+
+
+def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | None) -> list[str]:
+    """The same-score lender comparison, every ratio with its interval, from b1_gap.csv (REVIEW.md R2-1)."""
+    out = []
+    g = gap.copy()
+    for name, h, *_ in (("480-639", 24),):
+        band = g[(g["stat"] == "band") & (g["variant"] == name)]
+        lv = g[(g["stat"] == "band_level") & (g["variant"] == name)].sort_values("rate", ascending=False)
+        if band.empty or len(lv) < 2:
+            continue
+        b = band.iloc[0]
+        bk = [int(x) for x in str(b["buckets"]).split(",") if x and x != "nan"]
+        span = f"{bk[0]} to {bk[-1] + 19}" if bk else name.replace("-", " to ")
+        levels = ", ".join(f"{r.lender} {r.rate:.1%}" for r in lv.itertuples())
+        ratio = (f"Highest against lowest: {b['ratio']:.1f} times {_iv(b, '{:.1f}')}." if b["ratio"] == b["ratio"]
+                 else "No second lender there has ten charge-offs, so no ratio is given.")
+        out.append(f"<b>Deep in subprime, scores {span}.</b> Charge-off by {h} months, averaged over the buckets every "
+                   f"subprime lender has there: {escape(levels)}. {ratio} Cells need at least {MIN_LOANS:,} loans and "
+                   f"{MIN_AT_RISK} still under observation at {h} months.")
+    med = g[(g["stat"] == "median") & (g["variant"] == "all")]
+    buckets = g[(g["stat"] == "bucket") & (g["variant"] == "all")]
+    if med.empty or med.iloc[0]["ratio"] != med.iloc[0]["ratio"]:
+        return out
+    m = med.iloc[0].to_dict()
+    rated = buckets.dropna(subset=["ratio"])
+    pick = rated.loc[rated["n"].idxmax()]
+    g_s = _score_gradient(hr, "score")
+    nx = g[(g["stat"] == "median") & (g["variant"] == "without_exeter")]
+    nxd = nx.iloc[0].to_dict() if not nx.empty else None
+    verb = gap_verb(m, nxd, g_s)
+    lo_b, hi_b = int(rated["lo"].min()), int(rated["lo"].max()) + 19
+    thin = sorted({t for v in rated["thin"].fillna("") for t in str(v).split(",") if t})
+    thin_s = (f" In some of these buckets {escape(_join(thin))} sit{'s' if len(thin) == 1 else ''} lower still, on fewer than "
+              f"{MIN_EVENTS} charge-offs each by twelve months, which is too few to divide by." if thin else "")
+    dropped = buckets[buckets["ratio"].isna()]
+    drop_s = (f" The {_join([f'{int(x)}' for x in dropped['lo']])} bucket{'s have' if len(dropped) > 1 else ' has'} three "
+              f"lenders but no second one with {MIN_EVENTS} charge-offs, so no ratio." if len(dropped) else "")
+    within = (f" Inside a single lender, moving a borrower from scores 500-599 to 760-839 moves the monthly odds by about "
+              f"{g_s:.0f} times (section 3, score specification)." if g_s == g_s else "")
+    checks = []
+    if nxd is not None and nxd["ratio"] == nxd["ratio"]:
+        ex_top = buckets[buckets["worst"] == "exeter"]["lo"].astype(int).tolist()
+        moved = not (m["lo95"] <= nxd["ratio"] <= m["hi95"])
+        checks.append(f"without Exeter, whose score is VantageScore rather than FICO, the median is {nxd['ratio']:.0f} times "
+                      f"{_iv(nxd)} across {int(nxd['n'])} buckets"
+                      + (f", outside the interval above: Exeter is the highest lender in the "
+                         f"{_join([str(x) for x in ex_top])} bucket{'s' if len(ex_top) > 1 else ''}, so part of the gap is "
+                         f"a comparison across score scales" if moved and ex_top else ""))
+    s9 = g[(g["stat"] == "median") & (g["variant"] == "scale_900")]
+    s900 = scale_900_lenders(summary)
+    if not s9.empty and s9.iloc[0]["ratio"] == s9.iloc[0]["ratio"] and s900:
+        s9d = s9.iloc[0].to_dict()
+        b9 = g[(g["stat"] == "bucket") & (g["variant"] == "scale_900")].dropna(subset=["ratio"]).sort_values("lo")
+        bx = g[(g["stat"] == "bucket") & (g["variant"] == "without_exeter")].dropna(subset=["ratio"]).sort_values("lo")
+        identical = len(b9) == len(bx) and len(b9) and np.allclose(b9["ratio"].to_numpy(), bx["ratio"].to_numpy())
+        others = sorted(set(summary["lender"]) - set(s900)) if summary is not None else []
+        checks.append(f"keeping only the {len(s900)} lenders whose scores run past 850, the 250-900 auto-industry scale "
+                      f"({escape(', '.join(s900))}), the median is {s9d['ratio']:.0f} times {_iv(s9d)}"
+                      + (f"; {escape(' and '.join(others))} top out at 850 or just above, and the result is the same as "
+                         f"without Exeter alone, because the other lender off that scale is never the highest or the lowest "
+                         f"lender with enough charge-offs" if identical and others else ""))
+    pr = g[(g["stat"] == "pairs") & (g["variant"] == "vintage")]
+    if not pr.empty and pr.iloc[0]["ratio"] == pr.iloc[0]["ratio"]:
+        p = pr.iloc[0].to_dict()
+        checks.append(f"comparing the same two lenders in the same bucket inside a single origination year, the ratio is "
+                      f"{p['ratio']:.2f} of the pooled one {_iv(p, '{:.2f}')}, median over {int(p['n'])} pairs (section 2)")
+    off = g[g["stat"] == "offset"].set_index("variant")
+    pool_s = ""
+    if "pool_offset_0" in off.index and off.loc["pool_offset_0", "ratio"] == off.loc["pool_offset_0", "ratio"]:
+        o0 = off.loc["pool_offset_0"]
+        o6 = off.loc["pool_offset_6"] if "pool_offset_6" in off.index else None
+        pool_s = (f" Counting each loan from its first month in the trust instead, as this page did until November 2026, the "
+                  f"median under the same rule is {o0['ratio']:.0f} times"
+                  + (f", and from its seventh month {o6['ratio']:.0f}" if o6 is not None and o6["ratio"] == o6["ratio"] else "")
+                  + ". The page then printed 50 times, because every one of its ratios divided by a cell with one to three "
+                    "charge-offs.")
+    out.append(f"<b>Who lends matters {verb} what the score says.</b> Comparing lenders inside one 20-point bucket at a time, "
+               f"across the {int(m['n'])} buckets from {lo_b} to {hi_b} where at least three lenders overlap and a second lender "
+               f"has {MIN_EVENTS} or more charge-offs by twelve months, the highest one-year charge-off rate is a median "
+               f"{m['ratio']:.0f} times the lowest {_iv(m)}; the bucket ratios run from {m['range_lo']:.0f} to "
+               f"{m['range_hi']:.0f}. In the {int(pick['lo'])} to {int(pick['lo']) + 19} bucket that is {escape(str(pick['worst']))} "
+               f"at {pick['worst_rate']:.2%} against {escape(str(pick['best']))} at {pick['best_rate']:.2%}.{thin_s}{drop_s}"
+               f"{within}{pool_s}"
+               + (" Checks: " + "; ".join(checks) + "." if checks else "")
+               + " The intervals resample loans within each lender, so they carry no deal-to-deal luck, which section 3 "
+                 "measures separately. The lender a borrower ends up at is not recorded in any credit file. This is a "
+                 "description of who defaults where, not an effect of the lender.")
+    return out
+
+
+def _headlines(gap: pd.DataFrame | None, hr: pd.DataFrame, rdres: pd.DataFrame, baseline: dict | None = None,
                bw: pd.DataFrame | None = None, summary: pd.DataFrame | None = None,
                li: pd.DataFrame | None = None, fit: dict | None = None) -> list[str]:
     """Sentences computed from the result tables, so the page never claims more than the numbers."""
-    out = []
-    for at, horizon, lo_, hi_, label in ((at24, 24, 480, 620, "Deep in subprime, scores 480 to 639"),
-                                         (at12, 12, 700, 760, "Where subprime and prime lenders overlap, scores 700 to 779")):
-        band = usable_cells(at)
-        band = band[(band["lo"] >= lo_) & (band["lo"] <= hi_)]
-        if band["lender"].nunique() < 2:
-            continue
-        m = band.groupby("lender")["aj_chargeoff"].mean().sort_values(ascending=False)
-        parts = ", ".join(f"{k} {v:.2%}" for k, v in m.items())
-        out.append(f"<b>{label}.</b> Charge-off by {horizon} months, averaged over the buckets each lender has: {parts}. "
-                   f"Highest against lowest, at the same bureau score: {m.iloc[0] / max(m.iloc[-1], 1e-9):.0f} times. "
-                   f"Cells need at least {MIN_LOANS:,} loans and {MIN_AT_RISK} still under observation at {horizon} months.")
-    # one score bucket at a time, so the comparison is genuinely at the same score
-    ratios = bucket_ratios(usable_cells(at12))
-    if not ratios.empty:
-        pick = ratios.loc[ratios["n_lenders"].idxmax()]
-        g_s = _score_gradient(hr, "score")
-        within = (f"Inside a single lender, moving a borrower from scores 500-599 to 760-839 moves the monthly odds by about "
-                  f"{g_s:.0f} times (section 3, score specification). " if g_s == g_s else "")
-        nx = bucket_ratios(usable_cells(at12[at12["lender"] != "exeter"]))
-        robust, meds, names = [], [], []
-        ok = []
-        if not nx.empty:
-            names.append("Exeter's VantageScore")
-            meds.append(nx["ratio"].median())
-            ok.append(meds[-1] >= 3)
-            robust.append(f"leaving out Exeter, whose score is VantageScore rather than FICO, the median is {meds[-1]:.0f} "
-                          f"times across {len(nx)} buckets (range {nx['ratio'].min():.0f} to {nx['ratio'].max():.0f})")
-        s900 = scale_900_lenders(summary)
-        if len(s900) >= 3:
-            same = bucket_ratios(usable_cells(at12[at12["lender"].isin(s900)]))
-            if not same.empty:
-                names.append("mixed score scales")
-                ok.append(same["ratio"].median() >= 3)
-                identical = (not nx.empty and len(same) == len(nx)
-                             and np.allclose(same.sort_values("lo")["ratio"], nx.sort_values("lo")["ratio"]))
-                others = sorted(set(at12["lender"]) - set(s900))
-                robust.append(f"keeping only the {len(s900)} lenders whose scores run past 850, the 250-900 auto-industry scale "
-                              f"({escape(', '.join(s900))}), so that every comparison is on one scale, the median is "
-                              f"{same['ratio'].median():.0f} times across {len(same)} buckets (range {same['ratio'].min():.0f} to "
-                              f"{same['ratio'].max():.0f}); {escape(' and '.join(others))} top out at 850 or just above"
-                              + (", and in these buckets the result is the same as leaving out Exeter alone, because the other "
-                                 "lender off that scale is never the highest or the lowest" if identical else ""))
-        if cohort12 is not None and not cohort12.empty:
-            pr = pair_ratios(usable_cells(cohort12), usable_cells(at12))
-            if not pr.empty:
-                names.append("vintage")
-                shrink = float(np.exp(np.log(pr["within_over_pooled"]).median()))
-                big = pr[pr["pooled"] >= 10]
-                ok.append(shrink >= 0.5)
-                tail_big = (f"; the {len(big)} pairs more than ten times apart pooled are {big['within'].median():.0f} times apart "
-                            f"inside the year against {big['pooled'].median():.0f} pooled" if len(big) else "")
-                robust.append(f"comparing the same two lenders in the same bucket inside a single origination year, the ratio is "
-                              f"{shrink:.2f} of the pooled one (median over {len(pr)} pairs{tail_big}; section 2)")
-        if robust:
-            what = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
-            lead = (f"It survives the obvious objection{'s' if len(names) > 1 else ''} ({what}): " if all(ok) else
-                    f"Checking {what} moves it: ")
-            rob = lead + "; ".join(robust) + ". "
-        else:
-            rob = ""
-        out.append(f"<b>Who lends matters more than what the score says.</b> Comparing lenders inside one 20-point bucket at a time, "
-                   f"across the {len(ratios)} buckets from 660 to 799 where at least three lenders overlap, the highest one-year "
-                   f"charge-off rate is {ratios['ratio'].median():.0f} times the lowest (range {ratios['ratio'].min():.0f} to "
-                   f"{ratios['ratio'].max():.0f}). In the {int(pick['lo'])} to {int(pick['lo']) + 19} bucket that is {pick['worst']} at "
-                   f"{pick['worst_rate']:.2%} against {pick['best']} at {pick['best_rate']:.2%}. {rob}{within}The lender a borrower "
-                   f"ends up at is not a small effect beside that, and no credit file records it. This is a description of who "
-                   f"defaults where, not an effect of the lender.")
+    out = _gap_sentences(gap, hr, summary) if gap is not None and not gap.empty else []
     L = hr[(hr["factor"] == "lender") & (hr["event"] == "chargeoff")]
     if not L.empty:
         w = L.pivot_table(index="level", columns="spec", values="odds_ratio")
@@ -389,8 +407,9 @@ def _cohort_section(c12: pd.DataFrame, c24: pd.DataFrame | None, pooled12: pd.Da
             h.append(f"<p>The test: take two lenders that both have a cell in the same bucket inside one origination year, and "
                      f"compare their charge-off ratio there with their ratio when every vintage is pooled. If the pooled gap "
                      f"were a vintage gap, the ratio inside the year would sit nearer one. Over {len(pr)} such pairs the "
-                     f"within-year ratio is a median {shrink:.2f} of the pooled ratio. Pairs where the lower lender has no "
-                     f"charge-offs are left out. Largest pooled gaps first:</p>")
+                     f"within-year ratio is a median {shrink:.2f} of the pooled ratio. A pair counts only when the lower "
+                     f"lender has at least {MIN_EVENTS} charge-offs both inside the year and pooled. Largest pooled gaps "
+                     f"first:</p>")
             h.append(table(pr.sort_values("pooled", ascending=False),
                            cols=["orig_year", "lo", "higher", "lower", "within", "pooled", "within_over_pooled"],
                            fmt={"within": "{:.1f}", "pooled": "{:.1f}", "within_over_pooled": "{:.2f}"}, max_rows=25))
@@ -516,6 +535,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     c12p, c24p = results / "b1_cohort_at_12.csv", results / "b1_cohort_at_24.csv"
     cohort12 = pd.read_csv(c12p) if c12p.exists() else None
     cohort24 = pd.read_csv(c24p) if c24p.exists() else None
+    gap = pd.read_csv(results / "b1_gap.csv") if (results / "b1_gap.csv").exists() else None
 
     h = ["<h1>Auto loans: same score, different lender</h1>"]
     last = pd.Period(str(summary["last_period"].max())[:7])
@@ -523,8 +543,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
              f"{int(summary['n_loans'].sum()):,} loans in {len(summary)} deals from {summary['lender'].nunique()} lenders.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
     h.append("<h2>What the data says</h2>")
-    for line in _headlines(at12, at24, hr, rdres, cohort12=cohort12, baseline=fit.get("baseline"), bw=bw, summary=summary,
-                           li=li, fit=fit):
+    for line in _headlines(gap, hr, rdres, baseline=fit.get("baseline"), bw=bw, summary=summary, li=li, fit=fit):
         h.append(f"<p>{line}</p>")
     h.append(f"<div class='note'>{KIND}</div>")
 
@@ -539,6 +558,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
              "actually observed in the trust. Aalen-Johansen cumulative incidence treats prepayment and repurchase as competing "
              "exits; the Kaplan-Meier version treats them as censoring and is always higher. Buckets are 20 points wide, labelled "
              "by the lower edge; cells with fewer than 500 loans are not drawn. Bands are 95 percent percentile bootstrap over loans.</p>")
+    h.append(_pool_window_note(hr, summary))
     h.append(_lender_at_score_chart(at24))
     buckets = sorted({str(b) for b in cif["score_b"].unique() if str(b) != "none"}, key=lambda s: int(s))
     h.append("<div class='grid2'>")
@@ -554,15 +574,28 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     cols = [c for c in cols if c in piv]
     h.append(table(piv, cols=cols, fmt={"aj_chargeoff_12": "{:.2%}", "aj_chargeoff_24": "{:.2%}", "aj_lo95_24": "{:.2%}", "aj_hi95_24": "{:.2%}",
                                       "km_chargeoff_24": "{:.2%}", "n_loans_12": "{:,.0f}", "at_risk_24": "{:,.0f}"}, max_rows=400))
-    fresh_p = results / "b1_at_24_fresh.csv"
-    if fresh_p.exists():
-        fresh = usable_cells(pd.read_csv(fresh_p))
-        fresh["score_b"] = fresh["score_b"].astype(int)
+    fresh_p, fresh12_p = results / "b1_at_24_fresh.csv", results / "b1_at_12_fresh.csv"
+    if fresh_p.exists() or fresh12_p.exists():
         h.append("<h3>Fresh entrants only (first seen within six months of origination)</h3>")
         h.append("<p>Seasoned loans enter a pool only because they survived to entry, and that survivor selection can differ by "
-                 "lender. This cut drops them. Where it agrees with the table above, seasoning is not driving the comparison.</p>")
-        h.append(table(fresh.sort_values(["lender", "score_b"]), cols=["lender", "score_b", "n_loans", "at_risk", "aj_chargeoff", "aj_lo95", "aj_hi95"],
-                       fmt={"aj_chargeoff": "{:.2%}", "aj_lo95": "{:.2%}", "aj_hi95": "{:.2%}", "n_loans": "{:,.0f}", "at_risk": "{:,.0f}"}, max_rows=400))
+                 "lender. This cut drops them. Where it agrees with the tables above, seasoning is not driving the comparison. "
+                 "It cannot settle the comparison on its own: lenders whose loans enter old have few fresh entrants, so many of "
+                 "their cells fall below the cell rule here.</p>")
+        for p, hz in ((fresh12_p, 12), (fresh_p, 24)):
+            if not p.exists():
+                continue
+            fresh = usable_cells(pd.read_csv(p))
+            if fresh.empty:
+                h.append(f"<p class='muted'>At {hz} months no fresh-entrant cell meets the rule.</p>")
+                continue
+            fresh["score_b"] = fresh["score_b"].astype(int)
+            cols = [c for c in ["lender", "score_b", "n_loans", "at_risk", "cum_chargeoff", "aj_chargeoff", "aj_lo95", "aj_hi95"]
+                    if c in fresh]
+            h.append(f"<p>Charge-off by {hz} months, {fresh['lender'].nunique()} lenders "
+                     f"({escape(', '.join(sorted(fresh['lender'].unique())))}):</p>")
+            h.append(table(fresh.sort_values(["lender", "score_b"]), cols=cols,
+                           fmt={"aj_chargeoff": "{:.2%}", "aj_lo95": "{:.2%}", "aj_hi95": "{:.2%}", "n_loans": "{:,.0f}",
+                                "at_risk": "{:,.0f}", "cum_chargeoff": "{:,.0f}"}, max_rows=400))
 
     if cohort12 is not None and not cohort12.empty:
         h.extend(_cohort_section(cohort12, cohort24, at12))
