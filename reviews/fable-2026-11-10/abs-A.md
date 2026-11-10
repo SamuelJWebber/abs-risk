@@ -2,11 +2,11 @@
 
 Snapshot `f45e9fe27bcba60b5a48bd3cfa18cf69827e4f10` (GitHub `main`, committed 2026-11-09 20:39 -0500), reviewed 2026-11-10.
 
-What I ran. All scripts and their saved outputs are in `C:\Users\samwe\code\.codex-temp\adversarial-2026-11-10\work\abs-A\`
+What I ran. All scripts and their saved outputs are in `<review-scratch>/work\abs-A\`
 (`sNN_*.py` -> `out_sNN.txt`). They read the committed `data/autos/*.parquet` and `data/cards_monthly.csv` with my own
 clock and Aalen-Johansen code (`mylib.py`, no `absrisk` import). To re-run one:
 `cd work\abs-A; $env:PYTHONUTF8=1; ..\..\src\abs-risk\.venv\Scripts\python.exe s02_gap.py`.
-Raw filings: only the copies already cached under `C:\Users\samwe\code\abs-risk\data\raw\scout` (six EX-102 files, three
+Raw filings: only the copies already cached under `<code>/abs-risk\data\raw\scout` (six EX-102 files, three
 prospectuses, one Amex 10-D), read with `python -I`. Nothing was requested from sec.gov. Tests ran single-process in a
 clone of the snapshot (`work\abs-A\clone`). Live pages fetched with curl from github.io.
 

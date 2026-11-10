@@ -4,10 +4,10 @@ Given: `findings/abs-A.md` (internal attack, 2 HIGH, 4 MEDIUM, 3 LOW) and `findi
 2 HIGH, 2 MEDIUM, 2 LOW). Snapshot `f45e9fe27bcba60b5a48bd3cfa18cf69827e4f10`, verified 2026-11-10.
 
 How I worked. Every verdict below rests on my own code in
-`C:\Users\samwe\code\.codex-temp\adversarial-2026-11-10\work\abs-V\` (`vNN_*.py` -> `out_vNN.txt`), not on the
+`<review-scratch>/work\abs-V\` (`vNN_*.py` -> `out_vNN.txt`), not on the
 reviewers' scripts: my own survival clock and Aalen-Johansen life table (`vlib.py`, no `absrisk` import, no reuse of
 abs-A's `mylib.py`), my own streaming reader for the raw EX-102 files, my own table extractor for the cached
-prospectuses and 10-D exhibits. Raw filings were read from `C:\Users\samwe\code\abs-risk\data\raw\scout` with
+prospectuses and 10-D exhibits. Raw filings were read from `<code>/abs-risk\data\raw\scout` with
 `python -I -X utf8`. sec.gov was not contacted. GitHub `main` is still `f45e9fe` and the four live pages are
 byte-identical to the snapshot's `docs/` (curl, 2026-11-10), so nothing below was fixed after the snapshot.
 Re-run any script as: `cd work\abs-V; $env:PYTHONUTF8=1; ..\..\src\abs-risk\.venv\Scripts\python.exe v03_headline.py`.
