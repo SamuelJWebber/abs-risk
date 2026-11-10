@@ -13,9 +13,10 @@ Two questions about consumer credit risk, answered only from public SEC filings 
 
 Status (2026-11-09): both tracks have published results at https://samueljwebber.github.io/abs-risk/ .
 HANDOFF.md says what is true now and what is verified; TASKS.md is the board; PLAN.md the design;
-design/methods.md what each estimate can carry. Card data refreshes weekly through `.github/workflows/cards-refresh.yml`.
+design/methods.md what each estimate can carry. Card data refreshes twice a week (Mondays and Thursdays) through `.github/workflows/cards-refresh.yml`.
 
     python -m uv sync                      # install
     python -m uv run pytest                # all tests, fixtures only, never EDGAR
-    python -m uv run absrisk analyze autos # Track B results from the committed loans tables (~15 min)
+    python -m uv run absrisk analyze autos # Track B results from the committed loans tables (~30 min)
+    python -m uv run absrisk analyze cards # Track A results (~20 s); then `absrisk report cards|conclusions`
     python -m uv run absrisk report autos  # docs/autos.html

@@ -1,91 +1,109 @@
 # abs-risk handoff
 
-Rewritten **2026-11-09** (Claude Code, second pass of the day). Read `CLAUDE.md` first, then this.
+Rewritten **2026-11-10** (Claude Code, review round 1 implemented). Read `CLAUDE.md` first, then this.
 **Rewrite this file at the end of every session — never append.** Under 150 lines.
-Evidence words are exact: **fixture-proven** = a test on committed fixtures; **seen live** = observed on real
-EDGAR-derived data or a real Actions run; **unverified** = neither.
+Evidence words are exact: **fixture-proven** = a test on committed fixtures or synthetic data; **seen live** =
+observed on real EDGAR-derived data, a real Actions run or the live Pages; **unverified** = neither.
 
 ## State
 
-Two tracks. **Cards is concluded on public data; autos B3-B5 are done** (B3, B4 descriptive; B5, the only
-causal design, a robust null). 252 tests green locally (`python -m uv run pytest`). Pages:
-https://samueljwebber.github.io/abs-risk/ (Pages built successfully for every push today; see the end of this
-file for what was checked on the live pages). **Public repo.** TASKS.md: every task done.
+Two tracks, both published at https://samueljwebber.github.io/abs-risk/ . Cards is concluded on public data; autos
+B3-B5 are done. REVIEW.md (round 1: 2 HIGH, 5 MEDIUM, 10 LOW) now carries a status line under every finding:
+15 fixed, R1-7 fixed as the short-term disclosure, R1-16 and part of R1-2 deferred to the user (below). Full suite:
+333 passed locally (`python -m uv run pytest -o addopts=""`, about 3 minutes). **Public repo.**
 
-## Done today, with evidence
+## What changed in round 1, with evidence
 
-1. **Duplicate trust-months, deduped on ingest** (`dedupe_rows`, `src/absrisk/cards/parse.py`). One row per
-   (trust, period_end); 10-D/A beats 10-D, then later `filing_date` from `manifest.json`, then higher accession;
-   the loser is listed under `superseded` in the winner's `row_labels_json`; two plain 10-Ds with different
-   numbers are logged as `DuplicateMonth`. *Fixture-proven*: `tests/test_cards_dedupe.py` (a copy of the July
-   2026 BA fixture under a second accession) failed on the old code, passes now. *Seen live*: refresh run
-   42691131162 wrote 561 rows, zero duplicates; all five former pairs kept the 10-D/A, each original
-   `identical: true`; no conflicts. A guard test on the committed CSV fails on the pre-fix table.
-2. **Refresh workflow** (`.github/workflows/cards-refresh.yml`). Had failed since 2026-10-20 (a test pinned the
-   composition table to the fixture prospectus; Amex then COMET filed newer ones). Test fixed (*seen live*:
-   passed on the runner). Now weekly (Mondays 09:17 UTC) so its ~10 MiB cache survives GitHub's 7-day eviction;
-   re-runs the dedupe, golden and composition tests on the new tables before committing; rebuilds card results
-   and both card pages when a table changed. Actions bumped to checkout v7, cache v6, upload-artifact v7,
-   setup-uv v10.3.3 (no `v10` tag exists; run 42698996217 failed at setup on that). *Seen live*, run
-   42699120327: cache restored from `cards-raw-42691131162`, 0 filings fetched and 573 skipped, the post-parse
-   checks passed, "tables unchanged; pages left as they are", nothing committed, no Node 20 warning.
-3. **Golden checks** (`checks/golden.yaml`, `tests/test_golden.py`): one gross charge-off rate per trust, label
-   and printed number found in the committed July 2026 filing, and the committed CSV row checked to come from
-   that accession with that value. *Fixture-proven*; corrupting one value and one printed string fails 3 checks.
-4. **Card results rebuilt on the deduplicated table** (`absrisk analyze cards`, `report cards`, `report
-   conclusions`; not the free-riding tests, which are separate scripts under `design/freeride/` and untouched).
-   First reproduced the September results exactly from the September inputs (*seen live*). With today's table:
-   trust rankings unchanged under all four shapes; stage decomposition moves in the second decimal (Amex
-   conversion ratio 1.38 either way). **Panel regression (cards page section 6) identified nothing and had been
-   printed as estimates**: one prospectus snapshot per trust makes month-FE saturated (6 mixes, 5 tiers +
-   intercept: it reproduces trust means) and month+trust-FE unidentified (it printed coefficients ~1e9).
-   `panel_regression` now returns a status and note per spec and blanks the unidentified one; the page explains.
-   *Fixture-proven* on synthetic panels (`tests/test_cards_panel.py`). A4 marked done (scope sentence added).
-5. **Autos B3-B5** from the committed `data/autos/*.parquet` (no EDGAR). Before any change, the September results
-   were re-run with current code: every table identical except the origination-quarter dummies (*seen live*).
-   - B3 vintage: same two lenders, same bucket, inside one origination year vs pooled: ratio a median **1.00** of
-     pooled over 67 pairs (64 in 2024, 3 in 2025); the 7 pairs >10x apart pooled are 34x within 2024 vs 38x.
-     Without Exeter (VantageScore for 98.9% of its pool) the same-bucket gap is 38x vs 50x. Both on the page.
-   - B4 chart 2: forest plot of the terms spec. Top vs bottom quintile: amount 0.72 [0.65, 0.80], PTI 2.47
-     [2.08, 2.94], LTV 4.33 [3.48, 5.38]; lenders vs Santander: Exeter 1.13, AmeriCredit 0.99, captives
-     0.16-0.24. (The September handoff quoted the *price* column as the result; corrected in TASKS.md.)
-     Cohort baseline was 2017Q2 (5 loans, no charge-offs: every quarter OR ~1e10); now 2024Q4. Other
-     coefficients unchanged to 3e-6 in log odds.
-   - B5 null: 16 candidates, 8 fail density, 7 usable (APR or amount first stage, `rd.usable`). Robust
-     intervals: 0 of 14 cutoff-horizon estimates clear zero at the optimal bandwidth, 0 of 14 at every one of
-     0.5-2x. Closest: Honda 700 at 24 months, +2.0 to +2.6 points, robust p 0.07. Multiplier-1 rows reproduce
-     `b3_rd.csv` exactly.
-   - All of these are *seen live* on the committed loan data; the new functions are also *fixture-proven* on
-     synthetic data (`tests/test_autos_b3_b5.py`).
-6. Smaller: `test_cli_parse` no longer overwrites `data/cards_parse_failures.csv`; autos page states which
-   sections are descriptive vs causal; stale "months since first seen" text fixed (code counts from origination);
-   README, PLAN, TASKS and the landing page no longer say "scouting" or carry counts the refresh makes stale.
+1. **R1-1 card mix** (fbbeac8). The analysis reads `crosswalks/fico_buckets.csv`; unscored balances are dropped and
+   renormalised, not spread over 300-850; one implementation of the straddle rule (`shape.tiers.overlap_fraction`);
+   dead crosswalk code removed. BofA fico_fed2007 residual +1.07% -> +1.13%. *Fixture-proven* (tests/test_cards_mix.py,
+   5 of 6 failed on the old code) and *seen live* (rebuilt results match the review's independent numbers exactly).
+2. **R1-2 leaks** (8d98a73). 21 of 22 files scrubbed of local paths, plus the home IP/ISP and the second GitHub account
+   name. tests/test_no_leaks.py fails on any profile path, AppData, user-path slug, OneDrive path, home path or
+   non-noreply email in tracked text (fixtures exempt from the email rule), and on any post-6a18549 commit with a
+   personal author address. *Fixture-proven* (fails on the old tree; planted-leak test). CLAUDE.md line 5 is the one
+   allowed exception; see "Needs the user".
+3. **R1-3 / R1-14 refresh alerts** (9847d92). `absrisk cards check` fails on a parse failure the committed log lacks or
+   a trust >1 month behind; warns when a mix snapshot is >18 months old (Citi's is 18 now; it will warn from the
+   October data on, by design not a failure). The workflow keeps the committed log, runs the check with
+   continue-on-error, commits, then fails the run. Schedule now Mondays and Thursdays 09:17 UTC. A `rebuild` dispatch
+   input forces the results-and-pages branch. *Fixture-proven* (broken BA copy). *Seen live*: runs 42724889951,
+   42726294384, 42727357720 (forced rebuilds, 0 filings fetched, "check passed"). The failing path is not seen live.
+4. **R1-4 / R1-5 card stages** (4f261d1). Trust averages are geometric means, so entry x progression x conversion =
+   co_monthly exactly and shares sum to one (Amex conversion ratio 1.39, entry share 125%). The direction test splits
+   months by a delinquency index (`cards_roll.regimes`, a3_regimes.csv) and finds the one named step that raised every
+   trust's 30+ share. Result: **mixed** (tight minus loose: Amex -0.10, Citi +0.09; across normalising->squeeze: BofA
+   -0.12, COMET -0.06). Both pages say so; the conclusions heading is now computed ("selection, on every level
+   comparison"); the landing page no longer claims the cycle test agrees. *Fixture-proven* (7 of 8 new tests failed).
+5. **R1-6 autos inference** (89a27e4). Lender intervals add the deal-to-deal spread from the three two-deal lenders
+   (3 df, t critical values; `hazard.deal_spread_intervals`, b2_lender_intervals.csv); clustered intervals use t(9).
+   In the review's simulation clustered intervals covered 41-47% for single-deal lenders, the new ones 89-97%
+   (*fixture-proven*). Building it exposed a confounder now controlled in every hazard spec: **months in pool** (loans
+   enter a trust current, so months 0-2 in the pool have charge-off odds 0.13x). Terms spec against Santander: Honda
+   0.15 [0.04, 0.61], Toyota 0.19, CarMax 0.23 distinguishable; Capital One 0.36, AmeriCredit 0.75, Exeter 1.10 not.
+   Structure: amount 0.72, PTI 2.47, LTV 4.24. *Seen live* on the committed loan data (b2 rerun, 16 min, 2 threads).
+6. **R1-7** (fc25eca, short-term). The cards page states the look-ahead (92% of trust-months predicted from a later
+   snapshot; a new prospectus rewrites history; 22% of months on the 2024 CFPB level). The real fix is next step 1.
+7. **R1-8..R1-13** (89a27e4, fc25eca). One-scale check (five lenders past 850: median 38x, same as without Exeter);
+   sparse edge levels merged and no-event levels blanked (no odds ratio outside 1e-3..1e3); RD sentence gives 0 of 14
+   at the optimal bandwidth and 4 of 56 off-optimal refits; text contradictions fixed (four shapes, since-when table,
+   price share 27% against the terms gradient); entry/roll tables carry `co_without_30_share` (Capital One 75%).
+8. **R1-12 page shell** (fc25eca). `report.svg.page`: doctype, charset, viewport, nav, "Data through <month>" instead
+   of a build date. *Seen live* at 375 px on all three generated pages: standards mode, scrollWidth = 375, nothing
+   overflowing outside table scrollers, 10 autos charts inside the viewport.
+9. **R1-15 / R1-17** (a9d7df3, 20f1435). PLAN marks the refresh commands as not built and the CFPB re-check as
+   local-only; TASKS counts fixed; diag.yml and ua_diag.py (refused User-Agent) deleted.
+10. **Bigger improvements** done: 1, 3, 4, 5, 6, 7, 8 (autos golden checks, 2767a8b: one loan per deal traced from its
+    EX-102 record to the parquet plus two charge-offs; corrupting two values fails four checks). Also a straddle-rule
+    sensitivity (a1_straddle.csv: residuals move up to 1.47 points under the bounds; only Synchrony keeps its rank
+    everywhere) and the hazard terms spec without Exeter (b2x, b2_terms_without_exeter.csv; Capital One moves most).
+11. **Runner determinism** (4112b2d, 8dd2962). The first forced rebuild on a runner committed last-digit changes
+    (log/exp differ between Windows and Linux libm; the unidentified panel fit printed platform-dependent garbage).
+    Geometric-mean tables are now rounded to 10 decimals, a2_panel.csv to 6 significant digits, and the unidentified
+    fit prints no numbers. *Seen live*: the third forced rebuild (run 42727357720) rebuilt every card result and both
+    card pages on Linux and committed nothing ("no changes").
 
 ## Decisions taken without asking (reversible)
 
-- **Autos data not extended past 2026-07.** `autos-build` has no incremental mode: extending means
-  re-downloading every EX-102 of all ten deals (tens of GB from EDGAR, multi-hour runner jobs) for three more
-  months of follow-up. The brief said not to re-download, and the B3-B5 results do not need it.
-- **Card pages rebuilt** although cards is "closed": the rebuild only propagates the dedupe and corrects section
-  6; no free-riding test was run.
-- **Weekly refresh** rather than a monthly run plus a cache keep-alive job: one workflow, smaller fetches.
-- `autos-build.yml`, `scout.yml`, `diag.yml` keep their v4 actions (still run, with a Node 20 deprecation
-  warning). Not bumped because none can be verified without a heavy EDGAR run.
+- **CLAUDE.md not edited.** It still names a local path (line 5). It is the assistants' instruction file; an edit
+  on a workflow's instruction is not authorised. tests/test_no_leaks.py allows exactly that line.
+- **Months in pool added to the hazard model** although the review did not ask: without it the deal-spread estimate
+  measured young-deal artefacts (0.48 in log odds in the terms spec; 0.33 with it).
+- **Geometric means** for the card stage averages (the review allowed either); numbers moved in the third digit.
+- **Snapshot age is a warning, not a failure**, in the alert check (Citi files no prospectus when it issues no notes).
+- **Straddle bounds** are lowest-tier / highest-tier, the widest rule that keeps balances inside bucket edges.
+- `autos-build.yml` and `scout.yml` keep their v4 actions (cannot be verified without a heavy EDGAR run).
+
+## Next steps (no user needed)
+
+1. **Composition history (REVIEW bigger improvement 2, the R1-7 fix).** About 87 424B filings since mid-2018 across
+   the six trusts (Amex ~25, COMET ~17, BofA ~15, Synchrony ~14, Chase ~8, Citi ~8, counted from the cached scout
+   submissions). Plan: `fetch.list_prospectuses` (every 424B since 2018) on the runner; key cards_composition.csv by
+   prospectus accession; drop the one-accession-per-trust assertion in test_committed_csvs_match_fixtures; teach the
+   composition parser the older layouts with one fixture per variant; `predicted()` already steps the mix forward
+   with merge_asof, so back-fill then covers only months before the first snapshot. Then rerun the panel: month+trust
+   FE may become identified. Expect parser work like the 10-D historical layouts (311 -> 554 rows took a session).
+2. **Aalen-Johansen curves and the eligibility effect.** The hazard model now holds months in pool fixed; the b1
+   cumulative-incidence curves (delayed entry by age) do not, so seasoned entrants' first months understate hazard.
+   The fresh-entrant cut on the page is the partial answer; a pool-time-adjusted version is not built.
+3. Watch the first scheduled runs (Thursday 2026-11-12, Monday 2026-11-16): October 10-Ds arrive around the 15th, so
+   the Monday run should commit new rows and exercise the rebuild branch with changed tables.
 
 ## Unverified or open
 
-- The weekly schedule has not fired yet (first: Monday 2026-11-16). The dispatched run above is the evidence.
-- The page-rebuild branch of the refresh (tables changed) has not run on a runner yet; locally the same three
-  commands produced the committed pages.
-- Three COMET filings (2019-05, -06, -07) still fail printed-vs-recomputed checks: filer rounding errors,
-  documented in design/cards-build.md, deliberately left failing (COMET has 91 of 94 months).
-- Exeter's VantageScore is treated as on the FICO scale in the hazard model's shared score buckets; the
-  same-bucket headline is reported with and without Exeter, the hazard model is not.
+- The check's failing path on a runner (fixture-proven only); the twice-weekly cache keep-alive (verify with
+  `gh api repos/SamuelJWebber/abs-risk/actions/caches`: last_accessed_at never older than four days).
+- Three COMET 2019 filings still fail printed-vs-recomputed checks (filer rounding; documented, left failing).
+- Honest lender intervals assume deal shocks alike across lenders and rest on 3 degrees of freedom.
 
-## Nothing needs the user
+## Needs the user
 
-No step here waits on the user. Answering the closed cards question would need borrower-level tradeline data
-(NY Fed CCP, a bureau extract, the CFPB panel); that is an access decision, not a task.
+1. **CLAUDE.md line 5**: replace `(C:\...\credit-dashboard)` with a relative mention such as "(the credit-dashboard
+   repository next to this one)", or tell a session to. Then delete the KNOWN entry in tests/test_no_leaks.py.
+2. **History rewrite decision (R1-2 item 3, R1-16)**: the old paths and a personal email remain in 43+ commits of the
+   public history. Removing them needs `git filter-repo --replace-text ... --mailmap ...` and a force push to main,
+   which breaks every clone (including the other assistant's) and leaves GitHub's cached views until GitHub Support
+   purges them. Say yes or no; a session can do the rewrite once told to.
 
 ## Rules that matter here
 
@@ -93,13 +111,9 @@ No step here waits on the user. Answering the closed cards question would need b
   `ABSRISK_CONTACT` is an Actions secret; the home IP is blocked by the SEC, so EDGAR fetches run only on Actions.
 - Never hit EDGAR from tests. Save every filing before parsing. Parse by label, never by position.
 - Result-file prefixes predate the task board: `b1_*` = TASKS B3, `b2_*` = B4, `b3_*` = B5, `b6_*` = entry/roll.
-- `absrisk analyze autos` is ~15 min (RD ~7, hazard ~5, incidence ~2); skip stages with
-  `--skip b1,b1c,b2,b3,b3bw,b6`. `absrisk analyze cards` is ~6 s. Cap BLAS threads when the machine is shared.
+- `absrisk analyze autos` is ~30 min now (b2 ~16 with months in pool, RD ~7, hazard without Exeter ~4); skip stages
+  with `--skip b1,b1c,b2,b2x,b3,b3bw,b6`. `absrisk analyze cards` ~20 s. Cap BLAS threads when the machine is shared.
+- After changing card or autos code, rerun the analysis and the reports: tests/test_cards_results.py and
+  tests/test_pages.py fail when committed results or pages are stale.
 - pytest's `addopts = "-q"` hides the summary line under `-q`; use `-o addopts=""` to see the count.
-- **This repo is public.** Read anything an agent generated in bulk before committing it.
-
-## Live pages check (2026-11-09, after Pages build 42700684862 for b95f5a7)
-
-*Seen live*: autos, cards, conclusions and index pages fetched from samueljwebber.github.io/abs-risk return 200
-and are identical to `docs/` apart from line endings (CRLF in the Windows checkout). Not checked in a browser at
-phone width; charts were checked for size in an emulated 1100 px viewport only (all ten autos charts render).
+- **This repo is public.** tests/test_no_leaks.py is the floor, not the ceiling: still read agent output before committing.
