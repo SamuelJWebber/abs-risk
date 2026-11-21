@@ -5,7 +5,7 @@ reviewed it: first-line reviewers attacked the work and compared it with other p
 second reviewer tried to refute each HIGH and MEDIUM finding. Only the verified result is below.
 Full reports, with commands and sources: `reviews/fable-2026-11-10/` (`abs-V.md` is the verification;
 the others are the first-line reports, including claims the verifier narrowed or rejected).
-**Nothing here has been implemented.** Mark each row Fixed / Rejected / Deferred as it is handled.
+**Status as of 2026-11-21: the four HIGH findings and three others are fixed; the table under "Status of each finding" says what was done, what holds it, and what is deferred.**
 
 ## Verdict table
 
@@ -38,6 +38,41 @@ prospectus names 2025-2, 2025-3, 2025-4 and 2025-5 and stars those four in its s
    defaulted about 12 to 13 times as often as loans in CarMax's in their first year and 5 to 7 times as often in
    their second (8 to 10 and about 4 with loan-to-value, payment burden, term and new or used also matched)."
    On the page's current charge-off definition the same sentence reads 10 to 12, then 6 to 10.
+
+## Status of each finding (2026-11-21, Claude Code)
+
+Evidence words as in HANDOFF.md: *fixture-proven* is a test on committed fixtures or synthetic data, *seen on the
+data* is a number recomputed here from the committed tables. Nothing below has been seen live on GitHub Pages
+until the push that carries this file has deployed.
+
+| Finding | Status | What was done | What holds it |
+|---|---|---|---|
+| abs-B-1 Citi column is net | **Fixed** | `cards/parse.py` stores Citi's Credit Loss Component as `net_co_rate` and leaves `gross_co_rate` empty with the reason. Every card result (`a1_*`, `a2_*`, `a3_*`) now reads the net rate for all six trusts (`cards_roll.RATE`). Because the CFPB level is gross, statements about the sign of a residual are read on the gross rate for the five trusts that print it and on bounds for Citi (cards page, section 4, `a1_basis.csv`). Citi's rank moves from 5 to 2 or 3; the "converts least" sentence is gone. | `tests/test_citi_net.py`: the 63-of-63 match re-derived from the committed prospectus; the gross-over-net ratios 1.21 to 1.47 re-derived from its loss table; the full 10-D set re-parsed locally from the runner's artifact, and only Citi's 95 rows changed. |
+| abs-A-2 / abs-B-2 conversion is not rescue; policies are stated | **Fixed** | `cards_roll.ceiling` and `a3_ceiling.csv`: charge-off dollars over the last delinquency bucket a month earlier (Chase 1.21, Synchrony 1.05, BofA 1.03, COMET 0.99, Amex 0.69 of a two-cohort bucket, Citi 0.88 on net). The cards and conclusions pages print it, say the prospectuses state the charge-off policy, and withdraw the reading of conversion as the fate of late accounts. The conclusions heading is now "What the filings show: far fewer late balances, and nothing on rescue"; "rules out", "selection, on every level comparison" and "which the filings do not state" are gone from all four pages, including the hand-written landing page. | `tests/test_cards_ceiling.py`, `tests/test_conclusions_claims.py` (a list of withdrawn sentences that fails if any reappears on any page, plus the replacement statements). The four policy quotes were re-read in the committed prospectus fixtures. |
+| abs-A-1 Santander buy-backs | **Fixed** | `survival.as_defaults`: a buy-back of a loan that had been 90 or more days late is a default. Every autos table is rebuilt on that definition (`absrisk analyze autos`, all stages, hazard model included); the charge-off-only gap table and cells are kept beside it (`b1_gap_trust_loss.csv`, `b1_at_*_trust_loss.csv`) and `b1_late_repurchase.csv` gives the buy-back count per deal (Santander 1,295 of 1,454 had been 90 days late; Exeter 25 of 360; Toyota 1 of 37). Santander's one-year cells rise 28% to 49% in the seven buckets the review listed and 28% to 105% over all 16 usable ones (the top figure is the thin 760 bucket, 9 charge-offs against 17 defaults); the median 16 does not move; its range becomes 12 to 22 and "without Exeter" 13, inside the interval. | `tests/test_autos_defaults.py`; `tests/test_autos_gap.py` re-derives the median from the parquet without `absrisk` on both definitions. The review's cell (660 bucket: 151 charge-offs, 5.39%; 197 defaults, 7.25%) is asserted. |
+| abs-A-3 "16" is a knife edge | **Fixed in part** | The page now leads with a fixed pair of lenders, score bucket and month of age held fixed, by year of loan age (`lender_gap.fixed_pair_ratios`, `b1_fixed_pairs.csv`): Exeter and Santander over CarMax 11.7 and 13.4 in year one, 6.8 and 5.3 in year two; 9.8 and 8.4, then 4.2 and 3.4, with loan structure matched. These are the review's figures to the decimal. The median sentence stays, and says it depends on which low lender holds ten defaults. **Not done:** the page does not print the 11-event and 10-point-bucket variants. | `tests/test_autos_defaults.py` (synthetic hazard ratio recovered; committed table equals a rebuild). |
+| abs-A-6 Honda/Toyota roll is not "close" | **Fixed** | "close to the baseline lender's rate" and "no sign of an account that borrowers protect" are replaced by the count of score buckets in which each lender's roll ratio is below one, on the autos and conclusions pages. | `tests/test_conclusions_claims.py`. |
+| abs-B-4 loan size "settled" | **Fixed** | Heading is "What else the data shows"; the "bigger line" sentence is replaced by one saying these are comparisons of loans that differ in one recorded field and say nothing about card limits. | `tests/test_conclusions_claims.py`. |
+| abs-B-3 same score, different loan | **Fixed in part** | The structure-matched ratios are on the page (row above), and the "9 without Exeter, outside the interval" sentence no longer arises. **Not done:** the page does not quote the shelf-selection language from the CarMax and Exeter prospectuses; the conclusions page says only that lenders choose which loans go into a public pool. | The fixed-pair tests. |
+| abs-A-4 "12-month" covers 2 to 7 months | **Deferred** | Cells whose first observed age is late (Capital One 11, Toyota 9, Honda 6) are still printed in the same column as cells observed from age 3. The ten-event rule keeps them out of every ratio. Fix when done: blank a cell whose first observed age is past a stated age. | none |
+| abs-A-5 scores not comparable | **Deferred** | The scope note already says Exeter's score is VantageScore. The 20-point FICO gap in Exeter's own prospectus and CarMax's averaging of co-borrower scores are not on the page. | none |
+| abs-A-7 thin early risk sets | **Deferred** (LOW) | No floor on the size of a risk set. | none |
+| abs-A-8 first scheduled run untested | **Closed by events** (LOW) | The scheduled runs of 2026-11-12, 11-16 and 11-19 were green; the 11-16 run committed October rows. | `gh run list` |
+| abs-A-9 issuer-level opening sentences | **Fixed** (LOW) | The landing and conclusions pages now say "card trust" and "public auto loan pool" on first use, and no longer say the card comparison holds at the same score. | read on the rebuilt pages |
+| abs-B-5 Exeter selection dated from 2025-4 | **Deferred** (LOW) | Notes still say 2025-4; the prospectus says 2025-2. | none |
+| abs-B-6 unused dollar fields, one with the wrong sign | **Deferred** (LOW) | Not touched. | none |
+
+Round 2 findings this pass also settled, because the same sentences were being rewritten: **R2-3** (the headline
+now counts the top and bottom place over all 12 combinations of loss curve and straddle rule and says "most, not
+all": Synchrony first in 10, Amex last in 10) and **R2-4** (the selection claim is withdrawn). **R2-2** is disclosed,
+not fixed: the cards page now states that Synchrony's sign rests on calibrating a pool that is a quarter private label
+to the general-purpose level; the calibration itself is unchanged. R2-8 is narrowed by the same change. The other
+round-2 rows keep whatever state the commits of 2026-11-09 and 11-10 left them in; round 2 never got status lines.
+
+The paused commit `wip/paused-2026-11-10` (1e3af87, local only) was **not merged and nothing was salvaged from it**.
+Its `report/claims.py` reads `a1_grid.csv`, a table only that commit's unfinished calibration work produces, and its
+selection wording is keyed to the conversion ratio this review refuted. The one idea worth keeping, counting a claim
+over every assumption instead of asserting "every", is reimplemented in `cards_page.ends` in about thirty lines.
 
 ---
 
