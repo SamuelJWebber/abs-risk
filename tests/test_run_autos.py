@@ -37,7 +37,9 @@ def test_driver_writes_every_output(tmp_path):
     b.to_parquet(in_dir / "beta-2025-1.parquet", index=False)
     assert run_autos.main(["--in", str(in_dir), "--out", str(out)]) == 0
     for name in ("loans_summary.csv", "b1_cif.csv", "b1_at_12.csv", "b1_at_24.csv", "b2_hazard_ratios.csv", "b2_fit.json", "b3_cutoffs.csv", "b3_rd.csv",
-                 "b1_cohort_at_12.csv", "b1_cohort_at_24.csv", "b3_rd_bandwidths.csv"):
+                 "b1_cohort_at_12.csv", "b1_cohort_at_24.csv", "b3_rd_bandwidths.csv", "b1_gap.csv",
+                 "b1_late_repurchase.csv", "b1_fixed_pairs.csv", "b1_gap_trust_loss.csv", "b1_at_12_trust_loss.csv",
+                 "b1_at_24_trust_loss.csv"):
         assert (out / name).exists(), name
     hr = pd.read_csv(out / "b2_hazard_ratios.csv")
     lender = hr[(hr["spec"] == "score") & (hr["event"] == "chargeoff") & (hr["factor"] == "lender")]

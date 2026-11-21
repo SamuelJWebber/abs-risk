@@ -327,6 +327,97 @@ def gap_table(loans: pd.DataFrame, s900: list[str] | None = None, pool_offset: i
     return pd.DataFrame(rows).reindex(columns=GAP_COLUMNS)
 
 
+# ----------------------------------------------------------------------------- two named lenders, loan age held fixed
+
+# The highest-over-lowest median above changes with which low lender happens to hold ten charge-offs (13 with an
+# eleven-event floor, 8 with ten-point buckets, 17 with 25-point ones: REVIEW.md abs-A-3). A fixed pair of lenders,
+# pooled over score bucket and month of age, does not have that knife edge, and it shows what the median hides: the
+# gap between the same two lenders roughly halves from a loan's first year to its second.
+PAIRS = (("exeter", "carmax"), ("santander", "carmax"))
+PAIR_WINDOWS = (("year one", 4, 12), ("year two", 13, 24))      # months since origination, inclusive
+PAIR_LO, PAIR_HI = 660, 740                                     # buckets 660-679 ... 740-759, where all three lend
+STRUCTURE_BINS = {"ltv": [0, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 9], "pti": [-1, 0.04, 0.06, 0.08, 0.10, 0.12, 0.15, 9],
+                  "orig_term": [0, 48, 60, 66, 72, 75, 99]}
+PAIR_COLUMNS = ["window", "age_lo", "age_hi", "higher", "lower", "matched", "ratio", "lo95", "hi95", "events_higher",
+                "events_lower", "months_higher", "months_lower", "strata", "pool_offset"]
+
+
+def mh_rate_ratio(pm_a, ev_a, pm_b, ev_b) -> tuple[float, float, float]:
+    """Mantel-Haenszel rate ratio of a over b across strata, with a 95% interval from the Greenland-Robins variance of
+    its log. Inputs are per-stratum loan-months at risk and events; strata where either side has no exposure carry no
+    comparison and are dropped. Returns (ratio, lo95, hi95), all nan when either side has no event."""
+    pm_a, ev_a, pm_b, ev_b = (np.asarray(x, dtype=float) for x in (pm_a, ev_a, pm_b, ev_b))
+    ok = (pm_a > 0) & (pm_b > 0)
+    pm_a, ev_a, pm_b, ev_b = pm_a[ok], ev_a[ok], pm_b[ok], ev_b[ok]
+    total = pm_a + pm_b
+    num, den = float((ev_a * pm_b / total).sum()), float((ev_b * pm_a / total).sum())
+    if not (num > 0 and den > 0):
+        return float("nan"), float("nan"), float("nan")
+    var = float(((ev_a + ev_b) * pm_a * pm_b / total ** 2).sum()) / (num * den)
+    ratio, half = num / den, 1.959964 * np.sqrt(var)
+    return ratio, ratio * float(np.exp(-half)), ratio * float(np.exp(half))
+
+
+def _loan_months(df: pd.DataFrame, clock: Clock, keys: list[str], age_lo: int, age_hi: int) -> pd.DataFrame:
+    """Loan-months at risk and events per (lender, age, keys) for ages age_lo..age_hi on `clock`."""
+    idx = np.flatnonzero(clock.keep)
+    e, x, co = clock.entry[idx], clock.exit[idx], clock.co[idx]
+    base = df.iloc[idx][["lender", *keys]].reset_index(drop=True)
+    out = []
+    for t in range(age_lo, age_hi + 1):
+        at_risk = (e <= t) & (x >= t)
+        b = base[at_risk].copy()
+        b["age"] = t
+        b["months"] = 1.0
+        b["events"] = (co[at_risk] & (x[at_risk] == t)).astype(float)
+        out.append(b.groupby(["lender", "age", *keys], dropna=False, observed=True)[["months", "events"]].sum().reset_index())
+    return pd.concat(out, ignore_index=True)
+
+
+def fixed_pair_ratios(loans: pd.DataFrame, pairs=PAIRS, windows=PAIR_WINDOWS, lo: int = PAIR_LO, hi: int = PAIR_HI,
+                      pool_offset: int = survival.POOL_OFFSET) -> pd.DataFrame:
+    """b1_fixed_pairs.csv: for each named pair of lenders and each age window, the Mantel-Haenszel ratio of their
+    monthly default rates with the 20-point score bucket and the month of age held fixed (`matched` = 'score'), and
+    with loan-to-value, payment-to-income, term and new or used held fixed too ('score and structure').
+
+    A loan-month counts when the loan is under observation at that age on the pool-offset clock; the event is the
+    one `survival.ages` reports, so pass the loans through `survival.as_defaults` or `survival.trust_loss` first."""
+    df = loans.copy()
+    df["sb"] = (pd.to_numeric(df["score"], errors="coerce") // 20 * 20)
+    names = sorted({n for p in pairs for n in p})
+    df = df[df["lender"].isin(names) & (df["sb"] >= lo) & (df["sb"] <= hi)].reset_index(drop=True)
+    cols = PAIR_COLUMNS
+    if df.empty:
+        return pd.DataFrame(columns=cols)
+    structure = []
+    for c, edges in STRUCTURE_BINS.items():
+        if c in df:
+            df[c + "_b"] = pd.cut(pd.to_numeric(df[c], errors="coerce"), edges, labels=False)
+            structure.append(c + "_b")
+    if "new_used" in df:
+        df["nu"] = df["new_used"].astype(str)
+        structure.append("nu")
+    clock = Clock(df, pool_offset)
+    rows = []
+    for name, a_lo, a_hi in windows:
+        tab = _loan_months(df, clock, ["sb", *structure], a_lo, a_hi)
+        for matched, keys in (("score", ["sb"]), ("score and structure", ["sb", *structure])):
+            if matched != "score" and not structure:
+                continue
+            t = tab.dropna(subset=keys).groupby(["lender", "age", *keys], observed=True)[["months", "events"]].sum()
+            for higher, lower in pairs:
+                if higher not in t.index.get_level_values(0) or lower not in t.index.get_level_values(0):
+                    continue
+                j = t.loc[higher].join(t.loc[lower], lsuffix="_a", rsuffix="_b", how="inner")
+                ratio, lo95, hi95 = mh_rate_ratio(j["months_a"], j["events_a"], j["months_b"], j["events_b"])
+                rows.append({"window": name, "age_lo": a_lo, "age_hi": a_hi, "higher": higher, "lower": lower,
+                             "matched": matched, "ratio": ratio, "lo95": lo95, "hi95": hi95,
+                             "events_higher": float(j["events_a"].sum()), "events_lower": float(j["events_b"].sum()),
+                             "months_higher": float(j["months_a"].sum()), "months_lower": float(j["months_b"].sum()),
+                             "strata": int(len(j)), "pool_offset": pool_offset})
+    return pd.DataFrame(rows, columns=cols)
+
+
 def cells_frame(loans: pd.DataFrame, by: list[str], horizon: int, pool_offset: int = survival.POOL_OFFSET) -> pd.DataFrame:
     """Cells at one horizon from `group_life_tables` (no bootstrap): by..., n_loans, at_risk, cum_chargeoff,
     aj_chargeoff. A check on `survival.cumulative_incidence`, which computes the same numbers one group at a time."""

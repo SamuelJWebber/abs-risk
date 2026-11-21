@@ -23,6 +23,10 @@ SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole 
          "paid-off loans from the file the month after payoff and others keep them, which the exit rule handles. "
          f"Age is months since origination, and a loan counts only from its {ORDINAL.get(POOL_OFFSET, 'first')} month in "
          "the trust: it had to be current to be sold in, so its first months there can hardly end in a charge-off. "
+         "A default on this page is a charge-off, or a buy-back of a loan that had been 90 or more days late: Santander "
+         "buys such loans back instead of charging them off, and the trust records no loss on them. Tables, charts and "
+         "files labelled charge-off carry this definition, and where a headline figure changes with it the "
+         "charge-off-only figure is given beside it. "
          "Scores are the score type the sponsor reports (FICO at most captives, a bureau score at Santander, VantageScore "
          "at Exeter for 98.9% of its pool) and are never refreshed after origination, so a 700 at Exeter and a 700 at "
          "Honda are close but not the same number.")
@@ -63,28 +67,33 @@ def _interpret_decomposition(att: pd.DataFrame) -> str:
     if att.empty:
         return ""
     g = att.groupby("lender").agg(entry_share=("entry_share_of_gap", "median"), roll_ratio=("roll_ratio", "median"),
-                                  entry_ratio=("entry_ratio", "median"), n=("lender", "size"))
-    sel, roll = [], []
+                                  entry_ratio=("entry_ratio", "median"), n=("lender", "size"),
+                                  roll_lo=("roll_ratio", "min"), roll_hi=("roll_ratio", "max"),
+                                  below=("roll_ratio", lambda x: int((x < 1).sum())))
+    sel, roll, rolls = [], [], []
     for name, r in g.iterrows():
         if r["entry_share"] >= 0.7:
             sel.append(f"{name} (entry {r['entry_share']:.0%} of the gap, roll ratio {r['roll_ratio']:.2f})")
+            rolls.append(f"{name} below one in {int(r['below'])} of {int(r['n'])} buckets ({r['roll_lo']:.2f} to {r['roll_hi']:.2f})")
         elif r["entry_share"] <= 0.3:
             roll.append(f"{name} (roll ratio {r['roll_ratio']:.2f}, entry ratio {r['entry_ratio']:.2f})")
     out = ["<p>"]
     if sel:
-        out.append(f"<b>For {escape(', '.join(n.split(' (')[0] for n in sel))} the advantage is selection.</b> "
+        out.append(f"<b>For {escape(', '.join(n.split(' (')[0] for n in sel))} the advantage is mostly entry.</b> "
                    f"Median across score buckets: {escape('; '.join(sel))}. Their borrowers are far less likely to fall 30 days "
-                   f"behind at the same reported score, and once behind they charge off at close to the baseline lender's rate. "
-                   f"There is no sign here of an account that borrowers protect: the protection would have to show up in the roll, "
-                   f"and it does not. ")
+                   f"behind at the same reported score. Once behind, the difference is smaller and uneven; the roll ratio "
+                   f"against the baseline lender, by score bucket, is {escape('; '.join(rolls))}. Where it is below one in "
+                   f"every bucket, part of the gap does sit after trouble starts. That is where an account borrowers protect "
+                   f"would show, and where repossession policy and workout practice show too; these tables cannot tell them "
+                   f"apart. ")
     if roll:
         out.append(f"<b>For {escape(', '.join(n.split(' (')[0] for n in roll))} the difference sits in the roll instead.</b> "
                    f"Median: {escape('; '.join(roll))}. Borrowers reach 30 days late at close to the baseline rate but the outcome "
                    f"after that differs, which points at workout practice, repossession policy, or the value of the collateral to "
                    f"the borrower rather than at who was lent to. ")
     out.append("Neither pattern is a within-person comparison, so none of it measures how a borrower ranks two debts against each "
-               "other. What it does rule out is the simplest version of the protection story for the lenders whose entire gap is "
-               "entry: their accounts do not survive trouble better, they just meet trouble less often.</p>")
+               "other. For the lenders whose gap is mostly entry, the larger part of the advantage is that their loans meet "
+               "trouble less often; whether they also survive it more often differs by lender, as the bucket counts show.</p>")
     return "".join(out)
 
 
@@ -209,7 +218,93 @@ def gap_verb(main: dict, without_exeter: dict | None, gradient: float) -> str:
     return "about as much as"
 
 
-def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | None) -> list[str]:
+def _iv2(r, fmt: str = "{:.1f}") -> str:
+    return f"({fmt.format(r['lo95'])} to {fmt.format(r['hi95'])})"
+
+
+def _pairs_sentence(pairs: pd.DataFrame | None) -> str:
+    """Two named lenders at a time with score bucket and month of age held fixed, by year of loan age, from
+    b1_fixed_pairs.csv (REVIEW.md abs-A-1 and abs-A-3)."""
+    if pairs is None or pairs.empty:
+        return ""
+    d = pairs[pairs["definition"] == "default"]
+    sc = d[d["matched"] == "score"]
+    if sc.empty or sc["ratio"].isna().all():
+        return ""
+    lower = sorted(set(sc["lower"]))
+    low = lower[0] if len(lower) == 1 else "the lower lender"
+    wins = list(dict.fromkeys(sc["window"]))
+    span = {w: (int(sc.loc[sc["window"] == w, "age_lo"].iloc[0]), int(sc.loc[sc["window"] == w, "age_hi"].iloc[0])) for w in wins}
+
+    def part(frame, w, iv=True):
+        f = frame[frame["window"] == w]
+        return _join([f"{r['higher']} {r['ratio']:.1f} times" + (f" {_iv2(r)}" if iv else "") for _, r in f.iterrows()
+                      if r["ratio"] == r["ratio"]])
+    words = {"year one": "In a loan's first year", "year two": "In its second year"}
+    body = " ".join(f"{words.get(w, w)} (ages {span[w][0]} to {span[w][1]} months): {escape(part(sc, w))}." for w in wins)
+    st = d[d["matched"] == "score and structure"]
+    struct = ""
+    if not st.empty:
+        struct = (" With loan-to-value, payment-to-income, term and new or used held fixed as well: "
+                  + "; ".join(f"{w}, {escape(part(st, w, iv=False))}" for w in wins) + ".")
+    tl = pairs[(pairs["definition"] == "trust_loss") & (pairs["matched"] == "score")]
+    beside = ""
+    if not tl.empty and wins:
+        beside = (f" A default is a charge-off or a buy-back of a loan that had been 90 days late (next paragraph). Counting "
+                  f"charge-offs alone, the first-year figures are {escape(part(tl, wins[0], iv=False))}.")
+    falls = ""
+    if len(wins) >= 2:
+        a = sc[sc["window"] == wins[0]].set_index("higher")["ratio"]
+        b = sc[sc["window"] == wins[1]].set_index("higher")["ratio"]
+        both = (b / a).dropna()
+        if len(both) and (both < 0.75).all():
+            falls = ", and the gap narrows as loans age"
+    lo_b = int(pairs["age_lo"].min())
+    return (f"<b>At the same score, loans in the subprime lenders' pools default several times as often as loans in "
+            f"{escape(low)}'s{falls}.</b> Each figure is the monthly default rate of one lender's loans over {escape(low)}'s, "
+            f"with the 20-point score bucket and the month of the loan's age held fixed, for scores 660 to 759 and 95% "
+            f"intervals in brackets. {body}{struct}{beside} Ages start at {lo_b} months because no loan is counted before its "
+            f"fourth month in a trust (section 2).")
+
+
+def _buyback_sentence(late: pd.DataFrame | None, at12: pd.DataFrame | None, at12_trust: pd.DataFrame | None) -> str:
+    """What the buy-backs are and what counting them changes, from b1_late_repurchase.csv and the cells on both
+    definitions (REVIEW.md abs-A-1)."""
+    if late is None or late.empty:
+        return ""
+    by = late.groupby("lender")[["n_repurchase", "n_late_repurchase", "n_late_in_pool_months_4_6",
+                                 "n_chargeoff_in_pool_months_4_6"]].sum()
+    by = by[by["n_repurchase"] > 0].sort_values("n_late_repurchase", ascending=False)
+    if by.empty or by["n_late_repurchase"].iloc[0] == 0:
+        return ""
+    top, r = by.index[0], by.iloc[0]
+    others = [f"{k} {int(v['n_late_repurchase']):,} of {int(v['n_repurchase']):,}" for k, v in by.iloc[1:].iterrows()]
+    out = (f"<b>{escape(str(top).capitalize())}'s buy-backs are defaults.</b> {escape(str(top).capitalize())} buys loans back "
+           f"out of its trusts once they have gone unpaid: {int(r['n_late_repurchase']):,} of the {int(r['n_repurchase']):,} "
+           f"loans it repurchased ({r['n_late_repurchase'] / r['n_repurchase']:.0%}) had been 90 or more days late, and "
+           f"{int(r['n_late_in_pool_months_4_6']):,} of those left in their fourth to sixth month in the pool, months in which "
+           f"its trusts recorded {int(r['n_chargeoff_in_pool_months_4_6']):,} charge-offs."
+           + (f" No other lender does this at scale ({escape(', '.join(others))} had been that late)." if others else "")
+           + " The trust records no loss on a loan it is paid for, so until November 2026 this page counted these as harmless "
+             "exits, like a payoff. They are now counted as defaults.")
+    if at12 is not None and at12_trust is not None and not at12_trust.empty:
+        a = usable_cells(at12)[["lender", "score_b", "aj_chargeoff"]].copy()
+        a["score_b"] = a["score_b"].astype(str)
+        t = at12_trust[["lender", "score_b", "aj_chargeoff"]].copy()
+        t["score_b"] = t["score_b"].astype(str)
+        m = a.merge(t, on=["lender", "score_b"], suffixes=("", "_trust"))
+        m = m[m["aj_chargeoff_trust"] > 0]
+        m["up"] = m["aj_chargeoff"] / m["aj_chargeoff_trust"] - 1
+        mine, rest = m[m["lender"] == top], m[m["lender"] != top]
+        if not mine.empty:
+            out += (f" That raises {escape(str(top))}'s one-year rate by {mine['up'].min():.0%} to {mine['up'].max():.0%} "
+                    f"across its {len(mine)} usable score buckets (section 2 has both figures)"
+                    + (f" and moves no other lender's cell by more than {rest['up'].abs().max():.0%}." if not rest.empty else "."))
+    return out
+
+
+def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | None,
+                   gap_trust: pd.DataFrame | None = None) -> list[str]:
     """The same-score lender comparison, every ratio with its interval, from b1_gap.csv (REVIEW.md R2-1)."""
     out = []
     g = gap.copy()
@@ -224,8 +319,15 @@ def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | 
         levels = ", ".join(f"{r.lender} {r.rate:.1%}" for r in lv.itertuples())
         ratio = (f"Highest against lowest: {b['ratio']:.1f} times {_iv(b, '{:.1f}')}." if b["ratio"] == b["ratio"]
                  else "No second lender there has ten charge-offs, so no ratio is given.")
-        out.append(f"<b>Deep in subprime, scores {span}.</b> Charge-off by {h} months, averaged over the buckets every "
-                   f"subprime lender has there: {escape(levels)}. {ratio} Cells need at least {MIN_LOANS:,} loans and "
+        tl = ""
+        if gap_trust is not None and not gap_trust.empty:
+            lt = gap_trust[(gap_trust["stat"] == "band_level") & (gap_trust["variant"] == name)].set_index("lender")["rate"]
+            moved = [f"{r.lender} {lt[r.lender]:.1%}" for r in lv.itertuples()
+                     if r.lender in lt.index and abs(lt[r.lender] - r.rate) >= 0.0005]
+            if moved:
+                tl = f" Counting charge-offs alone: {escape(', '.join(moved))}; the others are unchanged."
+        out.append(f"<b>Deep in subprime, scores {span}.</b> Default by {h} months, averaged over the buckets every "
+                   f"subprime lender has there: {escape(levels)}. {ratio}{tl} Cells need at least {MIN_LOANS:,} loans and "
                    f"{MIN_AT_RISK} still under observation at {h} months.")
     med = g[(g["stat"] == "median") & (g["variant"] == "all")]
     buckets = g[(g["stat"] == "bucket") & (g["variant"] == "all")]
@@ -284,11 +386,23 @@ def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | 
                   + (f", and from its seventh month {o6['ratio']:.0f}" if o6 is not None and o6["ratio"] == o6["ratio"] else "")
                   + ". The page then printed 50 times, because every one of its ratios divided by a cell with one to three "
                     "charge-offs.")
+    trust_s = ""
+    if gap_trust is not None and not gap_trust.empty:
+        mt = gap_trust[(gap_trust["stat"] == "median") & (gap_trust["variant"] == "all")]
+        nt = gap_trust[(gap_trust["stat"] == "median") & (gap_trust["variant"] == "without_exeter")]
+        if not mt.empty and mt.iloc[0]["ratio"] == mt.iloc[0]["ratio"]:
+            t0 = mt.iloc[0]
+            trust_s = (f" Counting charge-offs alone, as this page did until November 2026, the median is {t0['ratio']:.0f} and "
+                       f"the range {t0['range_lo']:.0f} to {t0['range_hi']:.0f}"
+                       + (f", and {nt.iloc[0]['ratio']:.0f} without Exeter" if not nt.empty and nt.iloc[0]["ratio"] == nt.iloc[0]["ratio"] else "")
+                       + ".")
     out.append(f"<b>Who lends matters {verb} what the score says.</b> Comparing lenders inside one 20-point bucket at a time, "
                f"across the {int(m['n'])} buckets from {lo_b} to {hi_b} where at least three lenders overlap and a second lender "
-               f"has {MIN_EVENTS} or more charge-offs by twelve months, the highest one-year charge-off rate is a median "
+               f"has {MIN_EVENTS} or more defaults by twelve months, the highest one-year default rate is a median "
                f"{m['ratio']:.0f} times the lowest {_iv(m)}; the bucket ratios run from {m['range_lo']:.0f} to "
-               f"{m['range_hi']:.0f}. In the {int(pick['lo'])} to {int(pick['lo']) + 19} bucket that is {escape(str(pick['worst']))} "
+               f"{m['range_hi']:.0f}. This median depends on which low lender happens to hold {MIN_EVENTS} defaults in a "
+               f"bucket, so the fixed pairs above are the steadier figure.{trust_s} In the {int(pick['lo'])} to "
+               f"{int(pick['lo']) + 19} bucket that is {escape(str(pick['worst']))} "
                f"at {pick['worst_rate']:.2%} against {escape(str(pick['best']))} at {pick['best_rate']:.2%}.{thin_s}{drop_s}"
                f"{within}{pool_s}"
                + (" Checks: " + "; ".join(checks) + "." if checks else "")
@@ -300,9 +414,13 @@ def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | 
 
 def _headlines(gap: pd.DataFrame | None, hr: pd.DataFrame, rdres: pd.DataFrame, baseline: dict | None = None,
                bw: pd.DataFrame | None = None, summary: pd.DataFrame | None = None,
-               li: pd.DataFrame | None = None, fit: dict | None = None) -> list[str]:
-    """Sentences computed from the result tables, so the page never claims more than the numbers."""
-    out = _gap_sentences(gap, hr, summary) if gap is not None and not gap.empty else []
+               li: pd.DataFrame | None = None, fit: dict | None = None, extra: dict | None = None) -> list[str]:
+    """Sentences computed from the result tables, so the page never claims more than the numbers. `extra` holds the
+    tables behind the default definition: pairs, late, at12, at12_trust, gap_trust."""
+    x = extra or {}
+    out = [t for t in (_pairs_sentence(x.get("pairs")),
+                       _buyback_sentence(x.get("late"), x.get("at12"), x.get("at12_trust"))) if t]
+    out += _gap_sentences(gap, hr, summary, x.get("gap_trust")) if gap is not None and not gap.empty else []
     L = hr[(hr["factor"] == "lender") & (hr["event"] == "chargeoff")]
     if not L.empty:
         w = L.pivot_table(index="level", columns="spec", values="odds_ratio")
@@ -310,7 +428,7 @@ def _headlines(gap: pd.DataFrame | None, hr: pd.DataFrame, rdres: pd.DataFrame, 
             base_l = (baseline or {}).get("lender", "the baseline lender")
             lo_l, hi_l = w["terms"].idxmin(), w["terms"].idxmax()
             out.append(f"<b>Holding the bureau score and the loan structure fixed, lenders still differ by several times.</b> "
-                       f"Against the baseline lender, the monthly charge-off odds run from {w.loc[lo_l, 'terms']:.2f} at {lo_l} to "
+                       f"Against the baseline lender, the monthly default odds run from {w.loc[lo_l, 'terms']:.2f} at {lo_l} to "
                        f"{w.loc[hi_l, 'terms']:.2f} at {hi_l}. Some of the raw gap is composition: at {lo_l} the odds ratio moves from "
                        f"{w.loc[lo_l, 'raw']:.2f} with age alone to {w.loc[lo_l, 'score']:.2f} once score is held fixed. A large gap "
                        f"survives both. In the terms column, against {escape(str(base_l))}: "
@@ -521,6 +639,40 @@ def _bandwidth_section(bw: pd.DataFrame | None) -> list[str]:
     return h
 
 
+def _definition_section(extra: dict) -> list[str]:
+    """The lender whose buy-backs are defaults, cell by cell on both definitions, and every deal's buy-back count."""
+    late, at12, at12_trust = extra.get("late"), extra.get("at12"), extra.get("at12_trust")
+    if late is None or late.empty or at12_trust is None:
+        return []
+    h = ["<h3>What counting buy-backs changes</h3>"]
+    lt = late[late["n_repurchase"] > 0]
+    h.append("<p>Loans bought back out of each deal, how many of them had been 90 or more days late, the month in the pool in "
+             "which those left (median), and the deal's defaults over its charge-offs:</p>")
+    h.append(table(lt, cols=["deal", "lender", "n_loans", "n_repurchase", "n_late_repurchase", "late_share_of_repurchases",
+                             "late_pool_month_median", "n_chargeoff", "defaults_over_chargeoffs"],
+                   fmt={"n_loans": "{:,.0f}", "n_repurchase": "{:,.0f}", "n_late_repurchase": "{:,.0f}",
+                        "late_share_of_repurchases": "{:.0%}", "late_pool_month_median": "{:.0f}", "n_chargeoff": "{:,.0f}",
+                        "defaults_over_chargeoffs": "{:.3f}"}))
+    top = lt.groupby("lender")["n_late_repurchase"].sum().idxmax()
+    a = usable_cells(at12)
+    a = a[a["lender"] == top][["score_b", "n_loans", "cum_chargeoff", "aj_chargeoff"]].copy()
+    a["score_b"] = a["score_b"].astype(str)
+    t = at12_trust[at12_trust["lender"] == top][["score_b", "cum_chargeoff", "aj_chargeoff"]].copy()
+    t["score_b"] = t["score_b"].astype(str)
+    m = a.merge(t, on="score_b", suffixes=("_default", "_chargeoff_only"))
+    if not m.empty:
+        m["score_b"] = m["score_b"].astype(int)
+        m = m.sort_values("score_b").rename(columns={
+            "cum_chargeoff_chargeoff_only": "chargeoffs", "aj_chargeoff_chargeoff_only": "rate_chargeoff_only",
+            "cum_chargeoff_default": "defaults", "aj_chargeoff_default": "rate_default"})
+        m["increase"] = m["rate_default"] / m["rate_chargeoff_only"] - 1
+        h.append(f"<p>{escape(str(top).capitalize())} by 12 months, each usable score bucket on both definitions:</p>")
+        h.append(table(m, cols=["score_b", "n_loans", "chargeoffs", "rate_chargeoff_only", "defaults", "rate_default", "increase"],
+                       fmt={"n_loans": "{:,.0f}", "chargeoffs": "{:,.0f}", "defaults": "{:,.0f}",
+                            "rate_chargeoff_only": "{:.2%}", "rate_default": "{:.2%}", "increase": "{:+.0%}"}))
+    return h
+
+
 def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     summary = pd.read_csv(results / "loans_summary.csv")
     cif = pd.read_csv(results / "b1_cif.csv")
@@ -537,13 +689,19 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     cohort24 = pd.read_csv(c24p) if c24p.exists() else None
     gap = pd.read_csv(results / "b1_gap.csv") if (results / "b1_gap.csv").exists() else None
 
+    def opt(name):
+        return pd.read_csv(results / name) if (results / name).exists() else None
+    extra = {"pairs": opt("b1_fixed_pairs.csv"), "late": opt("b1_late_repurchase.csv"), "at12": at12,
+             "at12_trust": opt("b1_at_12_trust_loss.csv"), "gap_trust": opt("b1_gap_trust_loss.csv")}
+
     h = ["<h1>Auto loans: same score, different lender</h1>"]
     last = pd.Period(str(summary["last_period"].max())[:7])
     h.append(f"<p class='muted'><b>Data through {last.strftime('%B %Y')}.</b> Public ABS-EE loan-level filings on EDGAR: "
              f"{int(summary['n_loans'].sum()):,} loans in {len(summary)} deals from {summary['lender'].nunique()} lenders.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)}</div>")
     h.append("<h2>What the data says</h2>")
-    for line in _headlines(gap, hr, rdres, baseline=fit.get("baseline"), bw=bw, summary=summary, li=li, fit=fit):
+    for line in _headlines(gap, hr, rdres, baseline=fit.get("baseline"), bw=bw, summary=summary, li=li, fit=fit,
+                           extra=extra):
         h.append(f"<p>{line}</p>")
     h.append(f"<div class='note'>{KIND}</div>")
 
@@ -553,12 +711,14 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
                    fmt={"score_missing_share": "{:.1%}", "apr_median": "{:.1%}", "pti_median": "{:.2f}", "share_chargeoff": "{:.1%}",
                         "share_prepay": "{:.1%}", "share_absent": "{:.1%}", "share_censored": "{:.1%}", "n_loans": "{:,.0f}"}))
 
-    h.append("<h2>2. Cumulative charge-off by score bucket, by lender</h2>")
+    h.append("<h2>2. Cumulative default by score bucket, by lender</h2>")
     h.append("<p>Age is months since origination, with delayed entry: a loan counts in the risk set only at ages it was "
-             "actually observed in the trust. Aalen-Johansen cumulative incidence treats prepayment and repurchase as competing "
+             "actually observed in the trust. A default is a charge-off or a buy-back of a loan that had been 90 days late. "
+             "Aalen-Johansen cumulative incidence treats prepayment and every other buy-back as competing "
              "exits; the Kaplan-Meier version treats them as censoring and is always higher. Buckets are 20 points wide, labelled "
              "by the lower edge; cells with fewer than 500 loans are not drawn. Bands are 95 percent percentile bootstrap over loans.</p>")
     h.append(_pool_window_note(hr, summary))
+    h.extend(_definition_section(extra))
     h.append(_lender_at_score_chart(at24))
     buckets = sorted({str(b) for b in cif["score_b"].unique() if str(b) != "none"}, key=lambda s: int(s))
     h.append("<div class='grid2'>")
@@ -600,7 +760,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     if cohort12 is not None and not cohort12.empty:
         h.extend(_cohort_section(cohort12, cohort24, at12))
 
-    h.append("<h2>3. Monthly charge-off hazard: lender at fixed score, size at fixed score and lender</h2>")
+    h.append("<h2>3. Monthly default hazard: lender at fixed score, size at fixed score and lender</h2>")
     h.append("<p>Discrete-time competing-risks hazard on the loan-month expansion, fitted as binomial logits on aggregated cells "
              "with standard errors clustered by deal and t critical values on nine degrees of freedom (ten deals); lender "
              "intervals also carry the deal-to-deal spread (headline above). Odds ratios are relative to a stated baseline level. Four specifications, "

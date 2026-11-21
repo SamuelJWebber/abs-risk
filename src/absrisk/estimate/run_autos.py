@@ -8,6 +8,11 @@ Outputs (all CSV unless noted):
   b1_at_12_fresh.csv, b1_at_24_fresh.csv   the same for loans first seen within six months of origination
   b1_gap.csv                 every lender ratio the page prints, with intervals from resampling loans within lender
                              (estimate/lender_gap.py)
+  b1_fixed_pairs.csv         two named lenders at a time, score bucket and month of age held fixed, by year of loan age,
+                             on both default definitions (lender_gap.fixed_pair_ratios)
+  b1_late_repurchase.csv     per deal: loans bought back, how many had been 90 days late, and when in the pool they left
+  b1_gap_trust_loss.csv, b1_at_12_trust_loss.csv, b1_at_24_trust_loss.csv
+                             the gap table and the cells on the trust's own loss definition (charge-off only)
   b2_hazard_ratios.csv       odds ratios by factor level for charge-off and prepay, with and without controls; clustered
                              intervals with t(G-1) critical values; levels with no events blanked
   b2_lender_intervals.csv    terms-specification lender odds ratios with intervals that include the deal-to-deal spread
@@ -17,6 +22,8 @@ Outputs (all CSV unless noted):
   b3_rd.csv                  density test, first stage and outcome RD at each flagged cutoff
   b1_cohort_at_12.csv, b1_cohort_at_24.csv   the B1 cuts inside one origination year at a time
   b3_rd_bandwidths.csv       outcome RD at 0.5-2x the MSE-optimal bandwidth, usable cutoffs only
+Default definition (REVIEW.md abs-A-1): every table counts a charge-off or a buy-back of a loan that had been 90 or more
+days late (`survival.as_defaults`); the columns are still named chargeoff. The *_trust_loss files count charge-offs only.
 Result-file prefixes predate the task board: b1_* is TASKS B3, b2_* is B4, b3_* is B5, b6_* is the entry/roll split.
 Run: `uv run absrisk analyze autos [--in data/autos] [--out data/results/autos]`.
 """
@@ -38,7 +45,12 @@ KNOWN_SELECTION_CUTOFFS = {"carmax": {650}, "toyota": {620}, "exeter": {640}, "a
 MIN_COHORT_MONTHS = 12
 
 
-def load_loans(in_dir: Path) -> pd.DataFrame:
+def load_loans(in_dir: Path, basis: str = "default") -> pd.DataFrame:
+    """Every committed loans table, commercial loans dropped. `basis` 'default' (the results' definition since
+    2026-11-21) counts a buy-back of a loan that had been 90 days late as a default alongside charge-offs
+    (`survival.as_defaults`); 'trust_loss' leaves the trust's own exit types as they are."""
+    if basis not in ("default", "trust_loss"):
+        raise ValueError(f"unknown basis {basis!r}")
     frames = []
     for p in sorted(in_dir.glob("*.parquet")):
         df = pd.read_parquet(p)
@@ -49,13 +61,14 @@ def load_loans(in_dir: Path) -> pd.DataFrame:
     loans = pd.concat(frames, ignore_index=True)
     if "commercial" in loans:
         loans = loans[~loans["commercial"].fillna(False).astype(bool)]
-    return loans.reset_index(drop=True)
+    loans = loans.reset_index(drop=True)
+    return survival.as_defaults(loans) if basis == "default" else loans
 
 
 def summarize(loans: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for deal, g in loans.groupby("deal"):
-        et = g["exit_type"].value_counts(normalize=True)
+        et = g["exit_type_trust" if "exit_type_trust" in g else "exit_type"].value_counts(normalize=True)   # the trust's labels
         a = survival.ages(g)
         rows.append({
             "deal": deal, "lender": g["lender"].iloc[0], "n_loans": len(g),
@@ -64,7 +77,9 @@ def summarize(loans: pd.DataFrame) -> pd.DataFrame:
             "entry_age_median": float(a["entry_age"].median()), "entry_age_p90": float(a["entry_age"].quantile(0.9)),
             "exit_age_max": int(a["exit_age"].max()),
             "share_chargeoff": float(et.get("chargeoff", 0)), "share_prepay": float(et.get("prepay", 0)),
-            "share_repurchase": float(et.get("repurchase", 0)), "share_absent": float(et.get("absent", 0)),
+            "share_repurchase": float(et.get("repurchase", 0)),
+            "share_late_repurchase": float(survival.late_repurchase(survival.trust_loss(g)).mean()),
+            "share_absent": float(et.get("absent", 0)),
             "share_censored": float(et.get("censored", 0)),
             "score_missing_share": float(g["score"].isna().mean()), "score_median": float(g["score"].median()),
             "score_max": float(g["score"].max()), "score_above_850_share": float((g["score"] > 850).mean()),
@@ -95,7 +110,52 @@ def run_b1(loans: pd.DataFrame, out: Path, n_boot: int = 200, pool_offset: int =
     survival.incidence_at(fresh, ["lender", "score_b"], 24).to_csv(out / "b1_at_24_fresh.csv", index=False)
     s900 = lender_gap.scale_900_lenders(summarize(loans))
     lender_gap.gap_table(loans, s900, pool_offset=pool_offset, n_boot=gap_boot).to_csv(out / "b1_gap.csv", index=False)
+    run_b1_definitions(loans, out, s900, pool_offset)
     return cif
+
+
+def late_repurchase_profile(loans: pd.DataFrame) -> pd.DataFrame:
+    """Per deal: loans the sponsor bought back, how many of them had been 90 or more days late, the month in the pool
+    in which those left (1 = the loan's first month in the trust), and the charge-offs the trust recorded."""
+    t = survival.trust_loss(loans)
+    late = survival.late_repurchase(t)
+    a = survival.ages(t)
+    pool_month = (a["exit_age"] - a["entry_age"]).to_numpy() + 1
+    rows = []
+    for deal, g in t.groupby("deal"):
+        ix = t.index.get_indexer(g.index)
+        rep = (g["exit_type"].astype(str) == "repurchase").to_numpy()
+        lt, pm = late[ix], pool_month[ix]
+        co = (g["exit_type"].astype(str) == "chargeoff").to_numpy()
+        rows.append({"deal": deal, "lender": g["lender"].iloc[0], "n_loans": len(g), "n_repurchase": int(rep.sum()),
+                     "n_late_repurchase": int(lt.sum()),
+                     "late_share_of_repurchases": float(lt.sum() / rep.sum()) if rep.sum() else np.nan,
+                     "late_pool_month_p10": float(np.percentile(pm[lt], 10)) if lt.any() else np.nan,
+                     "late_pool_month_median": float(np.median(pm[lt])) if lt.any() else np.nan,
+                     "late_pool_month_p90": float(np.percentile(pm[lt], 90)) if lt.any() else np.nan,
+                     "n_late_in_pool_months_4_6": int((lt & (pm >= 4) & (pm <= 6)).sum()),
+                     "n_chargeoff": int(co.sum()),
+                     "n_chargeoff_in_pool_months_4_6": int((co & (pm >= 4) & (pm <= 6)).sum()),
+                     "defaults_over_chargeoffs": float((co.sum() + lt.sum()) / co.sum()) if co.sum() else np.nan})
+    return pd.DataFrame(rows)
+
+
+def run_b1_definitions(loans: pd.DataFrame, out: Path, s900: list[str], pool_offset: int = survival.POOL_OFFSET):
+    """What the default definition changes (REVIEW.md abs-A-1): the buy-back profile per deal, the fixed-pair ratios
+    on both definitions, and the gap table and cells on the trust's own loss definition, to print beside the main ones."""
+    late_repurchase_profile(loans).to_csv(out / "b1_late_repurchase.csv", index=False)
+    trust = survival.trust_loss(loans)
+    pairs = []
+    for name, d in (("default", survival.as_defaults(loans)), ("trust_loss", trust)):
+        p = lender_gap.fixed_pair_ratios(d, pool_offset=pool_offset)
+        p.insert(0, "definition", name)
+        pairs.append(p)
+    pd.concat(pairs, ignore_index=True).to_csv(out / "b1_fixed_pairs.csv", index=False)
+    lender_gap.gap_table(trust, s900, pool_offset=pool_offset, n_boot=0).to_csv(out / "b1_gap_trust_loss.csv", index=False)
+    t = trust.copy()
+    t["score_b"] = survival.score_bucket(t["score"])
+    for h in (12, 24):
+        lender_gap.cells_frame(t, ["lender", "score_b"], h, pool_offset).to_csv(out / f"b1_at_{h}_trust_loss.csv", index=False)
 
 
 def run_b1_cohort(loans: pd.DataFrame, out: Path, n_boot: int = 200, horizons: tuple[int, ...] = (12, 24),

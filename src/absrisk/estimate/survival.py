@@ -12,6 +12,12 @@ its 12-month incidence was low by construction. `pool_offset` counts a loan only
 entered the trust (left truncation at pool month k; a loan that exits earlier never enters the risk set). The
 autos results use `POOL_OFFSET` = 3 since 2026-11-10.
 
+Default definition (REVIEW.md abs-A-1). The event every estimator here counts is `exit_type == 'chargeoff'`. The
+autos results pass the loans through `as_defaults` first, which also labels as 'chargeoff' a loan the sponsor bought
+back after it had been 90 or more days late, so the columns named chargeoff in the result files are defaults on that
+definition since 2026-11-21. `trust_loss` gives the table back on the trust's own definition, which is reported
+beside it.
+
 Two estimators per group:
   aj_chargeoff  Aalen-Johansen cumulative incidence: charge-off competes with prepay/repurchase/other/absent.
   km_chargeoff  Kaplan-Meier 1 - S(t) treating every other exit as censoring. Always >= aj. The gap is the
@@ -25,6 +31,47 @@ import pandas as pd
 
 COMPETING = {"prepay", "repurchase", "other", "absent"}
 POOL_OFFSET = 3       # months in the trust before a loan counts in the risk set (pool month 3 = its fourth month)
+LATE_DPD = 90         # days past due a loan must have reached for its buy-back to count as a default
+
+
+def late_repurchase(loans: pd.DataFrame) -> np.ndarray:
+    """True where the sponsor bought the loan back out of the trust after it had been 90 or more days late.
+
+    The trust records no loss on such a loan (zeroBalanceCode 3, charged-off amount zero), so the exit rule files it
+    as `repurchase` and every estimator treated it as a harmless exit, like a payoff. At Santander it is how the
+    worst loans leave: in SDART 2026-1's July 2026 file 199 of 207 repurchased loans were 120 or more days late, 31
+    had never made a payment, and they left where charge-offs happen (median 136 days late against 129 to 135 for
+    charge-offs). Independent review of 2026-11-10, REVIEW.md abs-A-1."""
+    et = loans["exit_type"].astype(str).to_numpy()
+    if "max_dpd" not in loans:
+        return np.zeros(len(loans), dtype=bool)
+    dpd = pd.to_numeric(loans["max_dpd"], errors="coerce").fillna(-1).to_numpy()
+    return (et == "repurchase") & (dpd >= LATE_DPD)
+
+
+def as_defaults(loans: pd.DataFrame) -> pd.DataFrame:
+    """The loans table on the default definition: a charge-off, or a buy-back of a loan that had been 90 days late.
+
+    `exit_type` becomes 'chargeoff' for the late buy-backs, so every estimator that counts charge-offs counts
+    defaults; the trust's own label is kept in `exit_type_trust` and the reclassified loans are flagged in
+    `late_repurchase`. Applying it twice changes nothing. `trust_loss` undoes it."""
+    if "exit_type_trust" in loans:
+        return loans
+    out = loans.copy()
+    late = late_repurchase(out)
+    out["exit_type_trust"] = out["exit_type"]
+    out["late_repurchase"] = late
+    out["exit_type"] = out["exit_type"].astype(object).where(~late, "chargeoff").astype(loans["exit_type"].dtype)
+    return out
+
+
+def trust_loss(loans: pd.DataFrame) -> pd.DataFrame:
+    """The loans table on the trust's own loss definition: a default is a charge-off and nothing else."""
+    if "exit_type_trust" not in loans:
+        return loans
+    out = loans.copy()
+    out["exit_type"] = out["exit_type_trust"]
+    return out.drop(columns=["exit_type_trust", "late_repurchase"], errors="ignore")
 
 
 def score_bucket(score: pd.Series, width: int = 20) -> pd.Series:

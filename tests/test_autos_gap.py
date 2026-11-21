@@ -146,18 +146,23 @@ def test_committed_b1_tables_count_from_the_fourth_month_in_the_pool(gap):
     assert main["ratio"] == pytest.approx(bucket_ratios(cells)["ratio"].median(), rel=1e-12)
 
 
-def _independent_median(k: int, min_events: int) -> float:
+def _independent_median(k: int, min_events: int, buy_backs: bool = True) -> float:
     """The page's median same-bucket ratio recomputed from the committed parquet without absrisk: the reviewer's
     round-2 snippet (REVIEW.md R2-1), with each loan counted from k months after it entered its trust, cells usable at
-    1,500 loans and 250 at risk at twelve months on that clock, and a lower end needing `min_events` charge-offs."""
+    1,500 loans and 250 at risk at twelve months on that clock, and a lower end needing `min_events` defaults. With
+    `buy_backs` a repurchase of a loan that had been 90 days late is a default (REVIEW.md abs-A-1); without, only a
+    charge-off is."""
     d = pd.concat(pd.read_parquet(f) for f in sorted(glob.glob(str(REPO / "data" / "autos" / "*.parquet"))))
     d = d[~d["commercial"].fillna(False).astype(bool)].reset_index(drop=True)
+    is_default = d.exit_type == "chargeoff"
+    if buy_backs:
+        is_default = is_default | ((d.exit_type == "repurchase") & (d.max_dpd.fillna(-1) >= 90))
 
     def mi(s):
         t = pd.to_datetime(s)
         return t.dt.year * 12 + t.dt.month
     fp, om, lp = mi(d.first_period), mi(d.orig_month), mi(d.last_period)
-    ev = np.where(d.exit_type == "chargeoff", "co",
+    ev = np.where(is_default, "co",
                   np.where(d.exit_type.isin(["prepay", "repurchase", "other", "absent"]), "x", "c"))
     ex = mi(d.zb_date).where(d.zb_date.notna(), mi(d.exit_period)).fillna(fp + d.months_observed - 1).where(ev != "c", lp)
     lag = pd.Series(0, index=d.index)
@@ -202,12 +207,15 @@ def test_the_headline_median_rederives_from_the_parquet_without_absrisk(gap):
     assert _independent_median(survival.POOL_OFFSET, lender_gap.MIN_EVENTS) == pytest.approx(main["ratio"], rel=1e-9)
     off0 = gap[(gap["stat"] == "offset") & (gap["variant"] == "pool_offset_0")].iloc[0]
     assert _independent_median(0, lender_gap.MIN_EVENTS) == pytest.approx(off0["ratio"], rel=1e-9)
+    trust = pd.read_csv(AUTOS / "b1_gap_trust_loss.csv")
+    tmain = trust[(trust["stat"] == "median") & (trust["variant"] == "all")].iloc[0]
+    assert _independent_median(survival.POOL_OFFSET, lender_gap.MIN_EVENTS, buy_backs=False) == pytest.approx(tmain["ratio"], rel=1e-9)
 
 
 def test_the_autos_page_prints_the_gap_with_its_interval(gap):
     t = unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", (REPO / "docs" / "autos.html").read_text(encoding="utf-8"))))
     main = gap[(gap["stat"] == "median") & (gap["variant"] == "all")].iloc[0]
-    assert (f"the highest one-year charge-off rate is a median {main['ratio']:.0f} times the lowest "
+    assert (f"the highest one-year default rate is a median {main['ratio']:.0f} times the lowest "
             f"(95% interval {main['lo95']:.0f} to {main['hi95']:.0f})") in t
     assert "survives the obvious objection" not in t and "61 times" not in t
     assert "fourth month in the trust" in t and "The pool window." in t

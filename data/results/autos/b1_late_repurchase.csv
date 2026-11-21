@@ -1,0 +1,11 @@
+deal,lender,n_loans,n_repurchase,n_late_repurchase,late_share_of_repurchases,late_pool_month_p10,late_pool_month_median,late_pool_month_p90,n_late_in_pool_months_4_6,n_chargeoff,n_chargeoff_in_pool_months_4_6,defaults_over_chargeoffs
+amcar-2024-1,americredit,72665,6,0,0.0,,,,0,9550,1081,1.0
+carmax-2025-1,carmax,82495,0,0,,,,,0,684,59,1.0
+carmax-2026-2,carmax,52812,0,0,,,,,0,37,31,1.0
+copar-2025-1,capone,72469,0,0,,,,,0,223,64,1.0
+exeter-2025-1,exeter,65321,226,16,0.07079646017699115,4.0,7.0,14.5,4,9611,1219,1.0016647591301633
+exeter-2025-5,exeter,55432,134,9,0.06716417910447761,4.0,7.0,9.0,4,3356,1474,1.0026817640047676
+honda-2025-1,honda,104073,0,0,,,,,0,611,93,1.0
+sdart-2025-1,santander,99060,691,592,0.8567293777134588,4.0,5.0,6.0,581,10744,1115,1.0551005212211466
+sdart-2026-1,santander,86349,763,703,0.9213630406290957,4.0,5.0,6.0,696,1007,942,1.6981132075471699
+toyota-2025-a,toyota,69132,37,1,0.02702702702702703,19.0,19.0,19.0,0,580,93,1.0017241379310344
