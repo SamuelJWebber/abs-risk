@@ -26,7 +26,7 @@ def _panel(n_trusts: int, months: int = 36, moving: bool = False, seed: int = 0)
                 base = shares
             mix.append({"trust": f"t{t}", "period_end": p, **dict(zip(TIERS, shares))})
             monthly.append({"trust": f"t{t}", "period_end": p,
-                            "gross_co_rate": 0.02 + 0.05 * shares[0] + rng.normal(0, 0.002)})
+                            "net_co_rate": 0.02 + 0.05 * shares[0] + rng.normal(0, 0.002)})
     return pd.DataFrame(monthly), pd.DataFrame(mix)
 
 

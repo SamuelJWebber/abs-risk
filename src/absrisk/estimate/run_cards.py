@@ -5,15 +5,23 @@ data/loss_shape.csv and data/ccmr_level.csv (A3).
 Outputs:
   mix_by_trust.csv        tier shares per trust and prospectus as-of date: the FICO table mapped through the committed
                           crosswalk, unscored balances dropped and the rest renormalised (`unscored` says how much)
-  a1_predicted.csv        per trust-month and shape: actual, predicted, residual, mix_extrapolated
-  a1_ranking.csv          mean residual per trust under each shape, and the rank; the ranking-stability check
+  a1_predicted.csv        per trust-month and shape: actual (net), predicted, residual, mix_extrapolated, and
+                          actual_gross / residual_gross where the trust prints a gross rate (empty for Citi)
+  a1_ranking.csv          mean residual per trust under each shape, and the rank; the ranking-stability check. Ranks are
+                          on the net rate, which all six print; mean_residual_gross is the like-for-like level against
+                          the CFPB's gross industry rate, for the trusts that print a gross rate
   a1_straddle.csv         the same ranking with every straddling bucket put wholly in its lowest or its highest tier,
                           the sensitivity PLAN section 2 promised for the straddle rule
+  a1_basis.csv            per trust: mean gross and mean net charge-off rate over the months that print both, and the
+                          gap between them. Every result here is on the net rate, the only one all six trusts print
+                          (REVIEW.md abs-B-1), while the CFPB level is gross, so this is how far each residual sits low
   a2_panel.csv            panel regression coefficients (month FE; month + trust FE), Driscoll-Kraay SEs
   a3_stages.csv           per trust-month: entry (30+), progression (90+/30+), conversion (charge-off/90+)
   a3_by_trust.csv         geometric means per trust, ratios to the highest-loss trust, shares of the log gap
   a3_stress.csv           the same in four named calendar periods, with each period's 30+ share
   a3_regimes.csv          the same in months of above- against below-median delinquency (the direction test)
+  a3_ceiling.csv          per trust: charge-off dollars over the last delinquency bucket a month earlier, the check
+                          that conversion is not the fate of late accounts (cards_roll.ceiling; REVIEW.md abs-A-2)
 Run: `uv run absrisk analyze cards [--series ccip]`.
 """
 
@@ -88,7 +96,7 @@ def mix_by_trust(composition: pd.DataFrame, crosswalk: pd.DataFrame) -> pd.DataF
 
 
 def predicted(monthly: pd.DataFrame, mix: pd.DataFrame, shapes: pd.DataFrame, level: pd.DataFrame, series: str,
-              rate_col: str = "gross_co_rate") -> pd.DataFrame:
+              rate_col: str = cards_roll.RATE) -> pd.DataFrame:
     m = monthly.dropna(subset=[rate_col]).copy()
     m["period_end"] = pd.to_datetime(m["period_end"])
     years = sorted(level.loc[level["series"] == series, "year"].unique())
@@ -110,8 +118,10 @@ def predicted(monthly: pd.DataFrame, mix: pd.DataFrame, shapes: pd.DataFrame, le
             mixd = {t: float(r[t]) for t in TIERS}
             for s in shape_names:
                 pred = predict_chargeoff(mixd, year_used, s, series, shapes=shapes, level=level)
+                gross = float(r["gross_co_rate"]) if "gross_co_rate" in r and pd.notna(r["gross_co_rate"]) else np.nan
                 out.append({"trust": trust, "period_end": r["period_end"].date(), "shape_source": s, "series": series,
                             "actual": float(r[rate_col]), "predicted": float(pred), "residual": float(r[rate_col]) - float(pred),
+                            "actual_gross": gross, "residual_gross": gross - float(pred),
                             "mix_as_of": None if pd.isna(r["as_of"]) else r["as_of"].date(), "mix_extrapolated": bool(extrap.loc[r.name]),
                             "level_year": year_used, "level_year_clamped": year_used != year})
     return pd.DataFrame(out)
@@ -167,6 +177,10 @@ def straddle_sensitivity(monthly: pd.DataFrame, composition: pd.DataFrame, cross
 def ranking(pred: pd.DataFrame) -> pd.DataFrame:
     r = pred.groupby(["shape_source", "trust"]).agg(mean_residual=("residual", "mean"), mean_actual=("actual", "mean"),
                                                   mean_predicted=("predicted", "mean"), n_months=("residual", "size")).reset_index()
+    if "residual_gross" in pred:
+        # a trust-month without a gross rate would bias the mean, so a trust needs one in every month it has
+        g = pred.groupby(["shape_source", "trust"])["residual_gross"].agg(lambda x: x.mean() if x.notna().all() else np.nan)
+        r = r.merge(g.rename("mean_residual_gross").reset_index(), on=["shape_source", "trust"], how="left")
     r["rank"] = r.groupby("shape_source")["mean_residual"].rank(ascending=False, method="min").astype(int)
     return r.sort_values(["shape_source", "rank"])
 
@@ -188,8 +202,25 @@ def monthly_mix(mix: pd.DataFrame, monthly: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=["trust", "period_end", *TIERS])
 
 
-A1_OUTPUTS = ("a1_ranking.csv", "a1_straddle.csv")
-A3_OUTPUTS = ("a3_stages.csv", "a3_by_trust.csv", "a3_stress.csv", "a3_regimes.csv")
+A1_OUTPUTS = ("a1_ranking.csv", "a1_straddle.csv", "a1_basis.csv")
+A3_OUTPUTS = ("a3_stages.csv", "a3_by_trust.csv", "a3_stress.csv", "a3_regimes.csv", "a3_ceiling.csv")
+
+
+def rate_basis(monthly: pd.DataFrame) -> pd.DataFrame:
+    """Per trust: months, months printing both rates, and over those months the mean gross rate, the mean net rate,
+    their ratio and their difference in points. A trust that prints no gross rate (Citi) has the gross columns empty."""
+    rows = []
+    for trust, g in monthly.groupby("trust"):
+        both = g.dropna(subset=["gross_co_rate", "net_co_rate"])
+        gross = float(both["gross_co_rate"].mean()) if len(both) else np.nan
+        net = float(both["net_co_rate"].mean()) if len(both) else np.nan
+        rows.append({"trust": trust, "months": len(g), "months_net": int(g["net_co_rate"].notna().sum()),
+                     "months_gross": int(g["gross_co_rate"].notna().sum()), "months_both": len(both),
+                     "mean_gross": gross, "mean_net": net,
+                     "net_over_gross": net / gross if len(both) and gross > 0 else np.nan,
+                     "gross_minus_net": gross - net if len(both) else np.nan,
+                     "mean_net_all_months": float(g["net_co_rate"].mean()) if g["net_co_rate"].notna().any() else np.nan})
+    return pd.DataFrame(rows)
 A2_OUTPUTS = ("a2_panel.csv", "a2_panel_summary.txt")
 
 
@@ -211,7 +242,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--crosswalk", default=DEFAULT_CROSSWALK, help="bucket-to-tier weights (absrisk cards composition)")
     ap.add_argument("--out", default="data/results/cards")
     ap.add_argument("--series", default="ccip", choices=["ccip", "ccp"])
-    ap.add_argument("--rate", default="gross_co_rate")
+    ap.add_argument("--rate", default=cards_roll.RATE,
+                    help="charge-off rate column; net is the only one every trust prints (REVIEW.md abs-B-1)")
     a = ap.parse_args(argv)
     warnings.filterwarnings("ignore")
     out = Path(a.out)
@@ -228,6 +260,7 @@ def main(argv: list[str]) -> int:
     _clear(out, A1_OUTPUTS)
     if not pred.empty:
         ranking(pred).to_csv(out / "a1_ranking.csv", index=False)
+        rate_basis(monthly).round(10).to_csv(out / "a1_basis.csv", index=False, float_format="%.12g")
         straddle_sensitivity(monthly, composition, crosswalk, shapes, level, a.series, a.rate).to_csv(
             out / "a1_straddle.csv", index=False)
     # A3: the loss rate factors exactly into entry x progression x conversion; where a trust's advantage sits
@@ -244,6 +277,7 @@ def main(argv: list[str]) -> int:
         bt.round(10).to_csv(out / "a3_by_trust.csv", index=False, float_format="%.12g")
         cards_roll.stress_test(st, STRESS_PERIODS).round(10).to_csv(out / "a3_stress.csv", index=False, float_format="%.12g")
         cards_roll.regimes(st).round(10).to_csv(out / "a3_regimes.csv", index=False, float_format="%.12g")
+        cards_roll.ceiling(monthly).round(10).to_csv(out / "a3_ceiling.csv", index=False, float_format="%.12g")
     except Exception as e:  # noqa: BLE001
         _clear(out, A3_OUTPUTS)
         (out / "a3_stages.csv").write_text(f"not computed: {e}\n")

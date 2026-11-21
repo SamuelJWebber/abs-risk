@@ -41,7 +41,7 @@ cards_monthly:
     period_end: "2026-07-28"
     accession: 0001193125-26-353756
     document: d138267dex99.htm
-    field: gross_co_rate
+    field: net_co_rate
     label: "Credit Loss Component"
     printed: "1.90 %"
     value: 0.0190

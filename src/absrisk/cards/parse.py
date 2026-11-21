@@ -515,10 +515,18 @@ def parse_citi(f: Filing) -> dict:
     surplus = find_row(rs, r"^\d\.\s*Surplus Finance Charge Collections$")
 
     r.set("receivables_principal", end_row.dollars(), end_row)
-    r.set("gross_co_rate", clc.pct(), clc)
-    r.null("net_co_rate", "Citi publishes no net charge-off rate and no pool-level dollar charge-off row; "
-                          "Credit Loss Component is inferred gross (recoveries are credited to collections, "
-                          "prospectus Annex I)")
+    # The Credit Loss Component is NET of recoveries. Until 2026-11-21 it was stored as gross_co_rate ("inferred
+    # gross"); the independent review of 2026-11-10 (REVIEW.md abs-B-1) joined it to the prospectus table "Net Losses
+    # by Year of Account Origination (by Monthly Due Period)" in 0001193125-25-144490 and found the same number in 63
+    # of 63 months, January 2020 to March 2025 (58 identical, 5 differing by 0.01 point). The prospectus defines
+    # Portfolio Yield as finance charge collections less principal charged off "net of recoveries", and the 10-D's
+    # Portfolio Yield is Yield Component minus this row. Citi's gross charge-offs were 1.21 to 1.47 times its net
+    # losses by year (2022 to Q1 2025, same prospectus), and no 10-D row gives the gross rate.
+    r.set("net_co_rate", clc.pct(), clc)
+    r.null("gross_co_rate", "Citi's 10-D prints no gross charge-off rate and no pool-level dollar charge-off row. "
+                            "The Credit Loss Component is net of recoveries: it equals the prospectus monthly "
+                            "net-loss table (0001193125-25-144490) in 63 of 63 months, and Portfolio Yield, "
+                            "defined net of recoveries, is Yield Component minus it")
     r.out["co_basis"] = "invested_amount"
     r.out["co_annualisation"] = "actual_365"
     r.set("payment_rate", prin_pay.pct(), prin_pay)
@@ -529,10 +537,10 @@ def parse_citi(f: Filing) -> dict:
     # All three percentages are printed to 2 decimals, so the identity can be off by half a unit in
     # each of them (0.015 pp); compare at that printed precision, as parse_synchrony already does.
     r.check("portfolio_yield_identity", yrow.pct(), yc.pct() - clc.pct(), tol=1.5e-4)
-    r.notes["gross_co_rate"] = ("Credit Loss Component of Portfolio Yield for the Collateral Certificate: investor "
-                                "default amount over the collateral certificate invested amount, annualised "
-                                f"actual/365 over the {days}-day due period (design/scout-cards.md B4); pro rata "
-                                "to the master trust, so the pool default rate on principal receivables")
+    r.notes["net_co_rate"] = ("Credit Loss Component of Portfolio Yield for the Collateral Certificate: principal "
+                              "charged off net of recoveries over the collateral certificate invested amount, "
+                              f"annualised actual/365 over the {days}-day due period (design/scout-cards.md B4); pro "
+                              "rata to the master trust, so the pool net loss rate on principal receivables")
     r.notes["excess_spread"] = "Surplus Finance Charge Collections (actual basis), Citi's excess-spread analogue"
 
     # Delinquency item 6: Current + 1-30/31-60/61-90/91-120/121-150/151-180 dollars; % of the sum.

@@ -69,7 +69,7 @@ EXPECTED = {
     ),
     "citi": dict(
         period_end="2026-07-28", accession="0001193125-26-353756", source_file="d138267dex99.htm",
-        receivables_principal=19_119_983_665, gross_co_rate=0.0190, net_co_rate=None,
+        receivables_principal=19_119_983_665, gross_co_rate=None, net_co_rate=0.0190,
         co_basis="invested_amount", co_annualisation="actual_365", payment_rate=0.4384, yield_=0.2341,
         delinq_30plus_share=(76_269_089 + 57_536_794 + 48_137_590 + 40_781_279 + 42_241_217)
         / (19_406_570_793 + 252_230_180 + 76_269_089 + 57_536_794 + 48_137_590 + 40_781_279 + 42_241_217),
@@ -137,8 +137,9 @@ def test_recompute_self_check_recorded(parsed, slug):
     j = json.loads(parsed[slug]["row_labels_json"])
     assert all(c.endswith(" ok") for c in j["checks"]), j["checks"]
     if slug == "citi":
-        assert "gross_co_rate" not in j["recomputed"]
-        assert "net_co_rate" in j["null_reasons"]
+        # Citi prints one rate, net of recoveries (REVIEW.md abs-B-1), and no dollar row to recompute it from
+        assert "gross_co_rate" not in j["recomputed"] and "net_co_rate" not in j["recomputed"]
+        assert "gross_co_rate" in j["null_reasons"] and "net_co_rate" not in j["null_reasons"]
     else:
         for k in ("gross_co_rate", "net_co_rate"):
             assert abs(j["printed"][k] - j["recomputed"][k]) <= 1e-4, (k, j["printed"][k], j["recomputed"][k])
@@ -260,7 +261,7 @@ HISTORICAL = {
     "citi/0001193125-19-009574": dict(
         variant="citi finance-charge label with &#151; and no spaces around the dash",
         trust="citi", period_end="2018-12-26", source_file="d689236dex99.htm",
-        receivables_principal=40_064_618_633, gross_co_rate=0.0255, net_co_rate=None,
+        receivables_principal=40_064_618_633, gross_co_rate=None, net_co_rate=0.0255,
         payment_rate=0.2723, yield_=0.2024, excess_spread=0.1476,
         delinq_30plus_share=(170_396_940 + 140_804_989 + 122_413_385 + 100_747_543 + 97_107_600)
         / (39_053_672_110 + 607_868_977 + 170_396_940 + 140_804_989 + 122_413_385 + 100_747_543 + 97_107_600),
@@ -271,7 +272,7 @@ HISTORICAL = {
     "citi/0001193125-26-304533": dict(
         variant="citi finance-charge label written 'Receivables-End of Due Period'",
         trust="citi", period_end="2026-06-25", source_file="d347998dex99.htm",
-        receivables_principal=19_165_697_102, gross_co_rate=0.0225, net_co_rate=None,
+        receivables_principal=19_165_697_102, gross_co_rate=None, net_co_rate=0.0225,
         payment_rate=0.4193, yield_=0.2464, excess_spread=0.1771,
         delinq_30plus_share=(74_558_348 + 55_824_914 + 49_227_351 + 44_511_392 + 39_048_865)
         / (19_650_337_445 + 229_166_540 + 74_558_348 + 55_824_914 + 49_227_351 + 44_511_392 + 39_048_865),
@@ -282,7 +283,7 @@ HISTORICAL = {
     "citi/0001193125-22-221038": dict(
         variant="citi delinquency column rounded to 100.00% with the residual in 151-180, not Current",
         trust="citi", period_end="2022-07-26", source_file="d351916dex99.htm",
-        receivables_principal=24_202_377_002, gross_co_rate=0.0119, net_co_rate=None,
+        receivables_principal=24_202_377_002, gross_co_rate=None, net_co_rate=0.0119,
         payment_rate=0.3564, yield_=0.1989, excess_spread=0.1557,
         delinq_30plus_share=(58_025_152 + 43_357_559 + 33_379_672 + 28_360_966 + 29_862_527)
         / (24_043_600_143 + 195_677_761 + 58_025_152 + 43_357_559 + 33_379_672 + 28_360_966 + 29_862_527),

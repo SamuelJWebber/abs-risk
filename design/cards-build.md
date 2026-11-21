@@ -108,14 +108,17 @@ Balance" row (principal + finance charge + fee receivables, 11.88B); 30+ = the T
 **Citi** (exhibit: "Portfolio Yield for the Collateral Certificate" and "Credit Loss Component"; EX-99).
 Period: "Due Period ending July 28, 2026" (EDGAR's reportDate is the same date; Citi's month ends around
 the 28th, so `period_end` is not a calendar month end). Labels: "1. Portfolio Yield for the Collateral
-Certificate" with sub-rows "Yield Component" (yield) and "Credit Loss Component" (gross_co_rate), "3. Total
+Certificate" with sub-rows "Yield Component" (yield) and "Credit Loss Component" (net_co_rate), "3. Total
 Payment Rate" (inputs), "4. Principal Payment Rate", "Principal Receivables Beginning/Average/End of Due
 Period", "Finance Charge Receivables - End of Due Period", "Investor Default Amount", "4. Surplus Finance
 Charge Collections" (excess_spread, actual basis). Basis: `co_basis = invested_amount` (the collateral
 certificate invested amount, pro rata to the pool), `co_annualisation = actual_365` over the due period
 (33 days here; the day count is read from the footnote sentence "from June 26, 2026 to July 28, 2026, 33
-days" into inputs). Gross vs net: inferred gross (recoveries are credited to collections, prospectus Annex
-I); `net_co_rate` null with that reason. No dollar pool charge-off row exists, so no recompute; the only
+days" into inputs). Gross vs net: NET. The component equals the prospectus table "Net Losses by Year of Account
+Origination (by Monthly Due Period)" in 63 of 63 months (tests/test_citi_net.py), and the prospectus defines
+Portfolio Yield net of recoveries. Until 2026-11-21 it was stored as gross ("inferred gross"), which the
+independent review of 2026-11-10 showed to be wrong (REVIEW.md abs-B-1); `gross_co_rate` is now null with that
+reason, and Citi prints no gross rate anywhere in the 10-D. No dollar pool charge-off row exists, so no recompute; the only
 identity checked is Portfolio Yield = Yield Component - Credit Loss Component. Delinquency: item 6 buckets
 1-30/31-60/61-90/91-120/121-150/151-180 dollars over the sum of "Current" and all buckets (the footnote
 says the percentages are of that aggregate, and it reproduces every printed percentage); 30+ = 31+ and 90+

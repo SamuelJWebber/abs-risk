@@ -15,8 +15,11 @@ from .svg import line_chart, page, table
 
 STRESS_ORDER = ("pre-covid 2019", "stimulus 2020-21", "normalising 2022-23H1", "squeeze 2023H2 on")
 
-SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. Charge-off bases differ by trust and are "
-         "kept as reported. The residual is actual minus what the pool's score mix predicts under a stated "
+SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. Every trust is compared on its net "
+         "charge-off rate, losses after recoveries, because that is the only rate all six print: Citi's monthly report "
+         "gives no gross rate. Until November 2026 this page labelled Citi's net rate gross and set it against the "
+         "other five trusts' gross rates. Annualisation bases differ by trust and are kept as reported. "
+         "The residual is actual minus what the pool's score mix predicts under a stated "
          "loss-by-tier shape; it mixes underwriting, product, customer mix within a score band, pool selection and "
          "behaviour, and it cannot say which. In principle it says whether a trust loses more than its score mix "
          "predicts, by how many points, and since when. Here the number of points depends on which loss curve is "
@@ -82,58 +85,172 @@ def _straddle_note(results: Path) -> str:
     return "".join(lines)
 
 
+# Citi's gross charge-offs over its net losses by year, from the loss experience table of its prospectus
+# 0001193125-25-144490 (2022, 2023, 2024 and the first quarter of 2025: 1.47, 1.27, 1.21, 1.25). tests/test_citi_net.py
+# recomputes the 2024 figure from the committed copy of that prospectus.
+CITI_GROSS_OVER_NET = (1.21, 1.47)
+# Bounds used for a trust with no gross rate: its net rate itself, which is a floor in every month because recoveries
+# cannot be negative, and the highest yearly ratio the prospectus reports. The prospectus covers 2022 to early 2025
+# only, so the upper bound is an assumption in other years and the floor is not.
+GROSS_BOUNDS = (1.0, CITI_GROSS_OVER_NET[1])
+
+
+def _basis_note(results: Path) -> str:
+    """Net trust rates against a gross industry level: how far that sets every residual low (REVIEW.md abs-B-1)."""
+    p = results / "a1_basis.csv"
+    if not p.exists():
+        return ""
+    b = pd.read_csv(p)
+    both = b.dropna(subset=["net_over_gross"])
+    none = sorted(b.loc[b["months_gross"] == 0, "trust"])
+    if both.empty:
+        return ""
+    line = ("<p><b>Net against a gross benchmark.</b> The CFPB industry rate behind every prediction counts balances charged "
+            "off before recoveries, and the trusts are measured after them. At the "
+            f"{len(both)} trusts that print both rates, net is {both['net_over_gross'].min():.0%} to "
+            f"{both['net_over_gross'].max():.0%} of gross, a gap of {both['gross_minus_net'].min() * 100:.2f} to "
+            f"{both['gross_minus_net'].max() * 100:.2f} percentage points. So each residual here sits lower than a "
+            "gross-against-gross one by about that much. The ranking compares like with like. A positive residual is safe; a "
+            "negative one smaller than that gap is not a finding.")
+    if none:
+        line += (f" {escape(', '.join(none))} print{'s' if len(none) == 1 else ''} no gross rate at all: its prospectus puts gross "
+                 f"charge-offs at {CITI_GROSS_OVER_NET[0]:.2f} to {CITI_GROSS_OVER_NET[1]:.2f} times net losses by year, 2022 to "
+                 "early 2025." if none == ["citi"] else f" {escape(', '.join(none))} print no gross rate at all.")
+    return line + "</p>"
+
+
 def _year_fraction(t: pd.Series) -> list[float]:
     """A month-end as a fraction of the calendar: 2019-01-31 is 2019 + 1/12, so whole years fall on round ticks."""
     t = pd.to_datetime(t)
     return (t.dt.year + (t.dt.month - 1) / 12 + t.dt.day / t.dt.days_in_month / 12).round(4).tolist()
 
 
+def _gross_bounds(mean_net_residual, mean_net_actual, mean_gross_residual):
+    """The residual against the CFPB level like for like, that is on the gross rate: the trust's own gross residual
+    where it prints a gross rate (both bounds equal), else its net residual (a floor: gross is never below net) and
+    its net residual plus its net rate times the highest gross-over-net excess its prospectus reports
+    (`GROSS_BOUNDS`). Works on arrays."""
+    has = mean_gross_residual == mean_gross_residual
+    lo = np.where(has, mean_gross_residual, mean_net_residual + mean_net_actual * (GROSS_BOUNDS[0] - 1))
+    hi = np.where(has, mean_gross_residual, mean_net_residual + mean_net_actual * (GROSS_BOUNDS[1] - 1))
+    return lo, hi
+
+
+def _gross_residuals(rank: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(low, high) mean residual on the gross basis per trust and shape, from a1_ranking.csv."""
+    r = rank.copy()
+    if "mean_residual_gross" not in r:
+        r["mean_residual_gross"] = np.nan
+    lo, hi = _gross_bounds(r["mean_residual"].to_numpy(float), r["mean_actual"].to_numpy(float),
+                           r["mean_residual_gross"].to_numpy(float))
+    r["lo"], r["hi"] = lo, hi
+    return (r.pivot_table(index="trust", columns="shape_source", values="lo"),
+            r.pivot_table(index="trust", columns="shape_source", values="hi"))
+
+
 def _sign_by_year(pred: pd.DataFrame) -> pd.DataFrame:
-    """Per trust and calendar year: '+' if the mean residual is positive under every shape, '-' if negative under
-    every shape, '+/-' if the shapes disagree. This is the page's 'since when'."""
+    """Per trust and calendar year: '+' if the mean gross-basis residual is positive under every shape, '-' if negative
+    under every shape, '+/-' if the shapes disagree (or, for a trust with no gross rate, if the low and the high bound
+    on it disagree). This is the page's 'since when'."""
     p = pred.assign(year=pd.to_datetime(pred["period_end"]).dt.year)
-    g = p.groupby(["trust", "year", "shape_source"])["residual"].mean().unstack("shape_source")
-    sign = pd.Series(np.where((g > 0).all(axis=1), "+", np.where((g < 0).all(axis=1), "-", "+/-")), index=g.index)
+    if "residual_gross" not in p:
+        p["residual_gross"] = np.nan
+    g = p.groupby(["trust", "year", "shape_source"]).agg(
+        net=("residual", "mean"), actual=("actual", "mean"),
+        gross=("residual_gross", lambda x: x.mean() if x.notna().all() else np.nan))
+    lo, hi = _gross_bounds(g["net"].to_numpy(float), g["actual"].to_numpy(float), g["gross"].to_numpy(float))
+    lo = pd.Series(lo, index=g.index).unstack("shape_source")
+    hi = pd.Series(hi, index=g.index).unstack("shape_source")
+    pos, neg = (lo > 0).all(axis=1) & (hi > 0).all(axis=1), (lo < 0).all(axis=1) & (hi < 0).all(axis=1)
+    sign = pd.Series(np.where(pos, "+", np.where(neg, "-", "+/-")), index=lo.index)
     return sign.unstack("year")
 
 
-def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> list[str]:
+# A statement about one trust that rests on how its pool is calibrated, beyond the loss curve and the straddle rule.
+# Review round 2 (REVIEW.md R2-2) measured this one on data through September 2026.
+PRODUCT_NOTE = {
+    "synchrony": ("One more assumption sits under that sign, and the curves do not cover it: synchrony's pool is set against "
+                  "the general-purpose industry level like the other five, though about a quarter of its receivables are "
+                  "private label cards, which charge off at roughly twice the general-purpose rate industry-wide. A review "
+                  "on 2026-11-09 found the sign survives at that blend and reverses if the whole pool is treated as private "
+                  "label."),
+}
+
+
+def ends(cells: pd.DataFrame) -> dict:
+    """Who sits at the top and the bottom of the ranking across `cells`, and how often. A cell is one loss curve under
+    one straddle rule (a1_straddle.csv), or one loss curve when the frame has no straddle_rule column (a1_ranking.csv).
+    Keys: n (cells), n_trusts, top, top_n, bottom, bottom_n, pos (cells with a positive residual, per trust), moved
+    (trusts whose rank is not the same in every cell), res_min, res_max (per trust)."""
+    keys = [k for k in ("straddle_rule", "shape_source") if k in cells]
+    n = int(cells.groupby(keys).ngroups)
+    nt = int(cells["trust"].nunique())
+    first = cells[cells["rank"] == 1]["trust"].value_counts()
+    last = cells[cells["rank"] == nt]["trust"].value_counts()
+    g = cells.groupby("trust")
+    return {"n": n, "n_trusts": nt, "top": str(first.idxmax()), "top_n": int(first.max()),
+            "bottom": str(last.idxmax()), "bottom_n": int(last.max()),
+            "pos": g["mean_residual"].apply(lambda x: int((x > 0).sum())),
+            "moved": sorted(g["rank"].nunique()[lambda x: x > 1].index),
+            "res_min": g["mean_residual"].min(), "res_max": g["mean_residual"].max(),
+            "words": "combinations of loss curve and straddle rule" if "straddle_rule" in cells else "loss curves"}
+
+
+def ends_sentence(e: dict) -> str:
+    """The headline about the ends of the ranking, saying 'every' only where the count is every cell."""
+    n = e["n"]
+    if e["top_n"] == n and e["bottom_n"] == n:
+        lead = "The ends of the ranking hold under every assumption; the middle does not."
+        close = "So the ordering of the extremes is a finding and the ordering of the middle is not."
+    elif e["top_n"] > n / 2 and e["bottom_n"] > n / 2:
+        lead = "The ends of the ranking hold under most assumptions, not under all of them."
+        close = "So the two ends are close to a finding, not quite one, and the ordering between them is not a finding at all."
+    else:
+        lead = "Neither end of the ranking holds across the assumptions."
+        close = "So no part of the ordering is a finding."
+
+    def count(k):
+        return f"all {n}" if k == n else f"{k}"
+    t, b = e["top"], e["bottom"]
+    body = (f"Across the {n} {e['words']} (section 4), {escape(t)} has the largest residual in {count(e['top_n'])} and "
+            f"{escape(b)} the smallest in {count(e['bottom_n'])}; {len(e['moved'])} of {e['n_trusts']} trusts change rank "
+            f"somewhere among them.")
+    if e["pos"].get(t, 0) == n:
+        body += (f" {escape(t)} loses more than its own score mix predicts in all {n}: its residual is "
+                 f"{e['res_min'][t]:+.2%} to {e['res_max'][t]:+.2%} after recoveries, so it is positive before them too.")
+    out = f"<b>{lead}</b> {body} {close}"
+    if t in PRODUCT_NOTE and e["pos"].get(t, 0) == n:
+        out += " " + PRODUCT_NOTE[t]
+    return out
+
+
+def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame, straddle: pd.DataFrame | None = None) -> list[str]:
     """Sentences computed from the tables, so the page cannot claim more than the numbers carry."""
     out = []
     if rank.empty:
         return out
     r = rank.pivot_table(index="trust", columns="shape_source", values="rank")
     res = rank.pivot_table(index="trust", columns="shape_source", values="mean_residual")
-    stable = r[r.nunique(axis=1) == 1]
-    moved = r[r.nunique(axis=1) > 1]
+    glo, ghi = _gross_residuals(rank)          # the level against the CFPB's gross rate, like for like
     n_shapes = r.shape[1]
-    if not stable.empty:
-        top = stable[stable.min(axis=1) == stable.min(axis=1).min()]
-        bot = stable[stable.max(axis=1) == stable.max(axis=1).max()]
-        parts = []
-        if not top.empty:
-            t = top.index[0]
-            parts.append(f"{t} charges off more than its own score mix predicts under every one of the {n_shapes} shapes "
-                         f"(residual {res.loc[t].min():+.2%} to {res.loc[t].max():+.2%})")
-        if not bot.empty and bot.index[0] != (top.index[0] if not top.empty else None):
-            b = bot.index[0]
-            parts.append(f"{b} charges off least relative to its mix under every shape ({res.loc[b].min():+.2%} to {res.loc[b].max():+.2%})")
-        if parts:
-            out.append("<b>The ends of the ranking hold; the middle does not.</b> " + "; ".join(parts) +
-                       f". {len(moved)} of {len(r)} trusts change rank depending on which loss curve is assumed"
-                       + (f" ({escape(', '.join(moved.index))})" if not moved.empty else "") +
-                       ". So the ordering of the extremes is a finding and the ordering of the middle is not.")
-    flip = res[(res > 0).any(axis=1) & (res < 0).any(axis=1)]
-    same = res[~res.index.isin(flip.index)]
+    cells = straddle if straddle is not None and not straddle.empty and "uniform" in set(straddle["straddle_rule"]) else rank
+    out.append(ends_sentence(ends(cells)))
+    # signs are read on the gross rate, because the CFPB level each prediction is calibrated to is gross
+    keeps = ((glo > 0).all(axis=1) & (ghi > 0).all(axis=1)) | ((glo < 0).all(axis=1) & (ghi < 0).all(axis=1))
+    flip = glo[~keeps]
+    same = glo[keeps]
     if not flip.empty:
         names = escape(", ".join(sorted(flip.index)))
-        line = (f"<b>The size of the gap is not identified.</b> For {len(flip)} of {len(res)} trusts ({names}) the residual changes sign "
+        line = (f"<b>The size of the gap is not identified.</b> Measured like for like against the CFPB's gross industry rate, "
+                f"for {len(flip)} of {len(res)} trusts ({names}) the residual changes sign "
                 f"with the assumed loss curve: the same trust looks worse than its mix under the consumer-level shapes and better under "
                 f"the card-level ones. The two families disagree by about five times on how much more a deep subprime account loses than "
                 f"a prime one, and that choice moves every level.")
         if not same.empty:
-            keep = ", ".join(f"{t} ({res.loc[t].min():+.2%} to {res.loc[t].max():+.2%})" for t in sorted(same.index))
-            line += f" Only {escape(keep)} keeps the same sign under all {n_shapes}, so it is the one trust whose gap does not depend on the assumption."
+            keep = ", ".join(f"{t} ({glo.loc[t].min():+.2%} to {ghi.loc[t].max():+.2%})" for t in sorted(same.index))
+            one = len(same) == 1
+            line += (f" Only {escape(keep)} keep{'s' if one else ''} the same sign under all {n_shapes}, so "
+                     f"{'it is the one trust' if one else 'they are the only trusts'} whose sign does not depend on the loss curve.")
         out.append(line)
     act = rank.groupby("trust")["mean_actual"].first()
     act_spread = act.max() / max(act.min(), 1e-9)
@@ -158,43 +275,74 @@ def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame) -> lis
     return out
 
 
-def _interpret_stages(bt: pd.DataFrame) -> str:
-    """Read the entry/progression/conversion split back as sentences."""
+def _interpret_stages(bt: pd.DataFrame, ceil: pd.DataFrame | None = None) -> str:
+    """Read the entry/progression/conversion split back as sentences, and say what conversion cannot carry."""
     d = bt.dropna(subset=["entry_share_of_gap"])
     if d.empty:
         return ""
     base = bt.loc[bt["co_monthly"].idxmax(), "trust"]
     best = d.loc[d["co_monthly"].idxmin()]
-    over = d[d["entry_share_of_gap"] > 1.0]
     prog = f"{bt['progression'].min():.2f} to {bt['progression'].max():.2f}" if "progression" in bt else ""
-    parts = [f"<p><b>The advantage is in never getting into trouble, not in surviving it.</b> {best['trust']} loses "
-             f"{best['co_monthly_ratio']:.2f} times what {base} loses each month. Its 30-plus share is "
-             f"{best['entry_ratio']:.2f} times {base}'s, but once an account is 90 days late it converts to a loss at "
-             f"{best['conversion_ratio']:.2f} times {base}'s rate. Entry accounts for {best['entry_share_of_gap']:.0%} of the "
-             f"gap, progression for {best['progression_share_of_gap']:+.0%} and conversion for "
-             f"{best['conversion_share_of_gap']:+.0%}." + (f" Progression barely differs between trusts ({prog} of 30-day-late "
-                                                          f"balances reach 90 days), so the story is in the other two." if prog else "")]
-    if not over.empty:
-        names = ", ".join(sorted(over["trust"]))
-        parts.append(f" For {escape(names)} the entry share exceeds one, meaning conversion works against them: their deeply "
-                     f"delinquent accounts end in loss <i>more</i> readily than the worst trust's do, and the entry advantage has to "
-                     f"cover that too.")
-    parts.append(" That is the opposite of what protection would look like. If cardholders paid this issuer first, accounts would "
-                 "reach 90 days late and then be rescued, which is a low conversion rate, not a high one. Two other readings survive: "
-                 "the issuer may charge off faster by policy or re-age less, and the pools differ in score mix. The mix objection does "
-                 "not touch conversion, which already conditions on being 90 days late; the policy objection does.")
-    low_conv = d.loc[d["conversion"].idxmin(), "trust"] if "conversion" in d else None
-    if low_conv is not None and low_conv != best["trust"]:
-        parts.append(f" The trust whose 90-day-late balances convert least is {escape(str(low_conv))}, not the lowest-loss trust, so "
-                     f"the ordering by surviving trouble does not match the ordering by losing least.")
-    parts.append("</p>")
+    parts = [f"<p><b>The low-loss trusts have far fewer late balances. What happens to an account once it is late, these "
+             f"filings cannot say.</b> {best['trust']} loses {best['co_monthly_ratio']:.2f} times what {base} loses each month, "
+             f"and its 30-plus share is {best['entry_ratio']:.2f} times {base}'s. Entry accounts for "
+             f"{best['entry_share_of_gap']:.0%} of the gap, progression for {best['progression_share_of_gap']:+.0%} and "
+             f"conversion for {best['conversion_share_of_gap']:+.0%}."
+             + (f" Progression barely differs between trusts ({prog} of 30-day-late balances are 90 days late)." if prog else "")
+             + " Fewer late balances is what selection predicts. It is also what a card that people pay first would show, "
+               "because paying it first keeps it from falling behind. So the entry gap is large and real, and it does not "
+               "separate the two stories.</p>"]
+    parts.append(_ceiling_paragraph(ceil))
     return "".join(parts)
 
 
+def _ceiling_paragraph(ceil: pd.DataFrame | None) -> str:
+    """Why conversion is not the fate of late accounts, from a3_ceiling.csv (REVIEW.md abs-A-2, abs-B-2)."""
+    lead = ("<p><b>Conversion is not the fate of late accounts.</b> It divides every charge-off in the month by the balances "
+            "then 90 days late, and a charge-off need not have been among them. The prospectuses state the policy: an account "
+            "is written off at about 180 days late, or sooner when the cardholder is bankrupt or has died (American Express, "
+            "Citi, Chase and Synchrony each say so in the prospectuses used here).")
+    tail = (" So conversion mixes losses that aged through delinquency with losses that did not, in a proportion no monthly "
+            "report gives, and it cannot show whether late accounts are rescued more or less often at one trust than at "
+            "another. Until November 2026 this page read a conversion ratio above one as the opposite of protection. That "
+            "reading is withdrawn.</p>")
+    if ceil is None or ceil.empty:
+        return lead + tail
+    c = ceil.set_index("trust")
+    one = c[c["bucket_months"] == 1].sort_values("chargeoff_over_one_month", ascending=False)
+    mid = " The monthly reports show how often the sooner route is taken."
+    if not one.empty and one.iloc[0]["chargeoff_over_one_month"] > 1:
+        t, r = one.index[0], one.iloc[0]
+        mid += (f" An account can reach the 180-day write-off only from the last delinquency bucket of the month before, yet "
+                f"{escape(str(t))} wrote off {r['chargeoff_over_one_month']:.2f} times the dollars that were in that bucket a "
+                f"month earlier, over {int(r['months'])} months, and more than the bucket held in "
+                f"{r['share_months_above_one']:.0%} of them. At least {r['min_share_not_aged']:.0%} of its charge-offs "
+                f"therefore never aged through late delinquency.")
+        rest = [f"{escape(str(k))} {v['min_share_not_aged']:.0%}" for k, v in one.iloc[1:].iterrows()
+                if v["min_share_not_aged"] > 0]
+        if rest:
+            mid += f" The same lower bound elsewhere: {', '.join(rest)}."
+    two = c[c["bucket_months"] > 1]
+    for t, r in two.iterrows():
+        mid += (f" {escape(str(t))} prints its last {int(r['bucket_months'])} monthly cohorts as one bucket "
+                f"({escape(str(r['bucket']))} days): its charge-offs were {r['chargeoff_over_bucket']:.2f} of the whole bucket, "
+                f"which is {r['chargeoff_over_one_month']:.2f} times one cohort if the cohorts are equal, a lower bound of "
+                f"{r['min_share_not_aged']:.0%}.")
+    net = sorted(c.index[c["basis"] == "net"])
+    mid += (" The bucket counts finance charges and fees and the charge-off is principal only, so each ratio understates."
+            + (f" {escape(', '.join(net))} is on its net rate, which understates further." if net else ""))
+    cols = ["trust", "basis", "bucket", "months", "chargeoff_over_bucket", "chargeoff_over_one_month",
+            "share_months_above_one", "min_share_not_aged"]
+    tab = table(ceil.sort_values("chargeoff_over_one_month", ascending=False), cols=cols,
+                fmt={"chargeoff_over_bucket": "{:.2f}", "chargeoff_over_one_month": "{:.2f}",
+                     "share_months_above_one": "{:.0%}", "min_share_not_aged": "{:.0%}"})
+    return lead + mid + "</p>" + tab + "<p>" + tail[1:]
+
+
 def _names(xs, moves: dict | None = None) -> str:
-    """'a (-0.10), b (+0.02) and c', or 'none'."""
+    """'a (-0.10), b (+0.02) and c', or 'no trust'."""
     if not xs:
-        return "none"
+        return "no trust"
     items = [f"{x} ({moves[x]:+.2f})" if moves is not None else str(x) for x in xs]
     return escape(items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1])
 
@@ -234,15 +382,16 @@ def direction_sentences(d: dict, best: str | None = None) -> list[str]:
                    f"({e['ratio_min']:.2f} to {e['ratio_max']:.2f} times). Until November 2026 this page compared exactly those two "
                    f"and read the result as a test of prioritisation; it was not one.")
     v = d.get("verdict", "mixed")
+    weak = ("Conversion divides a flow by a stock that builds ahead of the charge-offs, which lowers it whenever delinquency is "
+            "rising, whoever is paid first, and it moves with the share of charge-offs that never aged through late "
+            "delinquency. So this test is weak evidence in either direction and settles nothing on its own.")
     if v == "mixed":
-        out.append("<b>So the direction test is mixed.</b> The moves either way are small beside the level gap above, and conversion "
-                   "divides a flow by a stock that builds ahead of the charge-offs, which lowers it whenever delinquency is rising, "
-                   "whoever is paid first. The level comparison carries the argument; this test neither confirms nor overturns it.")
+        out.append("<b>So the direction test is mixed.</b> The moves either way are small. " + weak)
     elif v == "priority":
-        out.append("<b>The direction test leans towards prioritisation:</b> every trust's conversion ratio fell in the tight months. "
-                   "Conversion falls mechanically while delinquency builds, so this is weak evidence, but it is the predicted sign.")
+        out.append("<b>Every trust's conversion ratio fell in the tight months,</b> the sign prioritisation predicts. " + weak)
     else:
-        out.append("<b>The direction test goes against prioritisation:</b> no trust's conversion ratio fell in the tight months.")
+        out.append("<b>No trust's conversion ratio fell in the tight months,</b> which is not the sign prioritisation "
+                   "predicts. " + weak)
     return out
 
 
@@ -261,7 +410,9 @@ def build(results: Path, out: Path) -> Path:
              f"{months.dt.to_period('M').nunique()} calendar months, {months.min():%B %Y} to {months.max():%B %Y}.</p>")
     h.append(f"<div class='note'>{escape(SCOPE)} {escape(_snapshot_note(pred, mix))}</div>")
     h.append("<h2>What the data says</h2>")
-    for line in _headlines(rank, pred, mix):
+    straddle_p = results / "a1_straddle.csv"
+    straddle = pd.read_csv(straddle_p) if straddle_p.exists() else None
+    for line in _headlines(rank, pred, mix, straddle):
         h.append(f"<p>{line}</p>")
 
     h.append("<h2>1. Score mix by trust</h2>")
@@ -308,7 +459,7 @@ def build(results: Path, out: Path) -> Path:
         for s, gs in g.groupby("shape_source"):
             gs = gs.sort_values("t")
             series.append({"name": f"predicted, {s}", "x": _year_fraction(gs["t"]), "y": gs["predicted"].tolist()})
-        h.append(line_chart(series, y_label="annualised gross charge-off", x_label="year", title=trust,
+        h.append(line_chart(series, y_label="annualised net charge-off", x_label="year", title=trust,
                             x_fmt="{:.0f}"))
     h.append("</div>")
 
@@ -316,8 +467,24 @@ def build(results: Path, out: Path) -> Path:
     if not rank.empty:
         w = rank.pivot_table(index="trust", columns="shape_source", values="mean_residual").reset_index()
         r = rank.pivot_table(index="trust", columns="shape_source", values="rank").reset_index()
-        h.append("<h3>Mean residual (actual minus predicted), percentage points of annualised charge-off</h3>")
+        h.append(_basis_note(results))
+        h.append("<h3>Mean residual (actual net minus predicted), percentage points of annualised charge-off</h3>")
         h.append(table(w, fmt={c: "{:+.2%}" for c in w.columns if c != "trust"}))
+        glo, ghi = _gross_residuals(rank)
+        gt = []
+        for t in glo.index:
+            if np.allclose(glo.loc[t], ghi.loc[t]):
+                gt.append({"trust": t, **glo.loc[t].to_dict()})
+            else:
+                gt.append({"trust": f"{t}, at its net rate (a floor)", **glo.loc[t].to_dict()})
+                gt.append({"trust": f"{t}, gross at {GROSS_BOUNDS[1]:.2f} times net", **ghi.loc[t].to_dict()})
+        gt = pd.DataFrame(gt)
+        h.append("<h3>The same on the gross rate, like for like with the CFPB level</h3>")
+        h.append("<p>The trust's own gross rate minus the prediction, for the trusts that print one. A trust that prints only a "
+                 "net rate is shown twice: at that net rate, which is a floor because gross is never below net, and at the "
+                 "highest yearly gross-over-net ratio its prospectus reports. Every statement about a sign on this page is "
+                 "read from this table.</p>")
+        h.append(table(gt, fmt={c: "{:+.2%}" for c in gt.columns if c != "trust"}))
         h.append("<h3>Rank (1 = largest positive residual)</h3>")
         h.append(table(r))
         stable = (r.drop(columns="trust").nunique(axis=1) == 1).all()
@@ -326,17 +493,19 @@ def build(results: Path, out: Path) -> Path:
                      "loss curve is assumed.</p>")
         else:
             held = r.set_index("trust").nunique(axis=1) == 1
-            h.append(f"<p><b>The ranking changes with the shape in the middle, not at the ends.</b> "
-                     f"{escape(', '.join(sorted(held[held].index)))} keep{'s' if held.sum() == 1 else ''} the same rank under every "
-                     f"shape; the others move. So the ordering of the trusts that hold their place is reported as a finding and "
-                     f"the ordering of the rest is not.</p>")
+            h.append(f"<p><b>The ranking changes with the shape.</b> "
+                     + (f"Under the uniform straddle rule, {escape(', '.join(sorted(held[held].index)))} "
+                        f"keep{'s' if held.sum() == 1 else ''} the same rank under every shape and the others move. The next "
+                        f"paragraph widens the rule, and the headline counts both.</p>"
+                        if held.any() else "No trust keeps one rank under every shape.</p>"))
         h.append(_straddle_note(results))
         sy = _sign_by_year(pred)
         if not sy.empty:
             always = [t for t in sy.index if (sy.loc[t].dropna() == "+").all()]
             h.append("<h3>Since when: the sign of each year's mean residual under every shape</h3>")
-            h.append("<p>+ means the trust lost more than its mix predicts under every shape that year, - less under every "
-                     "shape, +/- that the shapes disagree." + (f" {escape(', '.join(always))} is above its prediction under every "
+            h.append("<p>Read on the gross rate, like for like with the CFPB level. + means the trust lost more than its mix "
+                     "predicts under every shape that year, - less under every shape, +/- that the shapes disagree, or for a "
+                     "trust with no gross rate that the low and high bounds on it do." + (f" {escape(', '.join(always))} is above its prediction under every "
                      f"shape in every year since {int(sy.columns.min())}." if always else "") + "</p>")
             h.append(table(sy.reset_index()))
 
@@ -348,11 +517,10 @@ def build(results: Path, out: Path) -> Path:
                  "do not end in a loss. Those are different claims. The monthly charge-off rate factors exactly, with no modelling, "
                  "into three shares the trust reports itself:</p>")
         h.append("<p class='muted'>monthly charge-off &nbsp;=&nbsp; <b>entry</b> (30+ share) &nbsp;x&nbsp; "
-                 "<b>progression</b> (90+ / 30+) &nbsp;x&nbsp; <b>conversion</b> (monthly charge-off / 90+)</p>")
-        h.append("<p>If cardholders really did protect one issuer's account, that issuer's <b>conversion</b> would be low: accounts "
-                 "would reach 90 days late and still be rescued. Selection instead shows up in <b>entry</b>. The comparison of "
-                 "conversion is the more trustworthy half, because it conditions on accounts already 90 days late rather than on the "
-                 "pool's score mix.</p>")
+                 "<b>progression</b> (90+ / 30+) &nbsp;x&nbsp; <b>conversion</b> (monthly net charge-off / 90+)</p>")
+        h.append("<p>The split is exact arithmetic. What it can carry is narrower than this page used to claim: <b>entry</b> shows "
+                 "how much of a trust's advantage is fewer late balances, and <b>conversion</b> does not show what becomes of an "
+                 "account once it is late, for the reason given under the table.</p>")
         cols = ["trust", "months", "co_monthly", "entry", "progression", "conversion", "entry_ratio", "progression_ratio",
                 "conversion_ratio", "entry_share_of_gap", "progression_share_of_gap", "conversion_share_of_gap"]
         cols = [c for c in cols if c in bt]
@@ -363,7 +531,8 @@ def build(results: Path, out: Path) -> Path:
         h.append("<p class='muted'>Each column is a geometric mean over the trust's months, so entry x progression x conversion is "
                  "co_monthly exactly and the three shares of the gap sum to one. Ratios and shares are against the trust with the "
                  "highest loss rate.</p>")
-        h.append(_interpret_stages(bt))
+        ceil_p = results / "a3_ceiling.csv"
+        h.append(_interpret_stages(bt, pd.read_csv(ceil_p) if ceil_p.exists() else None))
         if stress_p.exists():
             sdf = pd.read_csv(stress_p)
             reg = pd.read_csv(regimes_p) if regimes_p.exists() else pd.DataFrame()
@@ -372,10 +541,10 @@ def build(results: Path, out: Path) -> Path:
                 best = str(bt.loc[bt["co_monthly"].idxmin(), "trust"])
                 h.append("<h3>The direction test: does conversion fall when money is tight?</h3>")
                 h.append("<p>If borrowers rank their debts, the ranking should bite hardest when money is tight, so a protected "
-                         "card's 90-day-late accounts should be rescued more often then and its conversion ratio should "
-                         "<i>fall</i>. This is the one place the two stories make opposite predictions about a direction, rather than "
-                         "about a level. It needs months that really were tight, so they are picked by the trusts' own delinquency: "
-                         "each trust's 30-plus share over its own average, averaged across trusts.</p>")
+                         "card's late accounts should be rescued more often then and its conversion ratio should <i>fall</i>. "
+                         "It needs months that really were tight, so they are picked by the trusts' own delinquency: each "
+                         "trust's 30-plus share over its own average, averaged across trusts. Conversion is a blunt instrument "
+                         "for this, as the paragraph above says, so read the result as a description.</p>")
                 if not reg.empty:
                     w = reg.pivot_table(index="trust", columns="regime", values="conversion_ratio").reindex(columns=["loose", "tight"])
                     w["move"] = w["tight"] - w["loose"]
@@ -390,7 +559,7 @@ def build(results: Path, out: Path) -> Path:
                 h.append("<p>Conversion ratio against the period's highest-loss trust:</p>")
                 h.append(table(w, fmt={c: "{:.2f}" for c in w.columns if c != "trust"}))
     h.append("<h2>6. Panel regression</h2>")
-    h.append("<p>Trust-month regression of the gross charge-off rate on tier shares with month fixed effects, then with trust fixed "
+    h.append("<p>Trust-month regression of the net charge-off rate on tier shares with month fixed effects, then with trust fixed "
              "effects added, Driscoll-Kraay standard errors. Whether either can say anything depends on how the tier shares vary, "
              "and they come from prospectus snapshots: one per trust in this build.</p>")
     if not panel.empty and "status" in panel:

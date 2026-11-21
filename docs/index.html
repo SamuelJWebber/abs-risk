@@ -13,21 +13,24 @@ main{max-width:820px;margin:0 auto;padding:40px 20px 60px}h1{font-size:30px;marg
 <h1>abs-risk</h1>
 <p class="muted">Consumer credit risk from public SEC filings. Every number traces to a filing.</p>
 
-<p>American Express loses less than Synchrony. Toyota loses less than Santander. Both hold at the same credit score.
-Either those issuers picked people who do not fall behind, or the same people fall behind and pay that account first.
-The loss rate cannot tell the two apart, and almost every public comparison stops there.</p>
+<p>The American Express card trust loses less than Synchrony's. Toyota's public auto loan pool loses less than
+Santander's at the same credit score. Either those lenders picked people who do not fall behind, or the same people fall
+behind and pay that account first. The loss rate cannot tell the two apart, and almost every public comparison stops
+there. Everything here is one securitised trust per card issuer and one or two public deals per auto lender, not the
+lenders' whole books.</p>
 
-<a class="card lead" href="conclusions.html"><b>The answer, and how it was reached</b><br>
-Splitting losses into falling behind and falling behind becoming a write-off separates the two stories. On every level
-comparison it is selection, in cards and in auto loans; a test on how losses move with the cycle is mixed. What that rules
-out, and what it cannot.</a>
+<a class="card lead" href="conclusions.html"><b>What the filings can say, and what they cannot</b><br>
+Issuers with low losses have far fewer accounts that fall behind, in cards and in auto loans. Both stories predict
+that. Public filings cannot say whether their late accounts are rescued more or less often, which is where the stories
+differ, so they do not settle the question. Until November 2026 this page called the answer selection; that went
+further than the data.</a>
 
 <a class="card" href="cards.html"><b>Card trusts</b><br>
 Monthly reports from six master trusts since December 2018, refreshed twice a week; the cards page gives the count and the latest month. Charge-off split into entry, progression and
 conversion; residuals against what each pool's score mix predicts under four published loss curves.</a>
 
 <a class="card" href="autos.html"><b>Auto loans, loan by loan</b><br>
-759,808 loans across ten deals and seven lenders. Cumulative charge-off by score bucket with prepayment as a competing
+759,808 loans across ten deals and seven lenders. Cumulative default by score bucket with prepayment as a competing
 risk, a hazard model for lender and loan structure, and regression discontinuity at lenders' own pricing cutoffs.</a>
 
 <p class="muted">Source and methods: <a href="https://github.com/SamuelJWebber/abs-risk">github.com/SamuelJWebber/abs-risk</a>.

@@ -37,7 +37,7 @@ def _panel(seed: int = 0, months: int = 60) -> pd.DataFrame:
             entry = e0 * cyc[i] * np.exp(rng.normal(0, 0.02))
             prog = 0.5 * np.exp(rng.normal(0, 0.02))
             conv = conv0 * (1 + slope * (cyc[i] - 1)) * np.exp(rng.normal(0, 0.02))
-            rows.append({"trust": trust, "period_end": p.date().isoformat(), "gross_co_rate": entry * prog * conv * 12,
+            rows.append({"trust": trust, "period_end": p.date().isoformat(), "net_co_rate": entry * prog * conv * 12,
                          "delinq_30plus_share": entry, "delinq_90plus_share": entry * prog, "co_annualisation": "x12"})
     return pd.DataFrame(rows)
 

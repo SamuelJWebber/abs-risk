@@ -12,13 +12,20 @@ construction and the only judgement is how to read it.
 
 - A trust whose low loss rate is all **entry** has accounts that rarely go delinquent. That is selection: it
   lent to people who do not miss payments, or it lent them amounts they can carry.
-- A trust with a low **conversion** rate has accounts that go 90 days late and still do not charge off. That is
-  the observable signature of borrowers curing deep delinquency, which is what "people pay this card first"
-  would look like at the trust level. It is equally the signature of harder collections, more generous
-  re-aging, or a different charge-off policy.
+- **Conversion** is NOT the rate at which 90-day-late accounts end in loss, although this module and both pages
+  read it that way until 2026-11-21 (REVIEW.md abs-A-2 and abs-B-2). Its numerator is every charge-off in the
+  month, and a charge-off need not have been 90 days late first: every prospectus says accounts are written off
+  at about 180 days late or sooner on bankruptcy or death. `ceiling` measures how much that matters: Chase
+  charges off about 1.2 times the dollars that sat in its last delinquency bucket a month earlier, which
+  contractual ageing alone could never do. So a high conversion ratio is not evidence against rescue and a low
+  one is not evidence for it. The factor is kept because the identity needs it.
 
-Neither reading is a within-person comparison, so this cannot measure how one borrower ranks two cards. It can
-say whether an issuer's advantage lives before trouble or after it, which the loss rate alone cannot.
+Neither reading is a within-person comparison, so this cannot measure how one borrower ranks two cards. What it
+can say is narrower: how much of an issuer's advantage is fewer delinquent balances. It cannot say what happens
+to an account once it is late.
+
+Rate basis. All six trusts are compared on the NET rate (charge-offs after recoveries), `RATE`: it is the only
+rate Citi's 10-D prints (REVIEW.md abs-B-1), and five trusts gross against one net is not a comparison.
 
 Averages over months are geometric (the mean of the logs, exponentiated). The identity holds month by month, so it
 then holds for the averages too: a trust's average entry x progression x conversion is its average charge-off rate
@@ -34,23 +41,26 @@ while it is falling, whatever borrowers do; that matters for any comparison acro
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pandas as pd
 
 ANNUALISATION = {"x12": 12.0, "x365_over_days": 365.0 / 30.4, "actual_365": 365.0 / 30.4}
+RATE = "net_co_rate"          # the one charge-off rate all six trusts print (module docstring, "Rate basis")
 
 
-def monthly_rate(row: pd.Series) -> float:
+def monthly_rate(row: pd.Series, rate_col: str = RATE) -> float:
     """The reported annualised charge-off rate expressed per month, using the trust's own convention."""
     f = ANNUALISATION.get(str(row.get("co_annualisation", "x12")), 12.0)
-    return float(row["gross_co_rate"]) / f
+    return float(row[rate_col]) / f
 
 
-def stages(monthly: pd.DataFrame, rate_col: str = "gross_co_rate") -> pd.DataFrame:
+def stages(monthly: pd.DataFrame, rate_col: str = RATE) -> pd.DataFrame:
     """Per trust-month: entry, progression, conversion, and the identity check."""
     d = monthly.dropna(subset=[rate_col, "delinq_30plus_share", "delinq_90plus_share"]).copy()
     d["period_end"] = pd.to_datetime(d["period_end"])
-    d["co_monthly"] = d.apply(monthly_rate, axis=1)
+    d["co_monthly"] = d.apply(monthly_rate, axis=1, rate_col=rate_col)
     d["entry"] = d["delinq_30plus_share"]
     d["progression"] = d["delinq_90plus_share"] / d["delinq_30plus_share"].replace(0, np.nan)
     d["conversion"] = d["co_monthly"] / d["delinq_90plus_share"].replace(0, np.nan)
@@ -61,6 +71,71 @@ def stages(monthly: pd.DataFrame, rate_col: str = "gross_co_rate") -> pd.DataFra
 
 
 FACTORS = ("co_monthly", "entry", "progression", "conversion")
+
+# ----------------------------------------------------------------------------- the ceiling on aged charge-offs
+#
+# Every one of these trusts writes an account off when it becomes about 180 days late. To do that in month t the
+# account must have been in the last delinquency bucket at the end of month t-1. So if every charge-off came through
+# contractual ageing, the dollars charged off in a month could not exceed the dollars in that bucket a month earlier.
+# The bucket also counts finance charges and fees and the charge-off is principal only, so the true ceiling is lower.
+#
+# LAST_BUCKET: the parser's name for that bucket and the number of monthly cohorts it holds (Amex prints 120 days
+# and over as one bucket, two cohorts; COMET prints 150 and over). GROSS_DOLLARS: the parser input holding the
+# month's charge-off dollars before recoveries, and its unit. Citi prints no dollar row, so its dollars are its net
+# rate times its beginning principal, which understates the ratio (`basis` says which).
+LAST_BUCKET = {"amex": ("120+", 2), "bofa": ("150-179", 1), "chase": ("150-179", 1),
+               "citi": ("151-180 days delinquent", 1), "comet": ("150+", 1), "synchrony": ("150-179", 1)}
+GROSS_DOLLARS = {"amex": ("defaulted_amount", 1.0), "bofa": ("total_charge_offs_thousands", 1000.0),
+                 "chase": ("gross_losses", 1.0), "comet": ("defaulted_amount", 1.0), "synchrony": ("default_amount", 1.0)}
+CEILING_COLUMNS = ["trust", "basis", "bucket", "bucket_months", "months", "chargeoff_over_bucket",
+                   "chargeoff_over_one_month", "share_months_above_one", "min_share_not_aged"]
+
+
+def _chargeoff_dollars(trust: str, row: pd.Series, inputs: dict) -> float:
+    if trust in GROSS_DOLLARS:
+        key, unit = GROSS_DOLLARS[trust]
+        v = inputs.get(key)
+        return float(v) * unit if v is not None else np.nan
+    days, beg, rate = inputs.get("due_period_days"), inputs.get("beginning_principal"), row.get("net_co_rate")
+    if trust == "citi" and days and beg and rate is not None and rate == rate:
+        return float(rate) * float(days) / 365.0 * float(beg)
+    return np.nan
+
+
+def ceiling(monthly: pd.DataFrame) -> pd.DataFrame:
+    """Per trust: the dollars charged off each month over the dollars in the last delinquency bucket a month earlier.
+
+    chargeoff_over_bucket      sum of charge-offs over sum of the prior month-end bucket, over consecutive months
+    chargeoff_over_one_month   the same against one monthly cohort (the bucket divided by `bucket_months`)
+    share_months_above_one     share of months in which the one-cohort ratio is above one
+    min_share_not_aged         1 - 1 / chargeoff_over_one_month, floored at zero: the least share of charge-offs
+                               that cannot have aged through that bucket
+    Reads the dollar inputs the parser stored in `row_labels_json`; a trust without them is left out."""
+    if "row_labels_json" not in monthly:
+        return pd.DataFrame(columns=CEILING_COLUMNS)
+    d = monthly.copy()
+    d["period_end"] = pd.to_datetime(d["period_end"])
+    rows = []
+    for trust, g in d.sort_values("period_end").groupby("trust"):
+        if trust not in LAST_BUCKET:
+            continue
+        bucket, k = LAST_BUCKET[trust]
+        inputs = [json.loads(x).get("inputs", {}) if isinstance(x, str) else {} for x in g["row_labels_json"]]
+        co = np.array([_chargeoff_dollars(trust, r, i) for (_, r), i in zip(g.iterrows(), inputs)], dtype=float)
+        old = np.array([float((i.get("delinquency_buckets") or {}).get(bucket, np.nan)) for i in inputs], dtype=float)
+        gap = g["period_end"].diff().dt.days.to_numpy()
+        prev = np.concatenate([[np.nan], old[:-1]])
+        ok = np.isfinite(co) & np.isfinite(prev) & (prev > 0) & (gap >= 25) & (gap <= 36)   # consecutive months only
+        if not ok.any():
+            continue
+        whole = float(co[ok].sum() / prev[ok].sum())
+        one = whole * k
+        rows.append({"trust": trust, "basis": "gross" if trust in GROSS_DOLLARS else "net", "bucket": bucket,
+                     "bucket_months": k, "months": int(ok.sum()), "chargeoff_over_bucket": whole,
+                     "chargeoff_over_one_month": one,
+                     "share_months_above_one": float((co[ok] * k / prev[ok] > 1).mean()),
+                     "min_share_not_aged": max(0.0, 1.0 - 1.0 / one)})
+    return pd.DataFrame(rows, columns=CEILING_COLUMNS)
 
 
 def _gmeans(d: pd.DataFrame, by: str = "trust") -> pd.DataFrame:
@@ -168,7 +243,8 @@ def direction_summary(stress: pd.DataFrame, regimes_df: pd.DataFrame, order: lis
     """The facts the direction test rests on, computed once so both pages say the same thing.
 
     Prioritisation predicts that a card borrowers pay first sees its conversion ratio (against the highest-loss
-    trust) fall when money is tight. Two versions of "tight":
+    trust) fall when money is tight. Conversion also moves with the share of charge-offs that never aged through
+    late delinquency (`ceiling`), so whatever this finds is weak evidence either way. Two versions of "tight":
       regime       months with the delinquency index above its median against months below it;
       tightenings  consecutive named periods across which every trust's 30+ share rose (a period label alone does
                    not make a squeeze: in this corpus the 'squeeze' has lower delinquency than 2019).

@@ -1,6 +1,6 @@
 """Track A panel regression (analysis-plan §4).
 
-panel_regression      trust-month regression of the gross charge-off rate on tier shares with month fixed
+panel_regression      trust-month regression of the net charge-off rate on tier shares with month fixed
                       effects, with and without trust fixed effects, Driscoll-Kraay standard errors.
 identification        what those two specifications can identify from the tier shares they are given.
 
@@ -17,7 +17,7 @@ import pandas as pd
 TIERS = ["deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
 
 
-def panel_regression(monthly: pd.DataFrame, mix_monthly: pd.DataFrame, rate_col: str = "gross_co_rate", maxlags: int = 6):
+def panel_regression(monthly: pd.DataFrame, mix_monthly: pd.DataFrame, rate_col: str = "net_co_rate", maxlags: int = 6):
     """OLS of the charge-off rate on tier shares (superprime omitted) with month FE, then also trust FE.
 
     Driscoll-Kraay standard errors (statsmodels 'hac-groupsum' over time). Returns both fits and a tidy table.

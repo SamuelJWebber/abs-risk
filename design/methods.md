@@ -198,7 +198,11 @@ up to 1.47 points under the steep consumer-level shapes.
   with the rule recorded per file.
 - Card charge-off bases differ by trust (beginning, average, ending, invested amount) and annualisation differs
   (times twelve, times 365 over days, actual over 365). Kept as reported, never mixed.
-- Citi publishes no net charge-off and no dollar charge-off row, only a gross rate component.
+- Citi publishes one charge-off rate and no dollar charge-off row. The rate is net of recoveries (it equals the
+  prospectus's monthly net-loss table in 63 of 63 months); until 2026-11-21 this project labelled it gross. All six
+  trusts are therefore compared on the net rate, the only one they all print. The CFPB industry level is gross, so
+  statements about the sign of a residual are read on the gross rate for the five trusts that print it and on
+  bounds for Citi (cards page, section 4).
 - Synchrony's prospectus score is VantageScore, Chase's FICO table is a 5 percent sample, and Amex's buckets do
   not align to the six tiers. All three are flagged in the crosswalk.
 
@@ -229,11 +233,17 @@ rather than on a reported score. These lenders use different score models on dif
 at Toyota, an unnamed bureau score at Santander, VantageScore at Exeter), so an entry comparison "at the same
 score" is partly a comparison of score scales. Conditioning on delinquency removes that.
 
-**What it can and cannot conclude.** A lender whose gap is all entry has no protection effect to speak of: that
-is what a null roll ratio means, and it rules out the simplest protection story. A lender whose gap is in the
-roll has something happening after trouble starts, but the design cannot say whether that is the borrower's
-ranking of debts, the servicer's collections, or the collateral. Separating those needs one person observed
-across two lenders, which no public data provides.
+**What it can and cannot conclude.** A lender whose gap is all entry and whose roll ratio is one has no
+protection effect to speak of. None of the prime lenders here is quite that case: Honda's roll ratio is below one
+in every score bucket and Toyota's in most (REVIEW.md abs-A-6), so the page says "mostly entry" and reports the
+roll gap. A lender whose gap is in the roll has something happening after trouble starts, but the design cannot
+say whether that is the borrower's ranking of debts, the servicer's collections, or the collateral. Separating
+those needs one person observed across two lenders, which no public data provides.
+
+**The default event.** A default is a charge-off, or a buy-back of a loan that had been 90 or more days late
+(`survival.as_defaults`, since 2026-11-21). Santander buys such loans back in their fourth to sixth month in the
+pool, the trust records no loss on them, and counting them as harmless exits understated Santander's one-year
+figures by 22% to 33% (REVIEW.md abs-A-1). The charge-off-only figures are kept beside the default ones.
 
 **Applied to cards.** The same split runs on trust-level delinquency buckets: the flow into 30 days late against
 the flow from 30 days to charge-off. It is dollar-weighted and coarser than the loan-level version, and bucket
@@ -241,12 +251,20 @@ edges differ by trust, so only the 30-plus and 90-plus cuts are comparable. On t
 factors, entry (30+ share) x progression (90+ / 30+) x conversion (monthly charge-off / 90+), and the trust averages
 are geometric means so that the averages multiply back exactly and the three shares of a gap sum to one.
 
+**Conversion is not the fate of late accounts** (REVIEW.md abs-A-2, abs-B-2). Its numerator is every charge-off in
+the month, and the prospectuses say accounts are written off at about 180 days late or sooner on bankruptcy or
+death. `cards_roll.ceiling` measures the consequence: Chase charges off about 1.2 times the dollars that sat in
+its last delinquency bucket a month earlier, which ageing alone could never do. So a conversion ratio above one
+is not evidence that late accounts fare worse and one below one is not evidence of rescue. On cards the split
+shows how much of a gap is fewer late balances and nothing about what happens afterwards; the pages said
+otherwise until 2026-11-21.
+
 The stress interaction is the second test: if borrowers really rank debts, a trust whose accounts are ranked first
 should see its conversion ratio fall when households are squeezed. "Squeezed" has to come from the data, not from a
 calendar label: until November 2026 the test compared "pre-covid 2019" with a "squeeze 2023H2 on" in which every
 trust's 30+ share was lower (REVIEW.md R1-4). It now splits months by a delinquency index (each trust's 30+ share over
 its own average, averaged across trusts; above the median is tight) and also reports the one step between named
-periods that raised every trust's 30+ share. The result is mixed: in tight months the ratio fell for Amex, the
-lowest-loss trust, and rose for Citi; across the one clean tightening it fell for BofA and COMET. Conversion is a
-flow over a stock that builds ahead of the charge-offs, so it falls whenever delinquency is rising, whoever is paid
-first; the level comparison carries the argument and this test neither confirms nor overturns it.
+periods that raised every trust's 30+ share. The result is printed on the cards page from the current data.
+Conversion is a flow over a stock that builds ahead of the charge-offs, so it falls whenever delinquency is
+rising, whoever is paid first, and it moves with the share of charge-offs that never aged through delinquency. So
+this test is weak evidence in either direction and settles nothing on its own.
