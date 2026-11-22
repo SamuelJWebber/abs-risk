@@ -5,7 +5,7 @@ reviewed it: first-line reviewers attacked the work and compared it with other p
 second reviewer tried to refute each HIGH and MEDIUM finding. Only the verified result is below.
 Full reports, with commands and sources: `reviews/fable-2026-11-10/` (`abs-V.md` is the verification;
 the others are the first-line reports, including claims the verifier narrowed or rejected).
-**Status as of 2026-11-21: the four HIGH findings and three others are fixed; the table under "Status of each finding" says what was done, what holds it, and what is deferred.**
+**Status as of 2026-11-22: every HIGH and MEDIUM finding and four LOW findings are fixed (abs-A-3 fixed in part); the table under "Status of each finding" says what was done, what holds it, and what is deferred.**
 
 ## Verdict table
 
@@ -39,7 +39,7 @@ prospectus names 2025-2, 2025-3, 2025-4 and 2025-5 and stars those four in its s
    their second (8 to 10 and about 4 with loan-to-value, payment burden, term and new or used also matched)."
    On the page's current charge-off definition the same sentence reads 10 to 12, then 6 to 10.
 
-## Status of each finding (2026-11-21, Claude Code)
+## Status of each finding (2026-11-22)
 
 Evidence words as in HANDOFF.md: *fixture-proven* is a test on committed fixtures or synthetic data, *seen on the
 data* is a number recomputed here from the committed tables. Nothing below has been seen live on GitHub Pages
@@ -53,13 +53,13 @@ until the push that carries this file has deployed.
 | abs-A-3 "16" is a knife edge | **Fixed in part** | The page now leads with a fixed pair of lenders, score bucket and month of age held fixed, by year of loan age (`lender_gap.fixed_pair_ratios`, `b1_fixed_pairs.csv`): Exeter and Santander over CarMax 11.7 and 13.4 in year one, 6.8 and 5.3 in year two; 9.8 and 8.4, then 4.2 and 3.4, with loan structure matched. These are the review's figures to the decimal. The median sentence stays, and says it depends on which low lender holds ten defaults. **Not done:** the page does not print the 11-event and 10-point-bucket variants. | `tests/test_autos_defaults.py` (synthetic hazard ratio recovered; committed table equals a rebuild). |
 | abs-A-6 Honda/Toyota roll is not "close" | **Fixed** | "close to the baseline lender's rate" and "no sign of an account that borrowers protect" are replaced by the count of score buckets in which each lender's roll ratio is below one, on the autos and conclusions pages. | `tests/test_conclusions_claims.py`. |
 | abs-B-4 loan size "settled" | **Fixed** | Heading is "What else the data shows"; the "bigger line" sentence is replaced by one saying these are comparisons of loans that differ in one recorded field and say nothing about card limits. | `tests/test_conclusions_claims.py`. |
-| abs-B-3 same score, different loan | **Fixed in part** | The structure-matched ratios are on the page (row above), and the "9 without Exeter, outside the interval" sentence no longer arises. **Not done:** the page does not quote the shelf-selection language from the CarMax and Exeter prospectuses; the conclusions page says only that lenders choose which loans go into a public pool. | The fixed-pair tests. |
-| abs-A-4 "12-month" covers 2 to 7 months | **Deferred** | Cells whose first observed age is late (Capital One 11, Toyota 9, Honda 6) are still printed in the same column as cells observed from age 3. The ten-event rule keeps them out of every ratio. Fix when done: blank a cell whose first observed age is past a stated age. | none |
-| abs-A-5 scores not comparable | **Deferred** | The scope note already says Exeter's score is VantageScore. The 20-point FICO gap in Exeter's own prospectus and CarMax's averaging of co-borrower scores are not on the page. | none |
-| abs-A-7 thin early risk sets | **Deferred** (LOW) | No floor on the size of a risk set. | none |
+| abs-B-3 same score, different loan | **Fixed** | The structure-matched ratios are on the page (row above), and the "9 without Exeter, outside the interval" sentence no longer arises. The autos and conclusions pages and `design/methods.md` quote the shelf-selection rules from the CarMax and Exeter prospectuses (CarMax CAOT selected from its core portfolio with FICO 650 or above while lower-credit obligors go to CarMax Select; Exeter EART pools since 2025-2 excluding bureau score 640 or above and proprietary score 240 or above, which go to Exeter Select). | `tests/test_autos_defaults.py`, `tests/test_autos_review_fixes.py`. |
+| abs-A-4 "12-month" covers 2 to 7 months | **Fixed** | `lender_gap.blank_late_entry_cells` blanks any cell whose first observed age (with at least `survival.MIN_RISK_SET` = 50 loans at risk) exceeds `survival.MAX_FIRST_AGE` = 6 months (Capital One 11, Toyota 9, Honda 7 after the pool offset), `usable_cells(at, cif=cif)` excludes them from the 24-month score chart, and the autos page states each late lender's first observed age and blanks their cells in the section 2 table. | `tests/test_autos_review_fixes.py` (synthetic and committed-table assertions). |
+| abs-A-5 scores not comparable | **Fixed** | The autos page (scope note and summary), the conclusions page, and `design/methods.md` state Exeter's 20-point VantageScore-over-FICO gap from its prospectus (weighted average 582 vs 562; 14% vs 32% below 540), CarMax's averaging of co-borrower FICO scores on joint loans (about 30% of co-obligor records carry a `.5` score, truncated to an integer by `autos/parse.py`), and the opposite-direction shelf selection at CarMax and Exeter. | `tests/test_autos_review_fixes.py` (fixture-proven on the committed CarMax 2026-2 XML fixture and asserted on the built pages). |
+| abs-A-7 thin early risk sets | **Fixed** (LOW) | `survival._curves` and `lender_gap.group_life_tables` enforce `survival.MIN_RISK_SET` = 50: no monthly hazard is estimated at an age with fewer than 50 loans at risk, and every `b1_*` table is rebuilt with the floor. | `tests/test_autos_review_fixes.py` (synthetic thin-entry check and committed `b1_cif.csv` check). |
 | abs-A-8 first scheduled run untested | **Closed by events** (LOW) | The scheduled runs of 2026-11-12, 11-16 and 11-19 were green; the 11-16 run committed October rows. | `gh run list` |
 | abs-A-9 issuer-level opening sentences | **Fixed** (LOW) | The landing and conclusions pages now say "card trust" and "public auto loan pool" on first use, and no longer say the card comparison holds at the same score. | read on the rebuilt pages |
-| abs-B-5 Exeter selection dated from 2025-4 | **Deferred** (LOW) | Notes still say 2025-4; the prospectus says 2025-2. | none |
+| abs-B-5 Exeter selection dated from 2025-4 | **Fixed** (LOW) | `data/deals.csv`, `design/scout-autos.md`, `design/methods.md`, and the autos and conclusions pages now date Exeter's score-based pool selection from 2025-2, matching the EART 2026-2 prospectus. | `tests/test_autos_review_fixes.py`. |
 | abs-B-6 unused dollar fields, one with the wrong sign | **Deferred** (LOW) | Not touched. | none |
 
 Round 2 findings this pass also settled, because the same sentences were being rewritten: **R2-3** (the headline

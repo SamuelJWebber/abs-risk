@@ -179,8 +179,11 @@ def _independent_median(k: int, min_events: int, buy_backs: bool = True) -> floa
         n = np.array([((e <= t) & (x >= t)).sum() for t in range(13)])
         co = np.array([((x == t) & (v == "co")).sum() for t in range(13)])
         out = np.array([((x == t) & (v != "c")).sum() for t in range(13)])
-        s = np.concatenate([[1.0], np.cumprod(1 - out / np.maximum(n, 1))[:-1]])
-        return (s * co / np.maximum(n, 1)).sum(), n[-1], co.sum()
+        ok = n >= survival.MIN_RISK_SET
+        h_co = np.where(ok, co / np.maximum(n, 1), 0.0)
+        h_out = np.where(ok, out / np.maximum(n, 1), 0.0)
+        s = np.concatenate([[1.0], np.cumprod(1 - h_out)[:-1]])
+        return (s * h_co).sum(), n[-1], co.sum()
 
     b = (d.score // 20 * 20).to_numpy()
     ratios = []

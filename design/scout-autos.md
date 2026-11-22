@@ -223,7 +223,7 @@ COPAR 2026-1 offering pool, 91,627: `740:12,582 760:14,837 780:17,396 800:20,176
 Two structural facts in these histograms:
 
 - **Cliffs at 640 in Exeter and AMCAR.** Exeter 2025-5 drops from 8,509 (620-639) to 1,571 (640-659); AMCAR 2024-1
-  from 7,563 to 1,302. Exeter's prospectus says why: since 2025-4 the EART pools exclude loans whose bureau score is
+  from 7,563 to 1,302. Exeter's prospectus says why: since 2025-2 the EART pools exclude loans whose bureau score is
   >= 640 and proprietary score >= 240, which go to ESART (section 8). AMCAR's cliff is the same shape and is
   presumably the AMCAR/GMCAR split. These are securitization-selection cutoffs, not the lender's approve/decline
   cutoff, so no outcome comparison across 640 is possible inside the public data unless ESART/GMCAR are added.
@@ -390,11 +390,11 @@ $648,930,000, depositor EFCAR, LLC):
 - Pool criteria: "a weighted average proprietary credit score of 249 and a weighted average credit bureau score (for
   automobile loan contracts for which a credit bureau score is available) of 582; and a weighted average post-funding
   score of 222."
-- Selection: "Like the Exeter Automobile Receivables Trust 2025-4 and ... 2025-5 transactions, this transaction
+- Selection: "Consistent with the Exeter Automobile Receivables Trust 2025-2, ... 2025-3, ... 2025-4 and ... 2025-5 transactions, this transaction
   employs pool selection criteria intended to exclude obligors ... whose Credit Bureau Scores and proprietary credit
   scores were above certain specified threshold levels": excluded are loans with a Credit Bureau Score >= 640 **and**
   a proprietary score >= 240 (those go to the ESART program, which only includes loans above the thresholds).
-  Earlier EART deals (through 2025-3) used no score-based selection.
+  Earlier EART deals (through 2025-1) used no score-based selection.
 - Distribution by Credit Bureau Score (% of balance): No Score 0.01%; <540 14.24%; 540-564 15.98%; 565-599 33.71%;
   600-659 35.11%; >=660 0.95%; WA 582. By FICO (for loans with a FICO): No Score 5.14%; <540 31.66%; 540-564 16.40%;
   565-599 23.97%; 600-659 20.35%; >=660 2.47%; WA 562. Proprietary score: <201 7.06%; 201-214 7.61%; 215-224 7.24%;
@@ -506,7 +506,7 @@ Per-issuer normalizations:
 | Issuer | Score field | Missing score | PTI | Other |
 |---|---|---|---|---|
 | Santander | "Bureau", scale unstated (369-900), pending the 424B5 | 0 -> null | fraction | delinquency keeps counting after charge-off; drops codes 1 and 3 next month |
-| Exeter | "Consumer Credit Bureau" = VantageScore (300-850 scale); label it so | 0 -> null | fraction | delinquency reset to 0 at zero balance; keeps everything; pools since 2025-4 exclude bureau >= 640 & proprietary >= 240 |
+| Exeter | "Consumer Credit Bureau" = VantageScore (300-850 scale); label it so | 0 -> null | fraction | delinquency reset to 0 at zero balance; keeps everything; pools since 2025-2 exclude bureau >= 640 & proprietary >= 240 |
 | AmeriCredit | "Credit Bureau Score" (375-832), scale unstated | type "None" / non-numeric -> null | fraction | delinquency absent for closed loans; drops code 1 next month; July charge-off spike unexplained |
 | CarMax | "Bureau" = FICO at application, auto scale (650-900), co-obligor average | none | fraction (outliers > 1) | keeps everything; delinquency absent for closed loans; 100% used vehicles |
 | Toyota | "FICO Score 8 Auto" (620-900) | none | fraction | drops code 1 next month; keeps charge-offs; delinquency absent for closed loans |

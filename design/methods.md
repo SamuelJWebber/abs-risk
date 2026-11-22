@@ -41,7 +41,7 @@ prepayment, repurchase and disappearance as competing exits; the Kaplan-Meier cu
 is always higher. Both are published. The gap between them is the prepayment effect, and it is large for the
 captives, whose borrowers refinance and trade in faster.
 
-**Pool window (added 2026-11-10, REVIEW.md R2-1).** A loan has to be current to be sold into a trust, so in its first
+**Pool window (added 2026-11-10, REVIEW.md R2-1; risk-set floor and first-age blanking added 2026-11-22, abs-A-4 and abs-A-7).** A loan has to be current to be sold into a trust, so in its first
 months there it can hardly charge off: the hazard model (section 2) puts months 0-2 in the pool at 0.12 times a
 seasoned loan's charge-off odds and months 3-5 at 0.66. Delayed entry at the first month in the trust therefore
 counted months in which a loan cannot fail, and for lenders whose loans enter old (median age at entry 10 at Honda,
@@ -49,6 +49,14 @@ counted months in which a loan cannot fail, and for lenders whose loans enter ol
 Every b1 table now counts a loan from its fourth month in the trust (`survival.POOL_OFFSET` = 3); a loan that leaves
 earlier never enters a risk set. Months 3-5 still run at about two thirds of the seasoned hazard, so this is a lower
 bound on the correction; from the seventh month the headline median moves from 16 to 11, from the first it is 13.
+To prevent a single early event in a tiny risk set from jumping an Aalen-Johansen curve (such as one default among 29
+five-month-old loans in AmeriCredit's 480 bucket or one among 25 at age 24 in Exeter's 480 bucket), `_curves` and
+`group_life_tables` suppress hazard estimates at any age where fewer than `survival.MIN_RISK_SET` = 50 loans are under
+observation. And because seasoned deals are not observed in the early months after origination even after the pool
+offset (median first observed age with at least 50 loans at risk: Capital One 11, Toyota 9, Honda 7, against 3 to 5 at
+Exeter, CarMax, Santander and AmeriCredit), any cell whose first observed age exceeds `survival.MAX_FIRST_AGE` = 6
+months has its cumulative rates blanked on the autos page (`lender_gap.blank_late_entry_cells`) rather than printed
+beside full 12- or 24-month curves.
 
 **Uncertainty.** 95 percent percentile bootstrap over loans, 200 resamples. It is not clustered, so it understates
 uncertainty where a cell is one deal (which is most cells at the extremes of score). The lender ratios on the page
@@ -72,15 +80,24 @@ window and the lower lender needing ten charge-offs both inside the year and poo
 ratio (95% interval 0.90 to 1.02) over 29 pairs. Before the rule it was 1.00 over 67 pairs, most of which divided by
 a handful of charge-offs.
 
-**Score scale.** Exeter's "Consumer Credit Bureau" score is VantageScore for 98.9% of its pool (its 424B5,
-design/scout-autos.md section 8); every other lender reports a bureau score that is FICO where it says which. A 700
+**Score scale and shelf selection (updated 2026-11-22, REVIEW.md abs-A-5 and abs-B-3).** Exeter's "Consumer Credit Bureau" score is VantageScore for 98.9% of its pool (its 424B5,
+design/scout-autos.md section 8; in Exeter's prospectus for the same pool the weighted average is 582 on VantageScore
+and 562 on FICO, with 14% below 540 on VantageScore against 32% on FICO); every other lender reports a bureau score
+that is FICO where it says which. At CarMax, a joint loan's score is "calculated as the average of each obligor's FICO
+score" at application (about 30% of CarMax co-obligor records carry a half-point score, which `autos/parse.py`
+truncates to an integer). Both ends of the 660-759 comparison are also curated shelves filtered in opposite directions:
+CarMax's public CAOT pools are selected from CarMax Business Services' core portfolio with a FICO score at origination
+of 650 or above, while contracts outside the core portfolio ("a substantial portion of which are obligations of lower
+credit obligors") go to the separate CarMax Select trusts (not in this dataset); Exeter's public EART pools since
+2025-2 exclude obligors with a Credit Bureau Score of 640 or above and a proprietary score of 240 or above (those go
+to Exeter Select), so the 660-and-above loans remaining in Exeter 2025-5 are the ones Exeter's own model rated poorly.
+A 700
 there and a 700 at Honda are close but not the same number. The headline same-bucket ratio is therefore also
-reported without Exeter: a median 9 times (95% interval 8 to 15) across five buckets, against 16 with it, which is
-outside the main interval because Exeter is the highest lender in the 660, 680 and 700 buckets. Part of the headline
-gap is a comparison across score scales, and the page says so. Exeter is not the only scale issue (REVIEW.md R1-8):
+reported without Exeter: a median 13 times on the default definition (9 times on charge-offs alone) across five buckets, against 16 with it, because Exeter is the highest lender in the 660, 680 and 700 buckets. Part of the headline
+gap is a comparison across score scales and curated shelves, and the page says so. Exeter is not the only scale issue (REVIEW.md R1-8):
 Toyota, Honda, CarMax, Capital One and Santander report scores above 850 (12.7%, 11.6%, 7.3%, 2.5% and 0.6% of
 loans), which only the 250-900 auto-industry FICO scale allows, while AmeriCredit tops out at 854 and Exeter at 845.
-Restricted to those five, the median is again 9 times over the same buckets: the one lender off that scale besides
+Restricted to those five, the median is again 13 times (9 times on charge-offs alone) over the same buckets: the one lender off that scale besides
 Exeter is never the highest or the lowest lender with enough charge-offs in them. Against the score gradient inside
 one lender (about 9 times in monthly odds, 500-599 against 760-839) the lender gap is therefore about as large, not
 larger, and the page's heading says "about as much as" from those intervals (`autos_page.gap_verb`).

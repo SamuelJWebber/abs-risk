@@ -41,12 +41,66 @@ GAP_COLUMNS = ["stat", "variant", "horizon", "lo", "lender", "worst", "best", "w
                "buckets", "pool_offset", "n_boot"]
 
 
-def usable_cells(at: pd.DataFrame) -> pd.DataFrame:
+def usable_cells(at: pd.DataFrame, cif: pd.DataFrame | None = None,
+                 max_first_age: int | None = survival.MAX_FIRST_AGE,
+                 min_risk_set: int = survival.MIN_RISK_SET) -> pd.DataFrame:
     """Cells with enough loans and enough of them still under observation at the horizon, with `lo` the bucket's
-    lower edge as an integer."""
+    lower edge as an integer.
+
+    When `cif` is given (or `at` carries `first_age`), a cell whose first observed age with at least `min_risk_set`
+    loans at risk exceeds `max_first_age` is excluded (REVIEW.md abs-A-4: Capital One's loans enter at age 11,
+    Toyota's at 9 and Honda's at 6, so a '12-month' cell for Capital One or Toyota is two or four months of exposure)."""
     a = at[(at["score_b"].astype(str) != "none") & (at["n_loans"] >= MIN_LOANS) & (at["at_risk"] >= MIN_AT_RISK)].copy()
+    if cif is not None and not cif.empty and "first_age" not in a:
+        fa = first_age_table(cif, [c for c in ("orig_year", "lender", "score_b") if c in a and c in cif],
+                             min_risk_set=min_risk_set)
+        for k in fa.columns:
+            if k != "first_age":
+                a[k] = a[k].astype(str)
+                fa[k] = fa[k].astype(str)
+        a = a.merge(fa, on=[c for c in fa.columns if c != "first_age"], how="left")
+    if max_first_age is not None and "first_age" in a:
+        a = a[a["first_age"].notna() & (a["first_age"] <= max_first_age)].copy()
     a["lo"] = a["score_b"].astype(int)
     return a
+
+
+def first_age_table(cif: pd.DataFrame, by: list[str] = ["lender", "score_b"],
+                    min_risk_set: int = survival.MIN_RISK_SET) -> pd.DataFrame:
+    """Per cell in `cif`, the earliest age at which `at_risk >= min_risk_set` (`first_age`, nan if never reached)."""
+    ok = cif[cif["at_risk"] >= max(int(min_risk_set), 1)]
+    first = ok.groupby(by, observed=True)["age"].min().rename("first_age").reset_index()
+    all_keys = cif[by].drop_duplicates()
+    return all_keys.merge(first, on=by, how="left")
+
+
+def blank_late_entry_cells(table: pd.DataFrame, cif: pd.DataFrame,
+                           by: list[str] = ["lender", "score_b"],
+                           cols: tuple[str, ...] = ("aj_chargeoff", "aj_lo95", "aj_hi95", "km_chargeoff"),
+                           max_first_age: int = survival.MAX_FIRST_AGE,
+                           min_risk_set: int = survival.MIN_RISK_SET) -> pd.DataFrame:
+    """Blank cumulative-incidence columns in `table` for any cell whose first observed age in `cif` (with at least
+    `min_risk_set` loans at risk) is past `max_first_age` (REVIEW.md abs-A-4). Also attaches `first_age`."""
+    fa = first_age_table(cif, by=by, min_risk_set=min_risk_set)
+    out = table.copy()
+    join_keys = [k for k in by if k in out and k in fa]
+    left_types = {k: out[k].dtype for k in join_keys}
+    for k in join_keys:
+        out[k] = out[k].astype(str)
+        fa[k] = fa[k].astype(str)
+    if "first_age" in out:
+        out = out.drop(columns=["first_age"])
+    out = out.merge(fa, on=join_keys, how="left")
+    for k, dt in left_types.items():
+        try:
+            out[k] = out[k].astype(dt)
+        except (ValueError, TypeError):
+            pass
+    late = out["first_age"].isna() | (out["first_age"] > max_first_age)
+    for c in cols:
+        if c in out:
+            out.loc[late, c] = np.nan
+    return out
 
 
 def _events(cells: pd.DataFrame, min_events: int) -> pd.Series:
@@ -172,10 +226,12 @@ class Clock:
         self.pool_offset = pool_offset
 
 
-def group_life_tables(gid: np.ndarray, n_groups: int, clock: Clock, horizon: int, w: np.ndarray | None = None):
+def group_life_tables(gid: np.ndarray, n_groups: int, clock: Clock, horizon: int, w: np.ndarray | None = None,
+                      min_risk_set: int = survival.MIN_RISK_SET):
     """At-risk counts, charge-offs and Aalen-Johansen charge-off incidence for every group at ages 0..horizon, with
     one bincount per quantity instead of a loop over groups. Same estimator as `survival.cumulative_incidence`.
-    `gid` is the group of each loan (-1: in no group); `w` optional loan weights. Returns (at_risk, d_co, aj), each
+    `gid` is the group of each loan (-1: in no group); `w` optional loan weights; `min_risk_set` suppresses hazard
+    at ages where fewer than that many loans are at risk (REVIEW.md abs-A-7). Returns (at_risk, d_co, aj), each
     of shape (n_groups, horizon + 1)."""
     w = np.ones(len(gid)) if w is None else np.asarray(w, dtype=float)
     ok = clock.keep & (gid >= 0) & (w > 0)
@@ -191,9 +247,12 @@ def group_life_tables(gid: np.ndarray, n_groups: int, clock: Clock, horizon: int
     co, cp = clock.co[ok], clock.comp[ok]
     d_co = np.bincount(g[co] * W + x[co], weights=ww[co], minlength=size).reshape(n_groups, W)[:, :horizon + 1]
     d_cp = np.bincount(g[cp] * W + x[cp], weights=ww[cp], minlength=size).reshape(n_groups, W)[:, :horizon + 1]
+    g_totals = np.bincount(g, weights=ww, minlength=n_groups)[:, None]
+    floor = np.where(g_totals >= max(int(min_risk_set), 1), max(int(min_risk_set), 1), 1.0)
+    enough = at_risk >= floor
     with np.errstate(divide="ignore", invalid="ignore"):
-        h_co = np.where(at_risk > 0, d_co / at_risk, 0.0)
-        h_all = np.where(at_risk > 0, (d_co + d_cp) / at_risk, 0.0)
+        h_co = np.where(enough, d_co / at_risk, 0.0)
+        h_all = np.where(enough, (d_co + d_cp) / at_risk, 0.0)
     s = np.cumprod(1 - h_all, axis=1)
     s_prev = np.concatenate([np.ones((n_groups, 1)), s[:, :-1]], axis=1)
     return at_risk, d_co, np.cumsum(s_prev * h_co, axis=1)
@@ -418,12 +477,13 @@ def fixed_pair_ratios(loans: pd.DataFrame, pairs=PAIRS, windows=PAIR_WINDOWS, lo
     return pd.DataFrame(rows, columns=cols)
 
 
-def cells_frame(loans: pd.DataFrame, by: list[str], horizon: int, pool_offset: int = survival.POOL_OFFSET) -> pd.DataFrame:
+def cells_frame(loans: pd.DataFrame, by: list[str], horizon: int, pool_offset: int = survival.POOL_OFFSET,
+                min_risk_set: int = survival.MIN_RISK_SET) -> pd.DataFrame:
     """Cells at one horizon from `group_life_tables` (no bootstrap): by..., n_loans, at_risk, cum_chargeoff,
     aj_chargeoff. A check on `survival.cumulative_incidence`, which computes the same numbers one group at a time."""
     df = loans.copy()
     if "score_b" in by and "score_b" not in df:
         df["score_b"] = survival.score_bucket(df["score"])
     g, f = _grouping(df, by)
-    a, d, j = group_life_tables(g, len(f), Clock(df, pool_offset), horizon)
+    a, d, j = group_life_tables(g, len(f), Clock(df, pool_offset), horizon, min_risk_set=min_risk_set)
     return _cells_at(f, a, d, j, horizon).drop(columns="gid")
