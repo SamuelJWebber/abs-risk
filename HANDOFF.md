@@ -93,8 +93,15 @@ machine with BLAS capped at two threads).
 
 1. **CLAUDE.md line 5** names a local path. Replace it with "the credit-dashboard repository next to this one", or
    tell a session to; then delete the KNOWN entry in `tests/test_no_leaks.py`.
-2. **History rewrite (R1-2 item 3, R1-16):** old paths and a personal email remain in 43+ commits of this public
-   history. Removing them means a force push that breaks every clone. Yes or no.
+2. History rewrite (R1-2 item 3, R1-16). **Decided 2026-11-22: no history rewrite** (the owner said "make the
+   decision and do it"). 43 commits here carry a personal address, none since 2026-09-14; the repo has no forks. A
+   rewrite would not remove the address from GitHub (old commits stay reachable by hash until GitHub Support purges
+   them, and public push-event archives keep author addresses), and it would change every commit hash these review
+   and handoff files cite and break every clone and the scheduled jobs' pushes. The leak is already stopped: every
+   commit since uses the noreply address, held by the hook and tests. Reverse by running `git filter-repo --mailmap`
+   and force-pushing; nothing done today prevents it. One account setting would also stop it at the source and is
+   the owner's own: GitHub Settings, Emails, "Keep my email addresses private" and "Block command line pushes that
+   expose my email".
 
 ## Rules that matter here
 
