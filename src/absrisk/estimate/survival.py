@@ -32,6 +32,8 @@ import pandas as pd
 COMPETING = {"prepay", "repurchase", "other", "absent"}
 POOL_OFFSET = 3       # months in the trust before a loan counts in the risk set (pool month 3 = its fourth month)
 LATE_DPD = 90         # days past due a loan must have reached for its buy-back to count as a default
+MIN_RISK_SET = 50     # risk set below which a monthly hazard is set to zero (REVIEW.md abs-A-7)
+MAX_FIRST_AGE = 6     # cells first observed past this age have no full first-year curve (REVIEW.md abs-A-4)
 
 
 def late_repurchase(loans: pd.DataFrame) -> np.ndarray:
@@ -160,16 +162,27 @@ def _counts(entry: np.ndarray, exit_: np.ndarray, ev: np.ndarray, horizon: int, 
     return at_risk, d_co, d_comp
 
 
-def _curves(at_risk, d_co, d_comp):
+def _curves(at_risk, d_co, d_comp, min_risk_set: int = MIN_RISK_SET):
+    """Aalen-Johansen and Kaplan-Meier charge-off incidence from per-age risk sets and event counts.
+
+    A month whose risk set is under `min_risk_set` contributes zero hazard (REVIEW.md abs-A-7: a single charge-off
+    among 29 five-month-old loans added 3.5 points to one cell's published curve)."""
     n = at_risk.astype(float)
+    ok = n >= max(int(min_risk_set), 1)
     with np.errstate(divide="ignore", invalid="ignore"):
-        h_co = np.where(n > 0, d_co / n, 0.0)
-        h_all = np.where(n > 0, (d_co + d_comp) / n, 0.0)
+        h_co = np.where(ok, d_co / n, 0.0)
+        h_all = np.where(ok, (d_co + d_comp) / n, 0.0)
     s_all = np.cumprod(1 - h_all)                      # overall survival (no exit of any kind)
     s_prev = np.concatenate([[1.0], s_all[:-1]])
     aj = np.cumsum(s_prev * h_co)                       # Aalen-Johansen CIF for charge-off
     km = 1 - np.cumprod(1 - h_co)                       # KM treating competing exits as censoring
     return aj, km
+
+
+def first_observed_age(at_risk: np.ndarray, min_risk_set: int = MIN_RISK_SET) -> float:
+    """First age at which the risk set reaches `min_risk_set` (nan when it never does)."""
+    ix = np.flatnonzero(np.asarray(at_risk) >= max(int(min_risk_set), 1))
+    return float(ix[0]) if len(ix) else float("nan")
 
 
 def _life_table(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
@@ -184,14 +197,17 @@ def _life_table(df: pd.DataFrame, horizon: int) -> pd.DataFrame:
 
 
 def cumulative_incidence(loans: pd.DataFrame, by: list[str], horizon: int = 36, n_boot: int = 0, seed: int = 0,
-                         max_entry_age: int | None = None, pool_offset: int = 0) -> pd.DataFrame:
+                         max_entry_age: int | None = None, pool_offset: int = 0,
+                         min_risk_set: int = MIN_RISK_SET) -> pd.DataFrame:
     """Long table: group columns, age, at_risk, d_chargeoff, cum_chargeoff, d_competing, aj_chargeoff, km_chargeoff,
     n_loans, entry_age_median, and with n_boot > 0 the percentile bootstrap band aj_lo95 / aj_hi95 (resampling loans).
 
     max_entry_age keeps only loans first observed at or before that age since origination (a fresh-entrant cut:
     seasoned entrants are survivors, and survivor selection can differ by lender). pool_offset counts each loan
-    from that many months after it entered the trust (`ages`). cum_chargeoff is the number of charge-offs counted
-    up to and including each age; entry_age_median is the age at which loans entered the trust, without the offset."""
+    from that many months after it entered the trust (`ages`). min_risk_set suppresses hazard estimates at ages
+    where fewer than that many loans are under observation (REVIEW.md abs-A-7). cum_chargeoff is the number of
+    charge-offs counted up to and including each age; entry_age_median is the age at which loans entered the trust,
+    without the offset."""
     rng = np.random.default_rng(seed)
     out = []
     a_all = ages(loans)
@@ -204,7 +220,8 @@ def cumulative_incidence(loans: pd.DataFrame, by: list[str], horizon: int = 36, 
         entered = a["entry_age"].to_numpy()
         entry, exit_, ev = entered + int(pool_offset), a["exit_age"].to_numpy(), a["event"].to_numpy()
         at_risk, d_co, d_comp = _counts(entry, exit_, ev, horizon)
-        aj, km = _curves(at_risk, d_co, d_comp)
+        floor = min_risk_set if len(g) >= min_risk_set else 1
+        aj, km = _curves(at_risk, d_co, d_comp, min_risk_set=floor)
         lt = pd.DataFrame({"age": np.arange(0, horizon + 1), "at_risk": at_risk.astype(int),
                            "d_chargeoff": d_co.astype(int), "cum_chargeoff": np.cumsum(d_co).astype(int),
                            "d_competing": d_comp.astype(int), "aj_chargeoff": aj, "km_chargeoff": km})
@@ -213,7 +230,7 @@ def cumulative_incidence(loans: pd.DataFrame, by: list[str], horizon: int = 36, 
             for b in range(n_boot):
                 w = rng.multinomial(len(g), np.full(len(g), 1.0 / len(g))).astype(float)
                 ar, dc, dp = _counts(entry, exit_, ev, horizon, w)
-                reps[b] = _curves(ar, dc, dp)[0]
+                reps[b] = _curves(ar, dc, dp, min_risk_set=floor)[0]
             lt["aj_lo95"] = np.percentile(reps, 2.5, axis=0)
             lt["aj_hi95"] = np.percentile(reps, 97.5, axis=0)
         else:

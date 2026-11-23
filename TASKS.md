@@ -36,10 +36,11 @@ HANDOFF.md, rewritten every session, is the handoff. The 2026-09-08 note that st
 the scouting stage and is in git history.
 
 ## Open items and known gaps
-- From the independent review of 2026-11-10, deferred on 2026-11-21 (REVIEW.md status table): abs-A-4 (cells whose
-  first observed age is late are printed beside cells observed from age 3), abs-A-5 and the rest of abs-B-3 (score
-  comparability and shelf selection are not quoted on the page), abs-A-7, abs-B-5, abs-B-6. Round 2's R2-2
-  (Synchrony calibrated to general-purpose cards) is disclosed on the page, not fixed.
+- From the independent review of 2026-11-10 (REVIEW.md status table): abs-A-4 (late-first-age cells blanked),
+  abs-A-5 and abs-B-3 (score comparability, co-borrower averaging and shelf selection disclosed on the pages and in
+  design/methods.md), abs-A-7 (50-loan risk-set floor in `survival._curves` and `lender_gap.group_life_tables`) and
+  abs-B-5 (Exeter selection dated from 2025-2) were completed on 2026-11-22. Still deferred: abs-B-6 (LOW, unused
+  dollar fields). Round 2's R2-2 (Synchrony calibrated to general-purpose cards) is disclosed on the page, not fixed.
 - The hazard model's numbers in row B4 are from before the default definition changed; the page prints the
   refitted ones.
 - Track B schema hazards to encode, not discover again: PTI is a fraction everywhere except Capital One (percent);

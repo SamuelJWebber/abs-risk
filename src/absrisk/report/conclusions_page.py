@@ -215,7 +215,10 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
              "filings has measured something else.</p>")
     h.append("<p>Three further limits, stated rather than buried. Trust pools are the securitised, seasoned end of an issuer's book "
              "and not the book. Lenders report different score models on different scales, and choose which loans go into a "
-             "public pool, so the same score is not quite the same borrower from one lender to the next. And the regression "
+             "public pool (CarMax's public CAOT pools are selected from its core portfolio with FICO 650 or above while lower-credit "
+             "obligors go to CarMax Select, and joint loans average co-borrowers' FICO scores; Exeter's pools since 2025-2 exclude "
+             "obligors with credit bureau score 640 or above and proprietary score 240 or above, which go to Exeter Select), so the "
+             "same score is not quite the same borrower from one lender to the next. And the regression "
              "discontinuity designs at lenders' own pricing cutoffs returned "
              "mostly nulls: half the candidate cutoffs failed a density test, meaning the applicant pool changes at the line, and the "
              "survivors were underpowered.</p>")
