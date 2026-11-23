@@ -18,12 +18,16 @@ from absrisk.cards.composition import (
     TIERS,
     build_composition,
     build_crosswalk,
+    classify_program_partner,
+    extract_private_label_share,
+    extract_program_tables,
     parse_bucket,
     prospectus_files,
     read_csv,
     tier_shares,
     tier_weights,
 )
+from absrisk.cards.tables import ParseError
 
 FIX = Path(__file__).parent / "fixtures" / "cards"
 REPO = Path(__file__).resolve().parents[1]
@@ -131,17 +135,35 @@ def test_frozen_shares(built):
     assert r["share_receivables"] == pytest.approx(16_995_179 / 25_035_844) and "STALE" in r["sample_note"]
     r = bucket(rows, "discover", "account_age", "60 Months or Greater")
     assert r["share_receivables"] == 1.0 and r["share_accounts"] == 1.0 and r["bucket_lo"] == 60
-    # Synchrony C6: VantageScore; first bucket mixes unscored with <=599
+    # Synchrony C6: VantageScore; first bucket mixes unscored with <=599; Program Partner table gives 24.3% private label
     r = bucket(rows, "synchrony", "fico", "No score and/or less than or equal to 599*")
     assert r["score_type"] == "VantageScore" and (r["bucket_lo"], r["bucket_hi"]) == (None, 599)
     assert r["share_receivables"] == pytest.approx(708_664_528 / 11_489_137_310)
+    assert r["private_label_share"] == pytest.approx((1_549_075_315 + 1_243_805_000) / 11_489_137_310)
     r = bucket(rows, "synchrony", "account_age", "Over 120 Months")
     assert r["share_accounts"] == pytest.approx(2_832_117 / 9_777_270) and r["bucket_lo"] == 121
+    for other in ("amex", "bofa", "chase", "citi", "comet", "discover"):
+        assert all(x["private_label_share"] == 0.0 for x in rows_of(rows, other, "fico")), other
     # BofA C7: descending rows; Over 720 -> lo 721
     r = bucket(rows, "bofa", "fico", "Over 720")
     assert (r["bucket_lo"], r["bucket_hi"]) == (721, None)
     assert r["share_receivables"] == pytest.approx(10_386_401_725 / 14_557_481_374)
     assert bucket(rows, "bofa", "credit_limit", "$ 25,000.01 or More")["share_accounts"] == pytest.approx(1_279_457 / 4_774_134)
+
+
+def test_synchrony_program_partner_table_and_classifier():
+    p = FIX / "synchrony" / "prospectus" / "0001104659-26-092741" / "tm2622401d3_424b5.htm"
+    progs = extract_program_tables("synchrony", p)
+    assert len(progs) == 1 and len(progs[0].buckets) == 10
+    pl = [b for b in progs[0].buckets if b.note == "private_label"]
+    gp = [b for b in progs[0].buckets if b.note == "general_purpose"]
+    assert len(pl) == 2 and len(gp) == 8
+    assert extract_private_label_share("synchrony", p) == pytest.approx((1_549_075_315 + 1_243_805_000) / 11_489_137_310)
+    assert classify_program_partner("Amazon Private Label Credit Card") == "private_label"
+    assert classify_program_partner("Sam's Club Dual Card") == "general_purpose"
+    assert classify_program_partner("Synchrony MasterCard") == "general_purpose"
+    with pytest.raises(ParseError, match="cannot classify program partner"):
+        classify_program_partner("Mystery Retail Card")
 
 
 @pytest.mark.parametrize("label,kind,expect", [

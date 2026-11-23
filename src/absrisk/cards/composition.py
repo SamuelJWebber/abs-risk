@@ -25,7 +25,7 @@ from ..shape.tiers import SCORE_MAX, SCORE_MIN, TIER_BOUNDS, overlap_fraction
 from .tables import ParseError, Row, is_number_cell, normalise, parse_date, read_text, tables
 
 COLUMNS = ["trust", "as_of", "table", "bucket_lo", "bucket_hi", "share_receivables", "share_accounts", "score_type",
-           "sample_note", "prospectus_accession", "prospectus_file", "bucket_label"]
+           "sample_note", "prospectus_accession", "prospectus_file", "bucket_label", "private_label_share"]
 
 CROSSWALK_COLUMNS = ["trust", "score_type", "bucket_label", "bucket_lo", "bucket_hi", "w_deep_subprime", "w_subprime",
                      "w_near_prime", "w_prime", "w_prime_plus", "w_superprime", "rule", "flags"]
@@ -50,8 +50,8 @@ TRUST_INFO: dict[str, dict] = {
                                           "distribution by accounts as well as by receivables"},
     "discover": {"score_type": "FICO", "note": "STALE: last prospectus filed 2023-06-23; DCENT notes defeased "
                                               "2025-12-18; amounts in $000s"},
-    "synchrony": {"score_type": "VantageScore", "note": "VantageScore, not FICO, refreshed at least quarterly; "
-                                                        "private-label/retail pool"},
+    "synchrony": {"score_type": "VantageScore", "has_program_table": True,
+                  "note": "VantageScore, not FICO, refreshed at least quarterly; private-label/retail pool"},
     "bofa": {"score_type": "FICO", "note": "single-bureau FICO refreshed within the six months to April 1, 2026"},
 }
 
@@ -60,6 +60,9 @@ _KIND_HEADER = {
     "credit_limit": re.compile(r"\bCredit Limit\b", re.I),
     "account_age": re.compile(r"\b(Account Age|Age of Accounts|Age Range|Account Age Range)\b|^Age\b", re.I),
 }
+_PROGRAM_HEADER = re.compile(r"^Program Partner\b", re.I)
+_PROGRAM_PL = re.compile(r"\bprivate label\b", re.I)
+_PROGRAM_GP = re.compile(r"\b(dual card|mastercard|visa|general purpose)\b", re.I)
 _COL_ACCOUNTS = re.compile(r"^(number of accounts|accounts)$", re.I)
 _COL_ACCOUNTS_PCT = re.compile(r"(percentage|%) of (total )?(number of )?accounts", re.I)
 _COL_RECV_PCT = re.compile(r"(percentage|%) of (total )?(amount of )?receivables", re.I)
@@ -185,11 +188,23 @@ def _column_roles(header: list[str]) -> dict[str, int]:
 
 
 
-def extract_tables(trust: str, path: Path) -> list[CompTable]:
-    """Every FICO / credit-limit / account-age composition table in the prospectus, by header text."""
-    text = read_text(path)
+def classify_program_partner(label: str) -> str:
+    """Classify a prospectus Program Partner row as 'private_label' or 'general_purpose'; fail loudly on unknown labels.
+
+    CFPB market reports count co-branded / dual cards (usable on a general-purpose network) as general purpose and
+    store-only cards explicitly labelled 'Private Label' as private label (REVIEW.md R2-2).
+    """
+    s = _clean_label(label)
+    if _PROGRAM_PL.search(s):
+        return "private_label"
+    if _PROGRAM_GP.search(s):
+        return "general_purpose"
+    raise ParseError(f"cannot classify program partner {label!r} as private_label or general_purpose")
+
+
+def _extract_tables_from(trust: str, tabs_in) -> list[CompTable]:
     out: list[CompTable] = []
-    for t in tables(text):
+    for t in tabs_in:
         hdr = _header_row(t.rows)
         if hdr is None:
             continue
@@ -236,6 +251,76 @@ def extract_tables(trust: str, path: Path) -> list[CompTable]:
         _finalise_shares(ct)
         out.append(ct)
     return out
+
+
+def extract_tables(trust: str, path: Path) -> list[CompTable]:
+    """Every FICO / credit-limit / account-age composition table in the prospectus, by header text."""
+    return _extract_tables_from(trust, tables(read_text(path)))
+
+
+def _extract_program_tables_from(trust: str, tabs_in) -> list[CompTable]:
+    """Program Partner composition tables in the prospectus, classified into private_label vs general_purpose."""
+    out: list[CompTable] = []
+    for t in tabs_in:
+        hdr = _header_row(t.rows)
+        if hdr is None or not _PROGRAM_HEADER.search(hdr.cells[0]):
+            continue
+        roles = _column_roles(hdr.cells[1:])
+        if "amount" not in roles and "pct_recv" not in roles:
+            continue
+        ncols = len(hdr.cells) - 1
+        data = [r for r in t.rows if r.index > hdr.index and len(_values(r)) == ncols]
+        if len(data) < 2:
+            continue
+        pre = _preceding_text(t.node)
+        in_table = " ".join(r.text for r in t.rows if r.index < hdr.index)
+        m = _AS_OF.findall(in_table) or _AS_OF.findall(pre)
+        as_of = parse_date(m[-1]) if m else None
+        buckets: list[Bucket] = []
+        tot_amount = tot_accounts = None
+        for r in data:
+            vals = [n.value for n in _values(r)]
+            label = r.cells[0]
+            if _SUBTOTAL.match(label):
+                continue
+            if _TOTAL.match(label):
+                tot_amount = vals[roles["amount"]] if "amount" in roles else None
+                tot_accounts = vals[roles["accounts"]] if "accounts" in roles else None
+                continue
+            prod = classify_program_partner(label)
+            buckets.append(Bucket(
+                label=normalise(label), lo=None, hi=None, note=prod,
+                amount=vals[roles["amount"]] if "amount" in roles else None,
+                accounts=vals[roles["accounts"]] if "accounts" in roles else None,
+                pct_recv=vals[roles["pct_recv"]] / 100.0 if "pct_recv" in roles else None,
+                pct_accts=vals[roles["pct_accts"]] / 100.0 if "pct_accts" in roles else None,
+            ))
+        ct = CompTable(trust, "program", None, as_of, t.index, hdr.cells, buckets, tot_amount, tot_accounts)
+        _finalise_shares(ct)
+        out.append(ct)
+    return out
+
+
+def extract_program_tables(trust: str, path: Path) -> list[CompTable]:
+    """Every Program Partner composition table in the prospectus, by header text."""
+    return _extract_program_tables_from(trust, tables(read_text(path)))
+
+
+def _private_label_share_from(trust: str, progs: list[CompTable]) -> float:
+    info = TRUST_INFO.get(trust, {})
+    if info.get("has_program_table"):
+        if len(progs) != 1:
+            raise ParseError(f"{trust} program: expected exactly one Program Partner table, got {len(progs)}")
+    elif len(progs) > 1:
+        raise ParseError(f"{trust} program: expected at most one Program Partner table, got {len(progs)}")
+    if not progs:
+        return 0.0
+    return float(sum(b.share_recv for b in progs[0].buckets if b.note == "private_label" and b.share_recv is not None))
+
+
+def extract_private_label_share(trust: str, path: Path) -> float:
+    """Private-label share of receivables from the prospectus Program Partner table (0.0 for general-purpose trusts)."""
+    return _private_label_share_from(trust, extract_program_tables(trust, path))
 
 
 def _finalise_shares(ct: CompTable) -> None:
@@ -299,7 +384,9 @@ def combine_segments(tabs: list[CompTable]) -> CompTable:
 
 def composition_rows(trust: str, path: Path, accession: str) -> tuple[list[dict], list[CompTable]]:
     """cards_composition rows for one prospectus; exactly one table per kind after segment combination."""
-    tabs = extract_tables(trust, path)
+    raw_tabs = tables(read_text(path))
+    tabs = _extract_tables_from(trust, raw_tabs)
+    pl_share = _private_label_share_from(trust, _extract_program_tables_from(trust, raw_tabs))
     info = TRUST_INFO.get(trust, {"score_type": "FICO", "note": ""})
     by_kind: dict[str, list[CompTable]] = defaultdict(list)
     for t in tabs:
@@ -329,7 +416,7 @@ def composition_rows(trust: str, path: Path, accession: str) -> tuple[list[dict]
                 "share_receivables": b.share_recv, "share_accounts": b.share_accts,
                 "score_type": info["score_type"] if kind == "fico" else "",
                 "sample_note": bn, "prospectus_accession": accession, "prospectus_file": Path(path).name,
-                "bucket_label": b.label,
+                "bucket_label": b.label, "private_label_share": pl_share,
             })
     return rows_out, final
 
@@ -452,16 +539,19 @@ def _int(v) -> int | None:
 
 
 def tier_shares(comp_rows: list[dict], crosswalk: list[dict]) -> dict[tuple[str, str], dict[str, float]]:
-    """{(trust, basis): {tier: share, 'unscored': share}} from FICO rows and the crosswalk, renormalised."""
+    """{(trust, basis): {tier: share, 'unscored': share, 'private_label_share': share}} from FICO rows and the crosswalk."""
     xw = {(x["trust"], x["bucket_label"]): x for x in crosswalk}
     out: dict[tuple[str, str], dict[str, float]] = {}
     for basis, col in (("receivables", "share_receivables"), ("accounts", "share_accounts")):
         acc: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
         unscored: dict[str, float] = defaultdict(float)
+        pl_share: dict[str, float] = {}
         for r in comp_rows:
             if r["table"] != "fico" or r.get(col) in (None, ""):
                 continue
             share = float(r[col])
+            if r.get("private_label_share") not in (None, ""):
+                pl_share[r["trust"]] = float(r["private_label_share"])
             x = xw.get((r["trust"], r["bucket_label"]))
             if x is None:
                 raise ParseError(f"crosswalk has no row for {r['trust']} {r['bucket_label']!r}")
@@ -475,4 +565,5 @@ def tier_shares(comp_rows: list[dict], crosswalk: list[dict]) -> dict[tuple[str,
             scored = sum(tiers.values())
             out[(trust, basis)] = {name: tiers[name] / scored for name, _, _ in TIERS}
             out[(trust, basis)]["unscored"] = unscored.get(trust, 0.0)
+            out[(trust, basis)]["private_label_share"] = pl_share.get(trust, 0.0)
     return out

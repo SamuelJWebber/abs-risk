@@ -38,8 +38,10 @@ the scouting stage and is in git history.
 ## Open items and known gaps
 - From the independent review of 2026-11-10, deferred on 2026-11-21 (REVIEW.md status table): abs-A-4 (cells whose
   first observed age is late are printed beside cells observed from age 3), abs-A-5 and the rest of abs-B-3 (score
-  comparability and shelf selection are not quoted on the page), abs-A-7, abs-B-5, abs-B-6. Round 2's R2-2
-  (Synchrony calibrated to general-purpose cards) is disclosed on the page, not fixed.
+  comparability and shelf selection are not quoted on the page), abs-A-7, abs-B-5. **Closed 2026-11-22:** Round 2's
+  R2-2 (Synchrony calibrated to its 24.3% private-label prospectus blend using both CFPB series, with `a1_product.csv`
+  and section 4 table) and abs-B-6 (Capital One negative `recoveredAmount` negated on parse/load, delayed
+  `chargeoff_amount` handled without summing across retained months, count-based basis stated on `docs/autos.html`).
 - The hazard model's numbers in row B4 are from before the default definition changed; the page prints the
   refitted ones.
 - Track B schema hazards to encode, not discover again: PTI is a fraction everywhere except Capital One (percent);

@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..estimate import cards_roll
-from .cards_page import STRESS_ORDER, _gross_residuals, direction_sentences, ends
+from .cards_page import STRESS_ORDER, _gross_residuals, direction_sentences, ends, ends_clause
 from .svg import page, table
 
 
@@ -107,9 +107,17 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
              "Progression is close to the same at every trust.</p>")
 
     h.append("<h2>What the filings show: far fewer late balances, and nothing on rescue</h2>")
+    mix = C.get("mix_by_trust", pd.DataFrame())
+    product = C.get("a1_product", pd.DataFrame())
     if best_c is not None:
+        base_pl = ""
+        if not mix.empty and "private_label_share" in mix:
+            mb = mix[mix["trust"] == base_c]
+            if not mb.empty and float(mb["private_label_share"].iloc[-1]) > 0:
+                w = float(mb["private_label_share"].iloc[-1])
+                base_pl = f" ({escape(str(base_c))} is a retail pool, {w:.1%} private-label receivables in its latest prospectus, with the rest dual cards and Mastercard)"
         h.append(f"<p><b>Cards.</b> {best_c['trust']} loses {best_c['co_monthly_ratio']:.2f} times what {base_c} loses each month, "
-                 f"after recoveries. Its share of balances 30 days late is {best_c['entry_ratio']:.2f} times {base_c}'s. Entry "
+                 f"after recoveries{base_pl}. Its share of balances 30 days late is {best_c['entry_ratio']:.2f} times {base_c}'s. Entry "
                  f"accounts for {best_c['entry_share_of_gap']:.0%} of the gap, progression for "
                  f"{best_c['progression_share_of_gap']:+.0%} and conversion for {best_c['conversion_share_of_gap']:+.0%}. "
                  f"So the gap in losses is a gap in how many balances are late at all. Selection predicts that, and so does a "
@@ -193,14 +201,23 @@ def build(autos: Path, cards: Path, out: Path) -> Path:
                  f"({ltv['odds_ratio']:.2f}). These compare loans that differ in one recorded field. They are not the effect "
                  f"of lending the same borrower more, and they say nothing about card limits, which no data here observes.</p>")
     if not rank.empty and not flip.empty:
-        def count(k):
-            return f"all {e['n']}" if k == e["n"] else f"{k}"
-        held = (f"Across the {e['n']} {e['words']}, {escape(e['top'])} has the largest gap in {count(e['top_n'])} and "
-                f"{escape(e['bottom'])} the smallest in {count(e['bottom_n'])}")
+        held = ends_clause(e, noun="gap")
+        prod_note = ""
+        if not product.empty:
+            bl = product[product["calibration"] == "prospectus_blend"]
+            pl = product[product["calibration"] == "private_label"]
+            if not bl.empty:
+                t_name = str(bl["trust"].iloc[0])
+                w = float(bl["private_label_share"].iloc[0])
+                pl_g = pl["mean_residual_gross"].dropna()
+                prod_note = (f" Each trust is calibrated to its prospectus product mix ({w:.1%} private label at "
+                             f"{escape(t_name)}, general purpose elsewhere)"
+                             + (f"; treating {escape(t_name)} wholly as private label reverses its gross sign under "
+                                f"every curve ({pl_g.min():+.2%} to {pl_g.max():+.2%})." if not pl_g.empty and (pl_g < 0).all() else "."))
         h.append(f"<p><b>How much of an issuer's loss rate is its customer mix is unknown.</b> Predicting each trust's "
                  f"losses from its own score mix needs a loss curve by score, and no public source publishes one for cards. The four "
-                 f"published curves that exist disagree by about five times. {held}, but {len(flip)} of {len(res)} trusts "
-                 f"change the <i>sign</i> of their gap depending on which curve is assumed. The size of anyone's gap is not a "
+                 f"published curves that exist disagree by about five times. {held}, and {len(flip)} of {len(res)} trusts "
+                 f"change the <i>sign</i> of their gap depending on which curve is assumed.{prod_note} The size of anyone's gap is not a "
                  f"finding.</p>")
 
     h.append("<h2>What this cannot say</h2>")

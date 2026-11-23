@@ -6,20 +6,21 @@ written is read from a workbook cell found by its row label and column header, n
 
 What is built, per year and per bureau panel ("series"):
 
-- `gp_chargeoff_rate`: annual mean of the CFPB's annualized gross charge-off rate on general-purpose card
-  balances (monthly in the CCIP series, quarterly in the CCP series). `gp_chargeoff_rate_ye` is the
-  December / Q4 value. The two panels are not on the same basis (2025 report fn 13; scout note section 3.2)
-  and are kept as separate rows, never spliced.
-- `share_<tier>`: the share of balances held by each of the six credit tiers. The CCMR does not publish
-  balances by tier, so the share is constructed from what it does publish:
-    CCIP (2025 workbook, 2014-2024): consumers holding a general-purpose card by tier at year-end 2023
-      (Figure 3, held fixed across years) x average per-cardholder cycle-ending balance by tier
+- `gp_chargeoff_rate` / `pl_chargeoff_rate`: annual mean of the CFPB's annualized gross charge-off rate on
+  general-purpose and private-label card balances (monthly in the CCIP series, quarterly in the CCP series).
+  `gp_chargeoff_rate_ye` and `pl_chargeoff_rate_ye` are the December / Q4 values. The two panels are not on the
+  same basis (2025 report fn 13; scout note section 3.2) and are kept as separate rows, never spliced.
+- `share_<tier>` / `pl_share_<tier>`: the share of general-purpose and private-label balances held by each of
+  the six credit tiers. The CCMR does not publish balances by tier, so each share is constructed from what it
+  does publish:
+    CCIP (2025 workbook, 2014-2024): consumers holding a general-purpose or private-label card by tier at
+      year-end 2023 (Figure 3, held fixed across years) x average per-cardholder cycle-ending balance by tier
       (Figure 16, annual mean of monthly values; all cards, not general purpose only).
-    CCP (2023 workbook, 2013-2022): general-purpose accounts by tier at year-end 2022 (Section 5 Figure 17)
-      x average per-account general-purpose balance by tier at year-end 2022 (Section 3 Figure 7), which
-      is the exact general-purpose balance by tier at that anchor date, moved to other years by the ratio
-      of the tier's average per-cardholder balance (Section 3 Figure 5, annual mean of quarterly values)
-      to its 2022Q4 value.
+    CCP (2023 workbook, 2013-2022): general-purpose or private-label accounts by tier at year-end 2022
+      (Section 5 Figure 17) x average per-account general-purpose or private-label balance by tier at year-end
+      2022 (Section 3 Figure 7), which is the exact product balance by tier at that anchor date, moved to other
+      years by the ratio of the tier's average per-cardholder balance (Section 3 Figure 5, annual mean of
+      quarterly values) to its 2022Q4 value.
   Both are then normalised to sum to one. The tier populations are by *current* score, so a tier's share
   tracks a changing set of people (2025 report PDF p15). design/shape-sources.md discusses the limits.
 """
@@ -54,8 +55,11 @@ COLUMNS = [
     "series",
     "gp_chargeoff_rate",
     "gp_chargeoff_rate_ye",
+    "pl_chargeoff_rate",
+    "pl_chargeoff_rate_ye",
     "n_periods",
     *[f"share_{t}" for t in TIERS],
+    *[f"pl_share_{t}" for t in TIERS],
     "mix_periods",
     "citation_rate",
     "citation_mix",
@@ -120,7 +124,7 @@ def _shares(weights: dict[str, float]) -> dict[str, float]:
 def build_ccip(path: Path) -> list[dict]:
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     co = figure_block(wb["Section 4 - Pmts, Debt, Coll."], "Figure 53")
-    if "General purpose" not in co.columns or "Date" not in co.columns:
+    if "General purpose" not in co.columns or "Private label" not in co.columns or "Date" not in co.columns:
         raise ValueError(f"unexpected columns in Figure 53: {list(co.columns)}")
     co["date"] = pd.to_datetime(co["Date"])
     co = co.sort_values("date")
@@ -128,6 +132,7 @@ def build_ccip(path: Path) -> list[dict]:
 
     consumers = figure_block(wb["Section 2 - Use of credit"], "Figure 3")
     n_by_tier = _tier_rows(consumers, "Credit score tier", "General purpose")
+    n_pl_by_tier = _tier_rows(consumers, "Credit score tier", "Private label")
 
     bal = figure_block(wb["Section 2 - Use of credit"], "Figure 16")
     bal["date"] = pd.to_datetime(bal["Date"])
@@ -137,13 +142,13 @@ def build_ccip(path: Path) -> list[dict]:
 
     cite_rate = (
         f"CCMR 2025 workbook {WB_2025}, sheet 'Section 4 - Pmts, Debt, Coll.', Figure 53 "
-        f"'{co.attrs['title']}', column 'General purpose'; annual mean of the monthly values, "
+        f"'{co.attrs['title']}', columns 'General purpose' and 'Private label'; annual mean of the monthly values, "
         "year-end = December"
     )
     cite_mix = (
         f"CCMR 2025 workbook {WB_2025}, sheet 'Section 2 - Use of credit': Figure 3 "
-        f"'{consumers.attrs['title']}' column 'General purpose' (consumers by tier, held fixed for all "
-        f"years) x Figure 16 '{bal.attrs['title']}' (annual mean of monthly per-cardholder balance by "
+        f"'{consumers.attrs['title']}' columns 'General purpose' and 'Private label' (consumers by tier, held fixed "
+        f"for all years) x Figure 16 '{bal.attrs['title']}' (annual mean of monthly per-cardholder balance by "
         "tier); share = product / sum over tiers"
     )
 
@@ -153,18 +158,22 @@ def build_ccip(path: Path) -> list[dict]:
         if b.empty:
             raise ValueError(f"no per-cardholder balances for {year}")
         weights = {t: n_by_tier[t] * float(b[bcols[t]].mean()) for t in TIERS}
+        pl_weights = {t: n_pl_by_tier[t] * float(b[bcols[t]].mean()) for t in TIERS}
         months = b["date"].dt.strftime("%b").tolist()
         row = {
             "year": int(year),
             "series": "ccip",
             "gp_chargeoff_rate": float(g["General purpose"].mean()),
             "gp_chargeoff_rate_ye": float(g.iloc[-1]["General purpose"]),
+            "pl_chargeoff_rate": float(g["Private label"].mean()),
+            "pl_chargeoff_rate_ye": float(g.iloc[-1]["Private label"]),
             "n_periods": int(len(g)),
             "mix_periods": f"{len(b)} months {months[0]}-{months[-1]} {year}",
             "citation_rate": cite_rate,
             "citation_mix": cite_mix,
         }
         row.update({f"share_{t}": v for t, v in _shares(weights).items()})
+        row.update({f"pl_share_{t}": v for t, v in _shares(pl_weights).items()})
         out.append(row)
     return out
 
@@ -175,24 +184,28 @@ def build_ccp(path: Path) -> list[dict]:
     avail = wb["Section 5 - Avail of Credit"]
 
     co = figure_block(use, "Figure 18")
-    if "General purpose" not in co.columns or "Quarter" not in co.columns:
+    if "General purpose" not in co.columns or "Private label" not in co.columns or "Quarter" not in co.columns:
         raise ValueError(f"unexpected columns in Section 3 Figure 18: {list(co.columns)}")
     co["year"] = co["Quarter"].astype(str).str[:4].astype(int)
     co = co.sort_values("Quarter")
 
     accts = figure_block(avail, "Figure 17")
     acct_gp = accts[accts.iloc[:, 0].astype(str).str.strip() == "General purpose"]
-    if len(acct_gp) != 1:
-        raise ValueError("Section 5 Figure 17: no single 'General purpose' row")
+    acct_pl = accts[accts.iloc[:, 0].astype(str).str.strip() == "Private label"]
+    if len(acct_gp) != 1 or len(acct_pl) != 1:
+        raise ValueError("Section 5 Figure 17: missing single 'General purpose' or 'Private label' row")
     acols = _tier_columns(accts)
     n_by_tier = {t: float(acct_gp.iloc[0][acols[t]]) for t in TIERS}
+    n_pl_by_tier = {t: float(acct_pl.iloc[0][acols[t]]) for t in TIERS}
 
     peracct = figure_block(use, "Figure 7")
     pa_gp = peracct[peracct.iloc[:, 0].astype(str).str.strip() == "General purpose"]
-    if len(pa_gp) != 1:
-        raise ValueError("Section 3 Figure 7: no single 'General purpose' row")
+    pa_pl = peracct[peracct.iloc[:, 0].astype(str).str.strip() == "Private label"]
+    if len(pa_gp) != 1 or len(pa_pl) != 1:
+        raise ValueError("Section 3 Figure 7: missing single 'General purpose' or 'Private label' row")
     pcols = _tier_columns(peracct)
     bal_anchor = {t: n_by_tier[t] * float(pa_gp.iloc[0][pcols[t]]) for t in TIERS}
+    pl_bal_anchor = {t: n_pl_by_tier[t] * float(pa_pl.iloc[0][pcols[t]]) for t in TIERS}
 
     pch = figure_block(use, "Figure 5")
     pch["year"] = pch["Quarter"].astype(str).str[:4].astype(int)
@@ -204,14 +217,14 @@ def build_ccp(path: Path) -> list[dict]:
 
     cite_rate = (
         f"CCMR 2023 workbook {WB_2023}, sheet 'Section 3 - Use of credit', Figure 18 "
-        f"'{co.attrs['title']}', column 'General purpose'; annual mean of the quarterly values, "
+        f"'{co.attrs['title']}', columns 'General purpose' and 'Private label'; annual mean of the quarterly values, "
         "year-end = Q4"
     )
     cite_mix = (
         f"CCMR 2023 workbook {WB_2023}: sheet 'Section 5 - Avail of Credit' Figure 17 "
-        f"'{accts.attrs['title']}' row 'General purpose' x sheet 'Section 3 - Use of credit' Figure 7 "
-        f"'{peracct.attrs['title']}' row 'General purpose' (= general-purpose balances by tier at "
-        f"year-end 2022), scaled by Figure 5 '{pch.attrs['title']}' annual mean / 2022Q4 value by tier; "
+        f"'{accts.attrs['title']}' rows 'General purpose' and 'Private label' x sheet 'Section 3 - Use of credit' "
+        f"Figure 7 '{peracct.attrs['title']}' rows 'General purpose' and 'Private label' (= product balances by tier "
+        f"at year-end 2022), scaled by Figure 5 '{pch.attrs['title']}' annual mean / 2022Q4 value by tier; "
         "share = product / sum over tiers"
     )
 
@@ -221,18 +234,22 @@ def build_ccp(path: Path) -> list[dict]:
         if b.empty:
             raise ValueError(f"no per-cardholder balances for {year}")
         weights = {t: bal_anchor[t] * float(b[ccols[t]].mean()) / pch_anchor[t] for t in TIERS}
+        pl_weights = {t: pl_bal_anchor[t] * float(b[ccols[t]].mean()) / pch_anchor[t] for t in TIERS}
         quarters = b["Quarter"].astype(str).tolist()
         row = {
             "year": int(year),
             "series": "ccp",
             "gp_chargeoff_rate": float(g["General purpose"].mean()),
             "gp_chargeoff_rate_ye": float(g.iloc[-1]["General purpose"]),
+            "pl_chargeoff_rate": float(g["Private label"].mean()),
+            "pl_chargeoff_rate_ye": float(g.iloc[-1]["Private label"]),
             "n_periods": int(len(g)),
             "mix_periods": f"{len(b)} quarters {quarters[0]}-{quarters[-1]}",
             "citation_rate": cite_rate,
             "citation_mix": cite_mix,
         }
         row.update({f"share_{t}": v for t, v in _shares(weights).items()})
+        row.update({f"pl_share_{t}": v for t, v in _shares(pl_weights).items()})
         out.append(row)
     return out
 
@@ -240,7 +257,14 @@ def build_ccp(path: Path) -> list[dict]:
 def build(raw_dir: Path = RAW_DIR) -> pd.DataFrame:
     rows = build_ccip(raw_dir / WB_2025) + build_ccp(raw_dir / WB_2023)
     df = pd.DataFrame(rows, columns=COLUMNS).sort_values(["series", "year"]).reset_index(drop=True)
-    num = ["gp_chargeoff_rate", "gp_chargeoff_rate_ye", *[f"share_{t}" for t in TIERS]]
+    num = [
+        "gp_chargeoff_rate",
+        "gp_chargeoff_rate_ye",
+        "pl_chargeoff_rate",
+        "pl_chargeoff_rate_ye",
+        *[f"share_{t}" for t in TIERS],
+        *[f"pl_share_{t}" for t in TIERS],
+    ]
     df[num] = df[num].round(6)
     return df
 

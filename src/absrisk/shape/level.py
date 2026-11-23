@@ -3,7 +3,8 @@
     predicted(mix, year) = level(year) * sum_over_tiers( mix[tier] * relative_loss[tier] )
 
 `level(year)` is chosen so that the CFPB's own tier mix for that year reproduces the CFPB aggregate
-general-purpose charge-off rate for the chosen bureau series. Because every shape is normalised to
+charge-off rate for the chosen bureau series and product (general purpose, private label, or a linear
+blend of the two weighted by a trust's `private_label_share`). Because every shape is normalised to
 prime = 1, `level(year)` is the charge-off rate the shape implies for the prime tier in that year.
 
 Two CFPB series exist and are never spliced: `ccip` (2025 report, FICO-scored panel, 2014-2024) and `ccp`
@@ -21,13 +22,17 @@ from .shapes import load_shapes, shape_vector
 from .tiers import TIERS
 
 SERIES = ("ccip", "ccp")
+PRODUCTS = ("gp", "pl")
 LEVEL_COLUMNS = [
     "year",
     "series",
     "gp_chargeoff_rate",
     "gp_chargeoff_rate_ye",
+    "pl_chargeoff_rate",
+    "pl_chargeoff_rate_ye",
     "n_periods",
     *[f"share_{t}" for t in TIERS],
+    *[f"pl_share_{t}" for t in TIERS],
     "mix_periods",
     "citation_rate",
     "citation_mix",
@@ -61,21 +66,38 @@ def default_shapes() -> pd.DataFrame:
     return load_shapes(data_dir() / "loss_shape.csv")
 
 
-def cfpb_mix(level: pd.DataFrame, year: int, series: str) -> dict[str, float]:
+def _check_product(product: str) -> str:
+    if product not in PRODUCTS:
+        raise ValueError(f"unknown product {product!r}; expected one of {PRODUCTS}")
+    return product
+
+
+def _validate_pl_share(private_label_share: float) -> float:
+    w = float(private_label_share)
+    if w != w or w < 0.0 or w > 1.0:
+        raise ValueError(f"private_label_share must be in [0, 1], got {private_label_share!r}")
+    return w
+
+
+def cfpb_mix(level: pd.DataFrame, year: int, series: str, product: str = "gp") -> dict[str, float]:
+    prod = _check_product(product)
     row = level[(level["year"] == int(year)) & (level["series"] == series)]
     if len(row) != 1:
         have = sorted(level.loc[level["series"] == series, "year"].tolist())
         raise ValueError(f"no {series} level for {year}; years available: {have}")
     r = row.iloc[0]
-    return {t: float(r[f"share_{t}"]) for t in TIERS}
+    prefix = "share_" if prod == "gp" else "pl_share_"
+    return {t: float(r[f"{prefix}{t}"]) for t in TIERS}
 
 
-def cfpb_rate(level: pd.DataFrame, year: int, series: str) -> float:
+def cfpb_rate(level: pd.DataFrame, year: int, series: str, product: str = "gp") -> float:
+    prod = _check_product(product)
     row = level[(level["year"] == int(year)) & (level["series"] == series)]
     if len(row) != 1:
         have = sorted(level.loc[level["series"] == series, "year"].tolist())
         raise ValueError(f"no {series} level for {year}; years available: {have}")
-    return float(row.iloc[0]["gp_chargeoff_rate"])
+    col = "gp_chargeoff_rate" if prod == "gp" else "pl_chargeoff_rate"
+    return float(row.iloc[0][col])
 
 
 def _mix_dot_shape(mix: dict[str, float], vec: dict[str, float]) -> float:
@@ -88,19 +110,41 @@ def _mix_dot_shape(mix: dict[str, float], vec: dict[str, float]) -> float:
     return sum(float(mix.get(t, 0.0)) * vec[t] for t in TIERS)
 
 
+def _resolve_pl_share(product: str | None, private_label_share: float | None) -> float:
+    if product is not None and private_label_share is not None:
+        raise ValueError("pass either product or private_label_share, not both")
+    if private_label_share is not None:
+        return _validate_pl_share(private_label_share)
+    prod = _check_product("gp" if product is None else product)
+    return 1.0 if prod == "pl" else 0.0
+
+
 def level_for(
     year: int,
     shape_source: str,
     series: str = "ccip",
     *,
+    product: str | None = None,
+    private_label_share: float | None = None,
     shapes: pd.DataFrame | None = None,
     level: pd.DataFrame | None = None,
 ) -> float:
-    """Calibrated level: CFPB aggregate rate / (CFPB mix . shape). Equals the implied prime-tier rate."""
+    """Calibrated level: CFPB aggregate rate / (CFPB mix . shape), blended across general purpose and private label.
+
+    Equals the implied prime-tier rate. `private_label_share` in [0, 1] weights the private-label level against
+    the general-purpose one (`(1 - w) * level_gp + w * level_pl`); `product='pl'` is shorthand for `w = 1`.
+    """
+    w = _resolve_pl_share(product, private_label_share)
     shapes = default_shapes() if shapes is None else shapes
     level = load_level() if level is None else level
     vec = shape_vector(shapes, shape_source)
-    return cfpb_rate(level, year, series) / _mix_dot_shape(cfpb_mix(level, year, series), vec)
+    gp = cfpb_rate(level, year, series, "gp") / _mix_dot_shape(cfpb_mix(level, year, series, "gp"), vec)
+    if w == 0.0:
+        return gp
+    pl = cfpb_rate(level, year, series, "pl") / _mix_dot_shape(cfpb_mix(level, year, series, "pl"), vec)
+    if w == 1.0:
+        return pl
+    return (1.0 - w) * gp + w * pl
 
 
 def predict_chargeoff(
@@ -109,25 +153,37 @@ def predict_chargeoff(
     shape_source: str,
     series: str = "ccip",
     *,
+    product: str | None = None,
+    private_label_share: float | None = None,
     shapes: pd.DataFrame | None = None,
     level: pd.DataFrame | None = None,
 ) -> float:
     """Predicted annualised gross charge-off rate (fraction) for a pool with tier shares `mix`.
 
     `mix` maps tier -> share of balances (missing tiers count as zero; shares must sum to 1). `series`
-    picks the CFPB panel the level is calibrated to; the answer is only comparable with actual rates on the
+    picks the CFPB panel the level is calibrated to; `private_label_share` (or `product`) selects the
+    general-purpose / private-label calibration blend. The answer is only comparable with actual rates on the
     same basis as that panel's aggregate (gross, balance-weighted).
     """
     shapes = default_shapes() if shapes is None else shapes
     level = load_level() if level is None else level
     vec = shape_vector(shapes, shape_source)
-    lvl = cfpb_rate(level, year, series) / _mix_dot_shape(cfpb_mix(level, year, series), vec)
+    lvl = level_for(
+        year,
+        shape_source,
+        series,
+        product=product,
+        private_label_share=private_label_share,
+        shapes=shapes,
+        level=level,
+    )
     return lvl * _mix_dot_shape(mix, vec)
 
 
 def calibration_check(
     tol: float = 1e-9,
     *,
+    product: str = "gp",
     shapes: pd.DataFrame | None = None,
     level: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
@@ -135,6 +191,7 @@ def calibration_check(
 
     Returns one row per check with the absolute error; raises AssertionError if any error exceeds `tol`.
     """
+    prod = _check_product(product)
     shapes = default_shapes() if shapes is None else shapes
     level = load_level() if level is None else level
     filled = [
@@ -145,19 +202,20 @@ def calibration_check(
     out = []
     for _, r in level.iterrows():
         year, series = int(r["year"]), str(r["series"])
-        mix = cfpb_mix(level, year, series)
-        target = cfpb_rate(level, year, series)
+        mix = cfpb_mix(level, year, series, prod)
+        target = cfpb_rate(level, year, series, prod)
         for s in filled:
-            got = predict_chargeoff(mix, year, s, series, shapes=shapes, level=level)
+            got = predict_chargeoff(mix, year, s, series, product=prod, shapes=shapes, level=level)
             out.append(
                 {
                     "year": year,
                     "series": series,
+                    "product": prod,
                     "shape_source": s,
                     "cfpb_rate": target,
                     "reproduced": got,
                     "abs_err": abs(got - target),
-                    "level": level_for(year, s, series, shapes=shapes, level=level),
+                    "level": level_for(year, s, series, product=prod, shapes=shapes, level=level),
                 }
             )
     df = pd.DataFrame(out)

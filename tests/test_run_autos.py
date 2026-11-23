@@ -48,3 +48,31 @@ def test_driver_writes_every_output(tmp_path):
     assert ((cuts["lender"] == "beta") & (cuts["var"] == "orig_apr") & (cuts["cutoff"] == 640) & cuts["flag"]).any()
     rdres = pd.read_csv(out / "b3_rd.csv")
     assert ((rdres["lender"] == "beta") & (rdres["cutoff"] == 640)).any()
+
+
+def test_load_loans_normalises_legacy_capone_negative_recoveries(tmp_path):
+    """REVIEW.md abs-B-6: legacy Capital One parquet carries negative recovered_amount; load_loans flips it idempotently."""
+    from pathlib import Path
+    import pytest
+
+    repo = Path(__file__).resolve().parents[1]
+    d = tmp_path / "autos"
+    d.mkdir()
+    syn = _full_schema(make_loans(n=20, seed=1, lender="capone"), "copar-syn")
+    syn["recovered_amount"] = np.where(syn["exit_type"] == "chargeoff", -500.0, 0.0)
+    syn.to_parquet(d / "copar-syn.parquet", index=False)
+    loaded = run_autos.load_loans(d, basis="trust_loss")
+    assert (loaded["recovered_amount"] >= 0).all()
+    assert loaded["recovered_amount"].sum() == pytest.approx(500.0 * (syn["exit_type"] == "chargeoff").sum())
+    # already-positive Capital One data is left unchanged (idempotent after parser rebuild)
+    loaded.to_parquet(d / "copar-syn.parquet", index=False)
+    again = run_autos.load_loans(d, basis="trust_loss")
+    assert (again["recovered_amount"] >= 0).all() and again["recovered_amount"].sum() == pytest.approx(loaded["recovered_amount"].sum())
+
+    # committed copar-2025-1 parquet normalises to +$695,460.96
+    copar_only = tmp_path / "copar"
+    copar_only.mkdir()
+    pd.read_parquet(repo / "data" / "autos" / "copar-2025-1.parquet").to_parquet(copar_only / "copar-2025-1.parquet", index=False)
+    real = run_autos.load_loans(copar_only, basis="trust_loss")
+    assert (real["recovered_amount"] >= 0).all()
+    assert real["recovered_amount"].sum() == pytest.approx(695_460.96, abs=0.05)

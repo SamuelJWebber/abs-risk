@@ -3,10 +3,12 @@
 Inputs: data/cards_monthly.csv (A1), data/cards_composition.csv and crosswalks/fico_buckets.csv (A2),
 data/loss_shape.csv and data/ccmr_level.csv (A3).
 Outputs:
-  mix_by_trust.csv        tier shares per trust and prospectus as-of date: the FICO table mapped through the committed
-                          crosswalk, unscored balances dropped and the rest renormalised (`unscored` says how much)
-  a1_predicted.csv        per trust-month and shape: actual (net), predicted, residual, mix_extrapolated, and
-                          actual_gross / residual_gross where the trust prints a gross rate (empty for Citi)
+  mix_by_trust.csv        tier shares and prospectus private-label share per trust and as-of date: the FICO table
+                          mapped through the committed crosswalk, unscored balances dropped and the rest renormalised
+                          (`unscored` says how much)
+  a1_predicted.csv        per trust-month and shape: actual (net), predicted (calibrated to each trust's prospectus
+                          general-purpose / private-label blend), residual, mix_extrapolated, and actual_gross /
+                          residual_gross where the trust prints a gross rate (empty for Citi)
   a1_ranking.csv          mean residual per trust under each shape, and the rank; the ranking-stability check. Ranks are
                           on the net rate, which all six print; mean_residual_gross is the like-for-like level against
                           the CFPB's gross industry rate, for the trusts that print a gross rate
@@ -15,6 +17,9 @@ Outputs:
   a1_basis.csv            per trust: mean gross and mean net charge-off rate over the months that print both, and the
                           gap between them. Every result here is on the net rate, the only one all six trusts print
                           (REVIEW.md abs-B-1), while the CFPB level is gross, so this is how far each residual sits low
+  a1_product.csv          for every trust with a nonzero prospectus private-label share (Synchrony), its mean residual
+                          (net and gross) and rank under three CFPB calibrations: general purpose (0% PL), its
+                          prospectus blend (default), and private label (100% PL) (REVIEW.md R2-2)
   a2_panel.csv            panel regression coefficients (month FE; month + trust FE), Driscoll-Kraay SEs
   a3_stages.csv           per trust-month: entry (30+), progression (90+/30+), conversion (charge-off/90+)
   a3_by_trust.csv         geometric means per trust, ratios to the highest-loss trust, shares of the log gap
@@ -85,9 +90,16 @@ def mix_by_trust(composition: pd.DataFrame, crosswalk: pd.DataFrame) -> pd.DataF
             if pd.notna(hi) and int(hi) > SCORE_MAX:
                 clamped.append(f"{int(hi)}->{SCORE_MAX}")
         notes = sorted({str(n).split("; bucket: ")[0] for n in g["sample_note"].dropna()}) if "sample_note" in g else []
+        pl_share = 0.0
+        if "private_label_share" in g and g["private_label_share"].notna().any():
+            vals = g["private_label_share"].dropna().astype(float).unique()
+            if len(vals) > 1 and (vals.max() - vals.min()) > 1e-9:
+                raise ValueError(f"{trust} {as_of}: inconsistent private_label_share values {vals.tolist()}")
+            pl_share = float(vals[0])
         base = {"trust": trust, "as_of": as_of, "basis": share_col, "clamped_edges": ";".join(clamped),
                 "score_type": ",".join(sorted(g["score_type"].dropna().astype(str).unique())),
-                "unscored": float(share[~scored].sum()), "mapping_flags": ",".join(flags), "sample_note": ";".join(notes)}
+                "unscored": float(share[~scored].sum()), "private_label_share": pl_share,
+                "mapping_flags": ",".join(flags), "sample_note": ";".join(notes)}
         if mass.sum() <= 0:
             rows.append({**base, "error": "no scored bucket: every balance is unscored"})
             continue
@@ -112,14 +124,18 @@ def predicted(monthly: pd.DataFrame, mix: pd.DataFrame, shapes: pd.DataFrame, le
         extrap = merged["as_of"].isna()
         for t in TIERS:
             merged.loc[extrap, t] = float(mx.iloc[0][t])
+        if "private_label_share" in mx:
+            merged.loc[extrap, "private_label_share"] = float(mx.iloc[0]["private_label_share"])
         for _, r in merged.iterrows():
             year = int(r["period_end"].year)
             year_used = min(max(year, years[0]), years[-1])   # clamp to the CFPB level years
             mixd = {t: float(r[t]) for t in TIERS}
+            pl_share = float(r["private_label_share"]) if "private_label_share" in r and pd.notna(r["private_label_share"]) else 0.0
             for s in shape_names:
-                pred = predict_chargeoff(mixd, year_used, s, series, shapes=shapes, level=level)
+                pred = predict_chargeoff(mixd, year_used, s, series, private_label_share=pl_share, shapes=shapes, level=level)
                 gross = float(r["gross_co_rate"]) if "gross_co_rate" in r and pd.notna(r["gross_co_rate"]) else np.nan
                 out.append({"trust": trust, "period_end": r["period_end"].date(), "shape_source": s, "series": series,
+                            "private_label_share": pl_share,
                             "actual": float(r[rate_col]), "predicted": float(pred), "residual": float(r[rate_col]) - float(pred),
                             "actual_gross": gross, "residual_gross": gross - float(pred),
                             "mix_as_of": None if pd.isna(r["as_of"]) else r["as_of"].date(), "mix_extrapolated": bool(extrap.loc[r.name]),
@@ -202,8 +218,46 @@ def monthly_mix(mix: pd.DataFrame, monthly: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=["trust", "period_end", *TIERS])
 
 
-A1_OUTPUTS = ("a1_ranking.csv", "a1_straddle.csv", "a1_basis.csv")
+A1_OUTPUTS = ("a1_ranking.csv", "a1_straddle.csv", "a1_basis.csv", "a1_product.csv")
 A3_OUTPUTS = ("a3_stages.csv", "a3_by_trust.csv", "a3_stress.csv", "a3_regimes.csv", "a3_ceiling.csv")
+
+
+def product_sensitivity(monthly: pd.DataFrame, mix: pd.DataFrame, shapes: pd.DataFrame, level: pd.DataFrame,
+                        series: str, rate_col: str = cards_roll.RATE,
+                        base_pred: pd.DataFrame | None = None) -> pd.DataFrame:
+    """For each trust with a nonzero prospectus private-label share, mean residual (net and gross) and rank across
+    all trusts under three CFPB calibrations: general purpose (0% PL), prospectus blend (default), and private label
+    (100% PL) (REVIEW.md R2-2)."""
+    cols = ["trust", "calibration", "private_label_share", "shape_source", "mean_actual", "mean_predicted",
+            "mean_residual", "mean_residual_gross", "rank"]
+    if mix.empty or "private_label_share" not in mix:
+        return pd.DataFrame(columns=cols)
+    mixed = sorted(mix.loc[mix["private_label_share"].fillna(0.0).astype(float) > 0, "trust"].unique())
+    if not mixed:
+        return pd.DataFrame(columns=cols)
+    if base_pred is None:
+        base_pred = predicted(monthly, mix, shapes, level, series, rate_col)
+    if base_pred.empty:
+        return pd.DataFrame(columns=cols)
+    out = []
+    for trust in mixed:
+        t_mix = mix[mix["trust"] == trust]
+        pl_default = float(t_mix["private_label_share"].iloc[-1])
+        other_pred = base_pred[base_pred["trust"] != trust]
+        t_monthly = monthly[monthly["trust"] == trust]
+        for cal, w in (("general_purpose", 0.0), ("prospectus_blend", pl_default), ("private_label", 1.0)):
+            if cal == "prospectus_blend":
+                pred_all = base_pred
+            else:
+                alt_mix = t_mix.assign(private_label_share=w)
+                alt_pred = predicted(t_monthly, alt_mix, shapes, level, series, rate_col)
+                pred_all = pd.concat([other_pred, alt_pred], ignore_index=True)
+            r = ranking(pred_all)
+            r = r[r["trust"] == trust].copy()
+            r["calibration"] = cal
+            r["private_label_share"] = w
+            out.append(r[cols])
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=cols)
 
 
 def rate_basis(monthly: pd.DataFrame) -> pd.DataFrame:
@@ -263,6 +317,8 @@ def main(argv: list[str]) -> int:
         rate_basis(monthly).round(10).to_csv(out / "a1_basis.csv", index=False, float_format="%.12g")
         straddle_sensitivity(monthly, composition, crosswalk, shapes, level, a.series, a.rate).to_csv(
             out / "a1_straddle.csv", index=False)
+        product_sensitivity(monthly, mix, shapes, level, a.series, a.rate, base_pred=pred).to_csv(
+            out / "a1_product.csv", index=False)
     # A3: the loss rate factors exactly into entry x progression x conversion; where a trust's advantage sits
     # separates "its accounts rarely get into trouble" from "its accounts survive trouble".
     _clear(out, A3_OUTPUTS)

@@ -26,7 +26,9 @@ SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole 
          "A default on this page is a charge-off, or a buy-back of a loan that had been 90 or more days late: Santander "
          "buys such loans back instead of charging them off, and the trust records no loss on them. Tables, charts and "
          "files labelled charge-off carry this definition, and where a headline figure changes with it the "
-         "charge-off-only figure is given beside it. "
+         "charge-off-only figure is given beside it. Every default and charge-off rate on this page is a count-based "
+         "share of loans, not principal dollars or net of recoveries (the loan-level charge-off and recovery dollar "
+         "fields in the committed tables are unused here). "
          "Scores are the score type the sponsor reports (FICO at most captives, a bureau score at Santander, VantageScore "
          "at Exeter for 98.9% of its pool) and are never refreshed after origination, so a 700 at Exeter and a 700 at "
          "Honda are close but not the same number.")
