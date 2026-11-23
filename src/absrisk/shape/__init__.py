@@ -9,6 +9,7 @@ built by `python -m absrisk.shape.build_level` from the CFPB workbooks). Sources
 """
 
 from .level import (
+    PRODUCTS,
     SERIES,
     calibration_check,
     cfpb_mix,
@@ -23,6 +24,7 @@ from .shapes import build_loss_shape, load_shapes, shape_vector, write_loss_shap
 from .tiers import TIER_BOUNDS, TIERS, band_rates_to_tiers, overlap_fraction, tier_of, tiers_from_buckets
 
 __all__ = [
+    "PRODUCTS",
     "SERIES",
     "TIERS",
     "TIER_BOUNDS",

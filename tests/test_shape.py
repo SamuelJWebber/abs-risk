@@ -109,22 +109,32 @@ def test_level_schema(level):
     assert sorted(ccp["year"]) == list(range(2013, 2023))
     assert (ccip["n_periods"] == 12).all() and (ccp["n_periods"] == 4).all()
     shares = level[[f"share_{t}" for t in TIERS]]
+    pl_shares = level[[f"pl_share_{t}" for t in TIERS]]
     assert ((shares > 0) & (shares < 1)).all().all()
+    assert ((pl_shares > 0) & (pl_shares < 1)).all().all()
     assert (shares.sum(axis=1) - 1.0).abs().max() < 1e-5
+    assert (pl_shares.sum(axis=1) - 1.0).abs().max() < 1e-5
     assert level["gp_chargeoff_rate"].between(0.01, 0.10).all()
     assert level["gp_chargeoff_rate_ye"].between(0.01, 0.10).all()
+    assert level["pl_chargeoff_rate"].between(0.03, 0.15).all()
+    assert level["pl_chargeoff_rate_ye"].between(0.02, 0.15).all()
+    assert (level["pl_chargeoff_rate"] > level["gp_chargeoff_rate"]).all()
     assert level["citation_rate"].str.contains("Figure").all()
     assert level["citation_mix"].str.contains("Figure").all()
 
 
 def test_level_matches_scout_note_spot_values(level):
-    # design/scout-ccmr-tiers.md section 3.2: CCIP GP annual average 2019 3.67, 2024 5.25 (percent);
-    # CCP GP annual average 2019 6.53, YE2022 4.3.
+    # design/scout-ccmr-tiers.md section 3.2: CCIP GP annual average 2019 3.67, 2024 5.25; PL 2019 7.12, 2024 8.52;
+    # CCP GP annual average 2019 6.53, YE2022 4.3; PL 2019 10.88, YE2022 7.7 (percent).
     assert cfpb_rate(level, 2019, "ccip") == pytest.approx(0.0367, abs=5e-5)
     assert cfpb_rate(level, 2024, "ccip") == pytest.approx(0.0525, abs=5e-5)
     assert cfpb_rate(level, 2019, "ccp") == pytest.approx(0.0653, abs=5e-5)
+    assert cfpb_rate(level, 2019, "ccip", "pl") == pytest.approx(0.0712, abs=5e-5)
+    assert cfpb_rate(level, 2024, "ccip", "pl") == pytest.approx(0.0852, abs=5e-5)
+    assert cfpb_rate(level, 2019, "ccp", "pl") == pytest.approx(0.1088, abs=5e-5)
     row = level[(level["year"] == 2022) & (level["series"] == "ccp")].iloc[0]
     assert row["gp_chargeoff_rate_ye"] == pytest.approx(0.043, abs=1e-9)
+    assert row["pl_chargeoff_rate_ye"] == pytest.approx(0.077, abs=1e-9)
 
 
 def test_calibration_check_every_year_and_series(shapes, level):
@@ -132,6 +142,37 @@ def test_calibration_check_every_year_and_series(shapes, level):
     assert len(chk) == len(level) * len(filled_sources(shapes))
     assert chk["abs_err"].max() <= 1e-9
     assert (chk["level"] > 0).all()
+    chk_pl = calibration_check(1e-9, product="pl", shapes=shapes, level=level)
+    assert len(chk_pl) == len(level) * len(filled_sources(shapes))
+    assert chk_pl["abs_err"].max() <= 1e-9
+    assert (chk_pl["level"] > 0).all()
+    assert (chk_pl.loc[chk_pl["series"] == "ccip", "level"].to_numpy()
+            > chk.loc[chk["series"] == "ccip", "level"].to_numpy()).all()
+
+
+def test_blended_product_calibration_interpolates_gp_and_pl(shapes, level):
+    mix = {"deep_subprime": 0.06, "subprime": 0.06, "near_prime": 0.12, "prime": 0.27, "prime_plus": 0.30, "superprime": 0.19}
+    for src in filled_sources(shapes):
+        for series, year in (("ccip", 2024), ("ccp", 2019)):
+            gp = predict_chargeoff(mix, year, src, series, product="gp", shapes=shapes, level=level)
+            pl = predict_chargeoff(mix, year, src, series, product="pl", shapes=shapes, level=level)
+            assert pl > gp
+            assert predict_chargeoff(mix, year, src, series, private_label_share=0.0, shapes=shapes, level=level) == pytest.approx(gp)
+            assert predict_chargeoff(mix, year, src, series, private_label_share=1.0, shapes=shapes, level=level) == pytest.approx(pl)
+            w = 0.243
+            bl = predict_chargeoff(mix, year, src, series, private_label_share=w, shapes=shapes, level=level)
+            assert bl == pytest.approx((1.0 - w) * gp + w * pl)
+            lvl_bl = level_for(year, src, series, private_label_share=w, shapes=shapes, level=level)
+            assert lvl_bl == pytest.approx((1.0 - w) * level_for(year, src, series, product="gp", shapes=shapes, level=level)
+                                           + w * level_for(year, src, series, product="pl", shapes=shapes, level=level))
+    with pytest.raises(ValueError, match="in \\[0, 1\\]"):
+        predict_chargeoff(mix, 2024, "fico_odds", private_label_share=-0.1, shapes=shapes, level=level)
+    with pytest.raises(ValueError, match="in \\[0, 1\\]"):
+        predict_chargeoff(mix, 2024, "fico_odds", private_label_share=1.1, shapes=shapes, level=level)
+    with pytest.raises(ValueError, match="not both"):
+        level_for(2024, "fico_odds", product="pl", private_label_share=0.5, shapes=shapes, level=level)
+    with pytest.raises(ValueError, match="unknown product"):
+        cfpb_rate(level, 2024, "ccip", "commercial")
 
 
 def test_predict_chargeoff_is_level_times_mix_dot_shape(shapes, level):

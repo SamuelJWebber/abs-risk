@@ -235,17 +235,23 @@ trust carries the residual. A4 reports the ranking under each; if it moves, that
 One row per year and bureau panel. Built by `python -m absrisk.shape.build_level` from the two CCMR
 figure-data workbooks (not committed; URLs and hashes in scout note section 1), reading every cell by
 figure label and column header. Columns: `year, series, gp_chargeoff_rate, gp_chargeoff_rate_ye,
-n_periods, share_<tier> x6, mix_periods, citation_rate, citation_mix`.
+pl_chargeoff_rate, pl_chargeoff_rate_ye, n_periods, share_<tier> x6, pl_share_<tier> x6, mix_periods,
+citation_rate, citation_mix`.
 
 ### 4.1 Aggregate rate
 
 - `ccip` (2014-2024): 2025 workbook, sheet "Section 4 - Pmts, Debt, Coll.", Figure 53 "Monthly
-  annualized rate of balances charged off (CCIP)", column "General purpose". Gross, pre-recovery,
-  balance-weighted (2025 report fn 129). `gp_chargeoff_rate` = mean of the 12 monthly values;
-  `_ye` = December.
+  annualized rate of balances charged off (CCIP)", columns "General purpose" and "Private label". Gross,
+  pre-recovery, balance-weighted (2025 report fn 129). `gp_chargeoff_rate` / `pl_chargeoff_rate` = mean of
+  the 12 monthly values; `_ye` = December.
 - `ccp` (2013-2022): 2023 workbook, sheet "Section 3 - Use of credit", Figure 18 "Quarterly annualized
-  rate of gross outstanding balances charged off (CCP)", column "General purpose". Mean of the four
-  quarters; `_ye` = Q4.
+  rate of gross outstanding balances charged off (CCP)", columns "General purpose" and "Private label".
+  Mean of the four quarters; `_ye` = Q4.
+
+Private-label tier shares (`pl_share_<tier>`) follow the exact same construction as `share_<tier>` using the
+"Private label" column of 2025 Figure 3 (CCIP) and the "Private label" rows of 2023 Section 5 Figure 17 and
+Section 3 Figure 7 (CCP), so mixed retail trusts such as Synchrony can be calibrated to a linear blend of the
+general-purpose and private-label levels (`REVIEW.md` R2-2).
 
 The two panels are not on one basis: for the same years the CCIP rate is roughly 0.6x the CCP rate
 (2019: 3.67% vs 6.53%) while their delinquency series agree (scout note sections 3.2-3.3, 2025 report

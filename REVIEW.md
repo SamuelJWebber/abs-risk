@@ -60,14 +60,21 @@ until the push that carries this file has deployed.
 | abs-A-8 first scheduled run untested | **Closed by events** (LOW) | The scheduled runs of 2026-11-12, 11-16 and 11-19 were green; the 11-16 run committed October rows. | `gh run list` |
 | abs-A-9 issuer-level opening sentences | **Fixed** (LOW) | The landing and conclusions pages now say "card trust" and "public auto loan pool" on first use, and no longer say the card comparison holds at the same score. | read on the rebuilt pages |
 | abs-B-5 Exeter selection dated from 2025-4 | **Fixed** (LOW) | `data/deals.csv`, `design/scout-autos.md`, `design/methods.md`, and the autos and conclusions pages now date Exeter's score-based pool selection from 2025-2, matching the EART 2026-2 prospectus. | `tests/test_autos_review_fixes.py`. |
-| abs-B-6 unused dollar fields, one with the wrong sign | **Deferred** (LOW) | Not touched. | none |
+| abs-B-6 unused dollar fields, one with the wrong sign | **Fixed** (LOW) | `autos/parse.py` negates Capital One's negative `recoveredAmount` (`recovery_sign = -1.0` for `CAPONE_LENDERS`, recorded in diagnostics), `autos/build.py` picks up the first non-null `chargedoffPrincipalAmount` at or after the zero-balance exit without summing across retained months, `run_autos.load_loans` idempotently flips legacy all-negative Capital One recoveries on load (`copar-2025-1.parquet`: -$695,461 -> +$695,461), and `autos_page.py` states once in its scope note that every rate on the page is a count-based share of loans rather than principal dollars or net of recoveries. | *Fixture-proven*: `tests/test_autos_parse.py` (`test_capone_recovery_sign_is_negated_and_other_lenders_kept`), `tests/test_autos_build.py` (`test_capone_recovery_sign_and_delayed_chargeoff_amount`), `tests/test_pages.py` (`test_autos_page_states_rates_are_loan_counts_not_dollars`). *Seen on the data*: `tests/test_run_autos.py` (`test_load_loans_normalises_legacy_capone_negative_recoveries` on committed `copar-2025-1.parquet`). |
 
-Round 2 findings this pass also settled, because the same sentences were being rewritten: **R2-3** (the headline
-now counts the top and bottom place over all 12 combinations of loss curve and straddle rule and says "most, not
-all": Synchrony first in 10, Amex last in 10) and **R2-4** (the selection claim is withdrawn). **R2-2** is disclosed,
-not fixed: the cards page now states that Synchrony's sign rests on calibrating a pool that is a quarter private label
-to the general-purpose level; the calibration itself is unchanged. R2-8 is narrowed by the same change. The other
-round-2 rows keep whatever state the commits of 2026-11-09 and 11-10 left them in; round 2 never got status lines.
+Round 2 findings settled alongside this review: **R2-2** is **Fixed** (2026-11-22): `shape/build_level.py` adds the
+CFPB private-label charge-off and tier-mix series (`pl_chargeoff_rate`, `pl_chargeoff_rate_ye`, `pl_share_*`) to
+`data/ccmr_level.csv`; `cards/composition.py` parses Synchrony's prospectus Program Partner table into
+`private_label_share` (`24.3%` for Synchrony, `0.0%` elsewhere); `shape/level.py` and `estimate/run_cards.py`
+calibrate each trust to its prospectus blend (`(1 - w) * level_gp + w * level_pl`) and emit `a1_product.csv`
+comparing 0%, prospectus blend, and 100% private label; `cards_page.py` and `conclusions_page.py` publish the blended
+results, handle the resulting 5-5 tie at the top (`bofa` and `synchrony` 5 each, `amex` last in 10 of 12), and print
+the three-calibration product table (*fixture-proven* and *seen on the data* in `tests/test_shape.py`,
+`tests/test_cards_composition.py`, `tests/test_synchrony_product.py`, `tests/test_cards_results.py`,
+`tests/test_pages.py`). **R2-3** (the headline counts the top and bottom place over all 12 combinations of loss curve
+and straddle rule, naming ties explicitly) and **R2-4** (the selection claim is withdrawn). R2-8 is narrowed by the
+same change. The other round-2 rows keep whatever state the commits of 2026-11-09 and 11-10 left them in; round 2
+never got status lines.
 
 The paused commit `wip/paused-2026-11-10` (1e3af87, local only) was **not merged and nothing was salvaged from it**.
 Its `report/claims.py` reads `a1_grid.csv`, a table only that commit's unfinished calibration work produces, and its
@@ -300,6 +307,15 @@ for s, g in sh.groupby("shape_source"):
 **Verify.** `mix_by_trust.csv` (or a new column) carries the private-label share. The Synchrony row on the page
 matches the blended column above. A test pins that a trust with a nonzero private-label share is not calibrated to
 the general-purpose level alone.
+
+**Status (2026-11-22): Fixed.** `data/ccmr_level.csv` carries the CFPB private-label series built cleanly from
+`shape/build_level.py`; `cards/composition.py` extracts `private_label_share` from the prospectus Program Partner
+table (`0.242755` for Synchrony's 2026-08-31 prospectus, `0.0` for the five general-purpose trusts) and carries it
+into `mix_by_trust.csv`; `estimate/run_cards.py` calibrates each trust to its prospectus blend and writes
+`a1_product.csv` (0%, 24.3%, 100% PL); Synchrony's gross residual is `+0.41%` to `+1.16%` (positive under all four
+curves; net rank 1 under ACMS, 4 under FICO; reverses to `-1.63%` to `-0.64%` and rank 6 at 100% PL). Held by
+`tests/test_shape.py`, `tests/test_cards_composition.py`, `tests/test_synchrony_product.py`, `tests/test_cards_results.py`,
+and `tests/test_pages.py`.
 
 ### R2-3 · MEDIUM · "The ends of the ranking hold" ignores the project's own straddle sensitivity, and the conclusions page calls Citi an end
 

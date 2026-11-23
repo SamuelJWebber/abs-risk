@@ -205,14 +205,18 @@ def build_loans(deal: Deal | str, files: list[str | Path], *, lender: str | None
                 L.exit_code = row["zb_code"]
                 L.zb_date = row["zb_date"]
                 L.chargeoff_amount = row["chargeoff_amount"]
+            elif L.code_period is not None and L.chargeoff_amount is None and row["chargeoff_amount"] is not None:
+                # Keep-all issuers repeat chargedoffPrincipalAmount on retained months, so only the first non-null
+                # amount at or after the zero-balance exit is kept (never summed across months; REVIEW.md abs-B-6).
+                L.chargeoff_amount = row["chargeoff_amount"]
             if lm_rows is not None:
                 lm_rows.append({c: row[c] for c in LOAN_MONTH_COLUMNS})
         n_loan_months += n
         periods.append(period)
         fd = {"path": str(path), "period": period.isoformat(), "n_records": n, "sha256": _sha256(path),
-              **{key: info.get(key) for key in ("pti_rule", "pti_divisor", "pti_sample_median_raw", "dup_counts",
-                                                "n_apr_gt_1", "n_periods_other", "n_score_missing", "n_commercial",
-                                                "n_pti_gt_1_after")}}
+              **{key: info.get(key) for key in ("pti_rule", "pti_divisor", "pti_sample_median_raw", "recovery_sign",
+                                                "dup_counts", "n_apr_gt_1", "n_periods_other", "n_score_missing",
+                                                "n_commercial", "n_pti_gt_1_after")}}
         file_diags.append(fd)
         if info.get("pti_rule") and info.get("n_pti_gt_1_after", 0) > n * 0.01:
             raise ParseError(f"{path}: PTI still above 1 for {info['n_pti_gt_1_after']} records after dividing by 100")

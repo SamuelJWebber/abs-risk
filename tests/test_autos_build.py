@@ -246,3 +246,32 @@ def test_build_deal_from_manifest_and_cli(tmp_path):
     assert sorted(p.name for p in (tmp_path / "panel" / "carmax-2026-2").glob("*.parquet")) == ["2026-06-30.parquet", "2026-07-31.parquet"]
     df = build_deal(Deal("carmax-2026-2", "carmax", "0002117307"), tmp_path / "raw", tmp_path / "out2")
     assert df.attrs["diagnostics"]["n_files"] == 2
+
+
+def test_capone_recovery_sign_and_delayed_chargeoff_amount(tmp_path):
+    """REVIEW.md abs-B-6: Capital One negative recoveredAmount sums to positive dollars; a charge-off amount reported
+    one month after the zero-balance code is picked up once and not doubled on retained months."""
+    def rec(aid, period, extra=""):
+        return (f"<assets><assetNumber>{aid}</assetNumber><reportingPeriodEndingDate>{period}</reportingPeriodEndingDate>"
+                f"<originationDate>01/2025</originationDate><originalLoanAmount>10000</originalLoanAmount>"
+                f"<originalLoanTerm>60</originalLoanTerm><originalInterestRatePercentage>0.07</originalInterestRatePercentage>"
+                f"<obligorCreditScoreType>FICO</obligorCreditScoreType><obligorCreditScore>720</obligorCreditScore>"
+                f"<paymentToIncomePercentage>5.0</paymentToIncomePercentage><vehicleValueAmount>12000</vehicleValueAmount>"
+                f"<reportingPeriodActualEndBalanceAmount>0</reportingPeriodActualEndBalanceAmount>"
+                f"<currentDelinquencyStatus>0</currentDelinquencyStatus>{extra}</assets>")
+
+    months = {
+        "01-31-2026": [rec("L1", "01-31-2026", "<zeroBalanceCode>4</zeroBalanceCode>")],
+        "02-28-2026": [rec("L1", "02-28-2026", "<zeroBalanceCode>4</zeroBalanceCode><chargedoffPrincipalAmount>7500</chargedoffPrincipalAmount><recoveredAmount>-1000</recoveredAmount>")],
+        "03-31-2026": [rec("L1", "03-31-2026", "<zeroBalanceCode>4</zeroBalanceCode><chargedoffPrincipalAmount>7500</chargedoffPrincipalAmount><recoveredAmount>-500</recoveredAmount>")],
+    }
+    paths = []
+    for i, recs in enumerate(months.values()):
+        f = tmp_path / f"cp{i}.xml"
+        f.write_text('<?xml version="1.0"?><assetData xmlns="http://www.sec.gov/edgar/document/absee/autoloan/assetdata">'
+                     + "".join(recs) + "</assetData>", encoding="utf-8")
+        paths.append(f)
+    df = build_loans(Deal("copar-syn", "capone"), paths).set_index("asset_id")
+    assert df.loc["L1", "chargeoff_amount"] == pytest.approx(7500.0)
+    assert df.loc["L1", "recovered_amount"] == pytest.approx(1500.0)
+    assert all(fd["recovery_sign"] == -1.0 for fd in df.attrs["diagnostics"]["files"])

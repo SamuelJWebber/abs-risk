@@ -38,6 +38,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..autos.parse import CAPONE_LENDERS
 from . import decompose, hazard, lender_gap, rd, survival
 
 # securitization floors and cliffs that are selection, not pricing (design/scout-autos.md §6, §11)
@@ -62,6 +63,16 @@ def load_loans(in_dir: Path, basis: str = "default") -> pd.DataFrame:
     if "commercial" in loans:
         loans = loans[~loans["commercial"].fillna(False).astype(bool)]
     loans = loans.reset_index(drop=True)
+    if "recovered_amount" in loans and "lender" in loans:
+        # Legacy parquets built before the parser's Capital One recovery sign fix carry negative recoveries
+        # (REVIEW.md abs-B-6); flip only when every nonzero recovery in a Capital One deal is negative so the
+        # normalisation is idempotent after a rebuild.
+        for deal, idx in loans.groupby("deal").groups.items():
+            lender = str(loans.loc[idx[0], "lender"]).lower()
+            if lender in CAPONE_LENDERS:
+                rec = loans.loc[idx, "recovered_amount"]
+                if (rec < 0).any() and not (rec > 0).any():
+                    loans.loc[idx, "recovered_amount"] = -rec
     return survival.as_defaults(loans) if basis == "default" else loans
 
 

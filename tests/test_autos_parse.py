@@ -11,7 +11,7 @@ import pytest
 
 from absrisk.autos.parse import (
     LOAN_MONTH_COLUMNS, ORIGINATION_KEYS, ParseError, detect_pti_scale, file_period, iter_loan_months,
-    iter_records, parse_date, parse_month, score_value,
+    iter_records, normalise, parse_date, parse_month, score_value,
 )
 
 FIX = Path(__file__).parent / "fixtures" / "autos"
@@ -213,3 +213,33 @@ def test_not_an_ex102_fails_loudly(tmp_path):
     nested.write_text('<?xml version="1.0"?><assetData><assets><assetNumber>1</assetNumber><a><b>1</b></a></assets></assetData>')
     with pytest.raises(ParseError):
         list(iter_records(nested))
+
+
+def test_capone_recovery_sign_is_negated_and_other_lenders_kept(tmp_path):
+    """REVIEW.md abs-B-6: Capital One reports recoveredAmount as negative dollars; other lenders report positive."""
+    rec = {"assetNumber": "1", "reportingPeriodEndingDate": "06-30-2026", "recoveredAmount": "-4250.50"}
+    assert normalise(rec, "copar-2025-1", 100.0, recovery_sign=-1.0)["recovered_amount"] == pytest.approx(4250.50)
+    assert normalise(rec, "sdart-2026-1", 1.0)["recovered_amount"] == pytest.approx(-4250.50)
+
+    xml = tmp_path / "capone.xml"
+    xml.write_text(
+        '<?xml version="1.0"?><assetData xmlns="http://www.sec.gov/edgar/document/absee/autoloan/assetdata">'
+        '<assets><assetNumber>1</assetNumber><reportingPeriodEndingDate>06-30-2026</reportingPeriodEndingDate>'
+        '<originationDate>01/2025</originationDate><originalLoanAmount>10000</originalLoanAmount>'
+        '<originalLoanTerm>60</originalLoanTerm><originalInterestRatePercentage>0.07</originalInterestRatePercentage>'
+        '<obligorCreditScoreType>FICO</obligorCreditScoreType><obligorCreditScore>720</obligorCreditScore>'
+        '<paymentToIncomePercentage>5.0</paymentToIncomePercentage><vehicleValueAmount>12000</vehicleValueAmount>'
+        '<reportingPeriodActualEndBalanceAmount>0</reportingPeriodActualEndBalanceAmount>'
+        '<zeroBalanceCode>4</zeroBalanceCode><chargedoffPrincipalAmount>8000</chargedoffPrincipalAmount>'
+        '<recoveredAmount>-3200.25</recoveredAmount></assets></assetData>',
+        encoding="utf-8",
+    )
+    info: dict = {}
+    rows = list(iter_loan_months(xml, "copar-2025-1", "capone", info))
+    assert info["recovery_sign"] == -1.0
+    assert rows[0]["recovered_amount"] == pytest.approx(3200.25)
+
+    info_other: dict = {}
+    rows_other = list(iter_loan_months(fixture("exeter-2025-5", "2026-06"), "exeter-2025-5", "exeter", info_other))
+    assert info_other["recovery_sign"] == 1.0
+    assert any(r["recovered_amount"] and r["recovered_amount"] > 0 for r in rows_other)

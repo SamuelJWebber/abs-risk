@@ -181,7 +181,11 @@ optimal one). The design answers with a null, as expected in advance.
 No public source gives card charge-off by score tier. The CFPB says why in its own footnotes: tiering by current
 score is endogenous to delinquency, so it withholds the cross-tab. The prediction is therefore built as a shape
 (relative loss by tier, from a published source) times a level (calibrated so the CFPB's own tier mix reproduces
-the CFPB's own aggregate rate that year).
+the CFPB's own aggregate rate that year). Since 2026-11-22 (REVIEW.md R2-2), `data/ccmr_level.csv` carries both
+the CFPB general-purpose and private-label series, and each trust's level is blended by its prospectus
+`private_label_share` (24.3% for Synchrony from its Program Partner table, 0% for the five general-purpose
+trusts). `data/results/cards/a1_product.csv` keeps all three calibrations (0%, prospectus blend, 100% private
+label) side by side for mixed trusts.
 
 Four shapes are carried, and they disagree by a factor of five:
 
@@ -212,7 +216,9 @@ up to 1.47 points under the steep consumer-level shapes.
   VantageScore at Exeter. They are not the same scale, so "the same score" across lenders is an approximation and
   the score type is printed next to every lender.
 - Payment-to-income is a fraction at every sponsor except Capital One, which reports percent; normalised on load,
-  with the rule recorded per file.
+  with the rule recorded per file. Capital One also reports `recoveredAmount` as negative dollars; `autos/parse.py`
+  negates it on parse and `run_autos.load_loans` normalises legacy parquets on load (REVIEW.md abs-B-6). Every
+  published auto rate is a count-based share of loans rather than principal dollars or net of recoveries.
 - Card charge-off bases differ by trust (beginning, average, ending, invested amount) and annualisation differs
   (times twelve, times 365 over days, actual over 365). Kept as reported, never mixed.
 - Citi publishes one charge-off rate and no dollar charge-off row. The rate is net of recoveries (it equals the

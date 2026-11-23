@@ -1,7 +1,7 @@
 # abs-risk handoff
 
-Rewritten **2026-11-22** (autos review fixes: abs-A-4, abs-A-5, abs-A-7, abs-B-3, abs-B-5). Read `CLAUDE.md` first,
-then this. **Rewrite this file at the end of every session, never append.** Under 150 lines.
+Rewritten **2026-11-22** (autos review fixes abs-A-4/A-5/A-7/B-3/B-5 + Synchrony product calibration R2-2 + abs-B-6).
+Read `CLAUDE.md` first, then this. **Rewrite this file at the end of every session, never append.** Under 150 lines.
 Evidence words are exact: **fixture-proven** = a test on committed fixtures or synthetic data; **seen on the data** =
 recomputed here from the committed tables; **seen live** = observed on a real Actions run or the live Pages;
 **unverified** = none of these.
@@ -10,85 +10,69 @@ recomputed here from the committed tables; **seen live** = observed on a real Ac
 
 Two tracks, both published at https://samueljwebber.github.io/abs-risk/ . **Public repo.**
 
-Every HIGH and MEDIUM finding of the 2026-11-10 independent review (`REVIEW.md`, `reviews/fable-2026-11-10/`) is now
-fixed (abs-A-3 fixed in part), along with four of the five LOW findings.
+Every HIGH, MEDIUM, and LOW finding of the 2026-11-10 independent review (`REVIEW.md`, `reviews/fable-2026-11-10/`)
+plus Round 2's **R2-2** is now fixed (`abs-A-3` fixed in part; `abs-A-8` closed by events).
 
 ## What changed on 2026-11-22, with evidence
 
-1. **Risk-set floor on cumulative-incidence hazards (abs-A-7).** `survival._curves` and `lender_gap.group_life_tables`
-   now enforce `survival.MIN_RISK_SET` = 50: any month of loan age with fewer than 50 loans at risk contributes zero
-   hazard rather than `d / n`. *Seen on the data*: every `b1_*` table under `data/results/autos/` was rebuilt from the
-   committed `data/autos/*.parquet` tables; in `b1_cif.csv`, thin early risk sets (such as 1 default among 29 loans at
-   age 5 in AmeriCredit's 480 bucket, which previously contributed 3.45 points to its 12-month rate, and 1 among 25 at
-   age 24 in Exeter's 480 bucket) no longer jump the Aalen-Johansen or Kaplan-Meier curves. *Fixture-proven*:
-   `tests/test_autos_review_fixes.py::test_min_risk_set_suppresses_hazard_from_thin_early_risk_set` and
-   `test_committed_cif_respects_min_risk_set_and_autos_page_blanks_late_lenders`.
-2. **Late-first-age cells blanked on the autos page (abs-A-4).** `lender_gap.first_age_table`,
-   `lender_gap.blank_late_entry_cells` and `lender_gap.usable_cells(at, cif=cif)` identify each cell's first observed
-   age with at least `MIN_RISK_SET` = 50 loans at risk and blank any cell whose first observed age exceeds
-   `survival.MAX_FIRST_AGE` = 6 months. *Seen on the data*: after the 3-month pool offset, median first observed age is
-   11 months at Capital One, 9 at Toyota and 7 at Honda (whose age-6 risk sets hold at most 32 loans), against 3 at
-   Exeter, 4 at CarMax and Santander, and 5 at AmeriCredit. Their cumulative rates are blanked in the section 2 cell
-   table on `docs/autos.html` (which now prints `first_age_12` beside `n_loans_12`) and excluded from the 24-month
-   by-score chart rather than printed as full 12- or 24-month rates. *Fixture-proven*:
-   `tests/test_autos_review_fixes.py::test_blank_late_entry_cells_blanks_lenders_first_observed_past_cutoff`.
-3. **Shelf selection, score scale and co-borrower averaging disclosed (abs-A-5, abs-B-3, abs-B-5).** `report/autos_page.py`,
-   `report/conclusions_page.py` and `design/methods.md` now state the prospectus shelf-selection rules at both ends of
-   the headline pair (CarMax's public CAOT pools selected from its core portfolio with FICO 650 or above while non-core
-   / lower-credit obligors go to CarMax Select; Exeter's EART pools since 2025-2 excluding obligors with credit bureau
-   score 640 or above and proprietary score 240 or above, which go to Exeter Select), Exeter's 20-point
-   VantageScore-over-FICO gap in its prospectus (weighted average 582 vs 562; 14% vs 32% below 540), and CarMax's
-   co-borrower FICO averaging on joint loans (truncated to an integer by `autos/parse.py`). `data/deals.csv` and
-   `design/scout-autos.md` also date Exeter's score selection from 2025-2 (abs-B-5). *Fixture-proven*:
-   `tests/test_autos_review_fixes.py::test_carmax_fixture_proves_co_borrower_half_point_scores_are_averaged_and_truncated`
-   verifies on the committed `tests/fixtures/autos/carmax-2026-2/2026-06.xml` fixture that `.5` scores occur exclusively
-   on `coObligorIndicator=true` records and are truncated by `score_value`.
+1. **Product-consistent card calibration (R2-2).**
+   - `shape/build_level.py` adds CFPB private-label charge-off and tier-mix series (`pl_chargeoff_rate`,
+     `pl_chargeoff_rate_ye`, `pl_share_*`) for CCIP (2014-2024) and CCP (2013-2022) to `data/ccmr_level.csv`.
+   - `cards/composition.py` parses Synchrony's prospectus Program Partner table into `private_label_share` (`0.242755`
+     for Synchrony, `0.0` elsewhere) in `data/cards_composition.csv` and `mix_by_trust.csv`.
+   - `shape/level.py` and `estimate/run_cards.py` blend GP and PL levels by `private_label_share`, emitting
+     `a1_product.csv` (0% GP, 24.3% blend, 100% PL). *Seen on the data*: Synchrony's gross residual moves from
+     `+1.07%..+1.74%` to `+0.41%..+1.16%` (reverses at 100% PL: `-1.63%..-0.64%`); across 12 shape x straddle cells,
+     `bofa` and `synchrony` tie for rank 1 in 5 each while `amex` is last in 10 (`cards_page.ends` reports ties).
+   - *Fixture-proven* and *seen on the data*: `tests/test_shape.py`, `tests/test_cards_composition.py`,
+     `tests/test_synchrony_product.py`, `tests/test_cards_results.py`, `tests/test_pages.py`.
+2. **Risk-set floor and late-first-age blanking on autos (abs-A-7, abs-A-4).**
+   - `survival._curves` and `lender_gap.group_life_tables` enforce `survival.MIN_RISK_SET = 50`; `lender_gap.blank_late_entry_cells`
+     and `usable_cells(at, cif=cif)` blank cells first reaching 50 at risk past `survival.MAX_FIRST_AGE = 6`
+     (Capital One 11, Toyota 9, Honda 7) on `docs/autos.html`. *Seen on the data* and *fixture-proven*:
+     all `b1_*` tables rebuilt; `tests/test_autos_review_fixes.py`.
+3. **Shelf selection, score scale, co-borrower averaging, Exeter date, and dollar fields (abs-A-5, abs-B-3, abs-B-5, abs-B-6).**
+   - `autos_page.py`, `conclusions_page.py`, `design/methods.md`, `data/deals.csv`, and `design/scout-autos.md` disclose
+     CarMax core FICO >= 650 vs Select, CarMax co-borrower `.5` score averaging/truncation, Exeter EART exclusion since
+     `2025-2` and 582 VantageScore vs 562 FICO gap, and count-based rate basis (`SCOPE`).
+   - `autos/parse.py`, `autos/build.py`, and `run_autos.load_loans` negate Capital One's negative `recoveredAmount`
+     (`copar-2025-1.parquet`: -$695,460.96 -> +$695,460.96 on load) and take first non-null `chargedoffPrincipalAmount`
+     at/after zero-balance exit. *Fixture-proven* and *seen on the data*: `tests/test_autos_parse.py`,
+     `tests/test_autos_build.py`, `tests/test_run_autos.py`, `tests/test_autos_review_fixes.py`.
 
-## What changed on 2026-11-21, with evidence
+## Decisions taken without asking (reversible)
 
-1. **Citi is net (abs-B-1), all six card trusts compared on net.** `cards/parse.py` stores Citi's Credit Loss Component
-   in `net_co_rate` and leaves `gross_co_rate` empty; `cards_roll.RATE = "net_co_rate"`. Sign statements against the
-   gross CFPB level use `a1_basis.csv` (`tests/test_citi_net.py`).
-2. **Conversion is not rescue (abs-A-2, abs-B-2).** `cards_roll.ceiling` -> `a3_ceiling.csv` (Chase 1.21, Synchrony 1.05,
-   BofA 1.03, COMET 0.99, Citi 0.88 on net, Amex 0.69 of a two-cohort bucket). Both card pages withdraw the old
-   reading; `tests/test_conclusions_claims.py` holds the withdrawn sentences off all four pages.
-3. **Santander buy-backs are defaults (abs-A-1) and fixed pairs lead the autos page (abs-A-3).** `survival.as_defaults`
-   reclassifies 1,321 repurchases of loans with `max_dpd >= 90` (1,295 Santander). `lender_gap.fixed_pair_ratios` ->
-   `b1_fixed_pairs.csv` leads `docs/autos.html` (`tests/test_autos_defaults.py`, `tests/test_autos_gap.py`).
+- **Prospectus product blend is the default card calibration** (`a1_product.csv` keeps 0%, blend, and 100% PL).
+- **Net remains the basis for card comparisons** (`cards_roll.RATE = "net_co_rate"`); sign statements use gross.
+- **Autos default event remains charge-off or 90+ late buy-back everywhere** (`survival.as_defaults`).
+- **`data/autos/copar-2025-1.parquet` was not hand-patched locally**; `run_autos.load_loans` normalises it in memory.
+- **`wip/paused-2026-11-10` (1e3af87, local only) was never merged and nothing was salvaged.**
 
 ## Next steps (no user needed)
 
-1. **Watch the next `cards-refresh` run** (Mondays and Thursdays 09:17 UTC). It re-parses on the runner with the net
-   Citi parser and must commit nothing if the tables match.
-2. **R2-2 properly**: calibrate Synchrony by product (24.3% private label against general purpose), starting from
-   `shape/build_level.py`.
-3. **Composition history** (round 1's R1-7 fix; about 87 424B filings since 2018): plan in `git show f45e9fe:HANDOFF.md`.
-4. **Partner auto shelves**: add CarMax Select (CMXS) and Exeter Select (ESART) deals to measure the shelf filter
-   directly, and print the 11-event / 10-point-bucket sensitivity variants from abs-A-3 and the net-recovery note from
-   abs-B-6.
+1. **Watch the next `cards-refresh` run** (Mondays and Thursdays 09:17 UTC): verify the runner parses `private_label_share`
+   and net Citi rates cleanly and commits no unexpected diff.
+2. **Composition history** (round 1's R1-7 fix; ~87 424B filings since 2018): plan in `git show f45e9fe:HANDOFF.md`.
+3. **Partner auto shelves**: add CarMax Select (CMXS) and Exeter Select (ESART) deals to measure the shelf filter directly.
 
 ## Unverified or open
 
-- **Not seen live:** the 2026-11-22 rebuilt pages (`docs/autos.html`, `docs/conclusions.html`) until this branch merges
-  and deploys to GitHub Pages.
-- The hazard model (`b2_*`), RD (`b3_*`) and decomposition (`b6_*`) tables were not refitted on 2026-11-22 because none
-  of them uses `survival._curves` with `MIN_RISK_SET` (`b2` fits loan-month binomial logits; `b6` requires at least
-  1,200 loans or 60 ever-30 loans per cell).
-- Three COMET 2019 filings still fail printed-vs-recomputed checks (documented, left failing).
-- Honest lender intervals assume deal shocks alike across lenders and rest on 3 degrees of freedom.
+- **Not seen live:** the rebuilt `cards.html`, `autos.html`, and `conclusions.html` on GitHub Pages until deployed.
+- `copar-2025-1.parquet` carries legacy negative `recovered_amount` bytes on disk until `autos-build` reruns.
+- Three COMET 2019 10-D filings still fail printed-vs-recomputed checks (documented, left failing).
+- Honest lender intervals rest on 3 degrees of freedom; Santander prospectus buy-back wording is not cached locally.
 
 ## Needs the user
 
-1. **CLAUDE.md line 5** names a local path. Replace it with "the credit-dashboard repository next to this one", or
-   tell a session to; then delete the KNOWN entry in `tests/test_no_leaks.py`.
-2. History rewrite (R1-2 item 3, R1-16): **decided 2026-11-22, no history rewrite** (43 old commits before 2026-09-14;
-   noreply enforced on every commit since by hook and `tests/test_no_leaks.py`).
+1. **CLAUDE.md line 5** names a local path. Replace it with "the credit-dashboard repository next to this one", then
+   delete the KNOWN entry in `tests/test_no_leaks.py`.
+2. **History rewrite (R1-2 item 3, R1-16):** decided 2026-11-22, no history rewrite (noreply enforced on every commit
+   since 2026-09-14 by hook and `tests/test_no_leaks.py`).
 
 ## Rules that matter here
 
-- **The SEC refuses any User-Agent containing a URL in parentheses.** Accepted form: `<name> <contact-email>`.
-  Never hit EDGAR from tests. Save every filing before parsing. Parse by label, never by position.
-- After changing card or autos code, rerun the analysis and the reports: `tests/test_cards_results.py` and
-  `tests/test_pages.py` fail when committed results or pages are stale. `docs/index.html` is hand-written.
-- `.venv\Scripts\python.exe -m pytest -o addopts=""` runs the suite without re-syncing.
-- **This repo is public.** `tests/test_no_leaks.py` is the floor, not the ceiling: read agent output before committing.
+- **SEC User-Agent must have no URL in parentheses** (`<name> <contact-email>`). Never hit EDGAR from tests.
+- Cap BLAS threads (`OMP_NUM_THREADS=2`, `OPENBLAS_NUM_THREADS=2`, `MKL_NUM_THREADS=2`) on busy machines.
+- After changing card or autos code, rerun analysis and reports: `tests/test_cards_results.py` and `tests/test_pages.py`
+  fail when committed results or pages are stale. `docs/index.html` is hand-written.
+- **This repo is public.** `tests/test_no_leaks.py` is the floor, not the ceiling: check diffs and commit emails before pushing.

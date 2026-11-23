@@ -20,7 +20,8 @@ SCOPE = ("Trust pools are selected, seasoned accounts, not the issuer's book. Ev
          "gives no gross rate. Until November 2026 this page labelled Citi's net rate gross and set it against the "
          "other five trusts' gross rates. Annualisation bases differ by trust and are kept as reported. "
          "The residual is actual minus what the pool's score mix predicts under a stated "
-         "loss-by-tier shape; it mixes underwriting, product, customer mix within a score band, pool selection and "
+         "loss-by-tier shape, calibrated to the CFPB general-purpose and private-label industry levels in each trust's "
+         "prospectus product mix; it mixes underwriting, product, customer mix within a score band, pool selection and "
          "behaviour, and it cannot say which. In principle it says whether a trust loses more than its score mix "
          "predicts, by how many points, and since when. Here the number of points depends on which loss curve is "
          "assumed (section 4), so the page reports a sign only where every curve agrees, and the years in which it held. "
@@ -166,65 +167,177 @@ def _sign_by_year(pred: pd.DataFrame) -> pd.DataFrame:
     return sign.unstack("year")
 
 
-# A statement about one trust that rests on how its pool is calibrated, beyond the loss curve and the straddle rule.
-# Review round 2 (REVIEW.md R2-2) measured this one on data through September 2026.
-PRODUCT_NOTE = {
-    "synchrony": ("One more assumption sits under that sign, and the curves do not cover it: synchrony's pool is set against "
-                  "the general-purpose industry level like the other five, though about a quarter of its receivables are "
-                  "private label cards, which charge off at roughly twice the general-purpose rate industry-wide. A review "
-                  "on 2026-11-09 found the sign survives at that blend and reverses if the whole pool is treated as private "
-                  "label."),
-}
-
-
 def ends(cells: pd.DataFrame) -> dict:
     """Who sits at the top and the bottom of the ranking across `cells`, and how often. A cell is one loss curve under
     one straddle rule (a1_straddle.csv), or one loss curve when the frame has no straddle_rule column (a1_ranking.csv).
-    Keys: n (cells), n_trusts, top, top_n, bottom, bottom_n, pos (cells with a positive residual, per trust), moved
-    (trusts whose rank is not the same in every cell), res_min, res_max (per trust)."""
+    Keys: n (cells), n_trusts, top, top_tied, top_n, bottom, bottom_tied, bottom_n, pos (cells with a positive residual,
+    per trust), moved (trusts whose rank is not the same in every cell), res_min, res_max (per trust)."""
     keys = [k for k in ("straddle_rule", "shape_source") if k in cells]
     n = int(cells.groupby(keys).ngroups)
     nt = int(cells["trust"].nunique())
     first = cells[cells["rank"] == 1]["trust"].value_counts()
     last = cells[cells["rank"] == nt]["trust"].value_counts()
+    top_n, bottom_n = int(first.max()), int(last.max())
+    top_tied = sorted(str(t) for t in first[first == top_n].index)
+    bottom_tied = sorted(str(t) for t in last[last == bottom_n].index)
     g = cells.groupby("trust")
-    return {"n": n, "n_trusts": nt, "top": str(first.idxmax()), "top_n": int(first.max()),
-            "bottom": str(last.idxmax()), "bottom_n": int(last.max()),
+    return {"n": n, "n_trusts": nt, "top": top_tied[0], "top_tied": top_tied, "top_n": top_n,
+            "bottom": bottom_tied[0], "bottom_tied": bottom_tied, "bottom_n": bottom_n,
             "pos": g["mean_residual"].apply(lambda x: int((x > 0).sum())),
             "moved": sorted(g["rank"].nunique()[lambda x: x > 1].index),
             "res_min": g["mean_residual"].min(), "res_max": g["mean_residual"].max(),
             "words": "combinations of loss curve and straddle rule" if "straddle_rule" in cells else "loss curves"}
 
 
+def ends_clause(e: dict, noun: str = "residual", where: str = "") -> str:
+    """Shared clause naming the top and bottom trust(s) across assumptions, handling ties without picking one."""
+    n = e["n"]
+
+    def count(k):
+        return f"all {n}" if k == n else f"{k}"
+
+    top_tied = e.get("top_tied") or [e["top"]]
+    bot_tied = e.get("bottom_tied") or [e["bottom"]]
+    if len(top_tied) == 1:
+        top_s = f"{escape(top_tied[0])} has the largest {noun} in {count(e['top_n'])}"
+    else:
+        top_s = f"{_names(top_tied)} tie for the largest {noun} in {count(e['top_n'])} each"
+    if len(bot_tied) == 1:
+        bot_s = f"{escape(bot_tied[0])} the smallest in {count(e['bottom_n'])}"
+    else:
+        bot_s = f"{_names(bot_tied)} tie for the smallest in {count(e['bottom_n'])} each"
+    return f"Across the {n} {e['words']}{where}, {top_s} and {bot_s}"
+
+
 def ends_sentence(e: dict) -> str:
     """The headline about the ends of the ranking, saying 'every' only where the count is every cell."""
     n = e["n"]
-    if e["top_n"] == n and e["bottom_n"] == n:
+    top_tied = e.get("top_tied") or [e["top"]]
+    bot_tied = e.get("bottom_tied") or [e["bottom"]]
+    top_all = len(top_tied) == 1 and e["top_n"] == n
+    bot_all = len(bot_tied) == 1 and e["bottom_n"] == n
+    top_most = len(top_tied) == 1 and e["top_n"] > n / 2
+    bot_most = len(bot_tied) == 1 and e["bottom_n"] > n / 2
+    if top_all and bot_all:
         lead = "The ends of the ranking hold under every assumption; the middle does not."
         close = "So the ordering of the extremes is a finding and the ordering of the middle is not."
-    elif e["top_n"] > n / 2 and e["bottom_n"] > n / 2:
+    elif top_most and bot_most:
         lead = "The ends of the ranking hold under most assumptions, not under all of them."
         close = "So the two ends are close to a finding, not quite one, and the ordering between them is not a finding at all."
+    elif bot_most and not top_most:
+        lead = "Only the bottom of the ranking holds under most assumptions; the top does not."
+        close = "So the bottom is close to a finding, the top is split, and the ordering between them is not a finding at all."
+    elif top_most and not bot_most:
+        lead = "Only the top of the ranking holds under most assumptions; the bottom does not."
+        close = "So the top is close to a finding, the bottom is split, and the ordering between them is not a finding at all."
     else:
         lead = "Neither end of the ranking holds across the assumptions."
         close = "So no part of the ordering is a finding."
 
-    def count(k):
-        return f"all {n}" if k == n else f"{k}"
-    t, b = e["top"], e["bottom"]
-    body = (f"Across the {n} {e['words']} (section 4), {escape(t)} has the largest residual in {count(e['top_n'])} and "
-            f"{escape(b)} the smallest in {count(e['bottom_n'])}; {len(e['moved'])} of {e['n_trusts']} trusts change rank "
+    body = (f"{ends_clause(e, where=' (section 4)')}; {len(e['moved'])} of {e['n_trusts']} trusts change rank "
             f"somewhere among them.")
-    if e["pos"].get(t, 0) == n:
+    t = e["top"]
+    if len(top_tied) == 1 and e["pos"].get(t, 0) == n:
         body += (f" {escape(t)} loses more than its own score mix predicts in all {n}: its residual is "
                  f"{e['res_min'][t]:+.2%} to {e['res_max'][t]:+.2%} after recoveries, so it is positive before them too.")
-    out = f"<b>{lead}</b> {body} {close}"
-    if t in PRODUCT_NOTE and e["pos"].get(t, 0) == n:
-        out += " " + PRODUCT_NOTE[t]
-    return out
+    return f"<b>{lead}</b> {body} {close}"
 
 
-def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame, straddle: pd.DataFrame | None = None) -> list[str]:
+def _product_headline_note(product: pd.DataFrame | None, trusts: list[str]) -> str:
+    """Product-calibration qualification for any trust in `trusts` that has a mixed private-label/GP benchmark."""
+    if product is None or product.empty:
+        return ""
+    notes = []
+    for t in trusts:
+        sub = product[product["trust"] == t]
+        if sub.empty:
+            continue
+        bl = sub[sub["calibration"] == "prospectus_blend"]
+        pl = sub[sub["calibration"] == "private_label"]
+        if bl.empty or pl.empty:
+            continue
+        w = float(bl["private_label_share"].iloc[0])
+        pl_g = pl["mean_residual_gross"].dropna()
+        if not pl_g.empty and (pl_g < 0).all():
+            notes.append(
+                f" Each trust is calibrated to its prospectus product mix ({w:.1%} private label and {1 - w:.1%} "
+                f"general purpose at {escape(t)}, section 4); treating the whole {escape(t)} pool as private label "
+                f"reverses its gross sign under every curve ({pl_g.min():+.2%} to {pl_g.max():+.2%}), so even that "
+                f"sign rests on classifying its dual cards as general purpose."
+            )
+        else:
+            notes.append(
+                f" {escape(t)} is calibrated to its prospectus product mix ({w:.1%} private label and {1 - w:.1%} "
+                f"general purpose, section 4)."
+            )
+    return "".join(notes)
+
+
+def _product_section(results: Path) -> str:
+    """Product-calibration sensitivity table and explanation, from a1_product.csv (REVIEW.md R2-2)."""
+    p = results / "a1_product.csv"
+    if not p.exists():
+        return ""
+    prod = pd.read_csv(p)
+    if prod.empty:
+        return ""
+    parts = ["<h3>Product calibration: general purpose against private label</h3>"]
+    for trust, sub in prod.groupby("trust"):
+        bl = sub[sub["calibration"] == "prospectus_blend"]
+        gp = sub[sub["calibration"] == "general_purpose"]
+        pl = sub[sub["calibration"] == "private_label"]
+        if bl.empty:
+            continue
+        w = float(bl["private_label_share"].iloc[0])
+        gp_g = gp["mean_residual_gross"].dropna()
+        bl_g = bl["mean_residual_gross"].dropna()
+        pl_g = pl["mean_residual_gross"].dropna()
+        bl_ranks = sorted(int(x) for x in bl["rank"].unique())
+        pl_ranks = sorted(int(x) for x in pl["rank"].unique())
+        rank_span = f"{bl_ranks[0]}" if len(bl_ranks) == 1 else f"{bl_ranks[0]} to {bl_ranks[-1]}"
+        pl_rank_span = f"{pl_ranks[0]}" if len(pl_ranks) == 1 else f"{pl_ranks[0]} to {pl_ranks[-1]}"
+        parts.append(
+            f"<p>The CFPB publishes separate general-purpose and private-label charge-off benchmarks "
+            f"(data/ccmr_level.csv), and private-label balances charge off at roughly twice the general-purpose "
+            f"rate. Each trust's prediction above blends the two levels in its prospectus product mix: "
+            f"{escape(str(trust))}'s Program Partner table puts {w:.1%} of receivables in private-label cards "
+            f"(Amazon and Lowe's) and {1 - w:.1%} in general-purpose dual cards and Mastercard, while the other "
+            f"five trusts are 100% general purpose. Until November 2026 {escape(str(trust))} was calibrated to the "
+            f"general-purpose level alone"
+            + (f" (gross residual {gp_g.min():+.2%} to {gp_g.max():+.2%}, rank 1 under every curve)" if not gp_g.empty else "")
+            + f". At its {w:.1%} prospectus blend its gross residual is "
+            + (f"{bl_g.min():+.2%} to {bl_g.max():+.2%}" if not bl_g.empty else "n/a")
+            + f" and its net-rate rank across the four curves is {rank_span}; calibrated wholly as private label, "
+            + (f"its gross residual reverses to {pl_g.min():+.2%} to {pl_g.max():+.2%} " if not pl_g.empty else "")
+            + f"and it ranks {pl_rank_span}. Every figure is in a1_product.csv.</p>"
+        )
+        labels = {
+            "general_purpose": "all general purpose (0.0% PL)",
+            "prospectus_blend": f"prospectus blend ({w:.1%} PL, default)",
+            "private_label": "all private label (100.0% PL)",
+        }
+        order = ["general_purpose", "prospectus_blend", "private_label"]
+        rows = []
+        for cal in order:
+            c = sub[sub["calibration"] == cal]
+            if c.empty:
+                continue
+            by_s = c.set_index("shape_source")
+            for basis_name, col in (("net residual", "mean_residual"), ("gross residual", "mean_residual_gross")):
+                if col in by_s and by_s[col].notna().any():
+                    row = {"calibration": labels[cal], "basis": basis_name}
+                    for s in sorted(by_s.index):
+                        row[s] = float(by_s.loc[s, col])
+                    rows.append(row)
+        if rows:
+            df = pd.DataFrame(rows)
+            s_cols = [c for c in df.columns if c not in ("calibration", "basis")]
+            parts.append(table(df, fmt={c: "{:+.2%}" for c in s_cols}))
+    return "".join(parts)
+
+
+def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame, straddle: pd.DataFrame | None = None,
+               product: pd.DataFrame | None = None) -> list[str]:
     """Sentences computed from the tables, so the page cannot claim more than the numbers carry."""
     out = []
     if rank.empty:
@@ -247,10 +360,12 @@ def _headlines(rank: pd.DataFrame, pred: pd.DataFrame, mix: pd.DataFrame, stradd
                 f"the card-level ones. The two families disagree by about five times on how much more a deep subprime account loses than "
                 f"a prime one, and that choice moves every level.")
         if not same.empty:
-            keep = ", ".join(f"{t} ({glo.loc[t].min():+.2%} to {ghi.loc[t].max():+.2%})" for t in sorted(same.index))
+            same_list = sorted(same.index)
+            keep = ", ".join(f"{t} ({glo.loc[t].min():+.2%} to {ghi.loc[t].max():+.2%})" for t in same_list)
             one = len(same) == 1
             line += (f" Only {escape(keep)} keep{'s' if one else ''} the same sign under all {n_shapes}, so "
-                     f"{'it is the one trust' if one else 'they are the only trusts'} whose sign does not depend on the loss curve.")
+                     f"{'it is the one trust' if one else 'they are the only trusts'} whose sign does not depend on the loss curve."
+                     + _product_headline_note(product, same_list))
         out.append(line)
     act = rank.groupby("trust")["mean_actual"].first()
     act_spread = act.max() / max(act.min(), 1e-9)
@@ -412,7 +527,9 @@ def build(results: Path, out: Path) -> Path:
     h.append("<h2>What the data says</h2>")
     straddle_p = results / "a1_straddle.csv"
     straddle = pd.read_csv(straddle_p) if straddle_p.exists() else None
-    for line in _headlines(rank, pred, mix, straddle):
+    product_p = results / "a1_product.csv"
+    product = pd.read_csv(product_p) if product_p.exists() else None
+    for line in _headlines(rank, pred, mix, straddle, product):
         h.append(f"<p>{line}</p>")
 
     h.append("<h2>1. Score mix by trust</h2>")
@@ -429,10 +546,18 @@ def build(results: Path, out: Path) -> Path:
             if mixed:
                 h.append(f" {escape(', '.join(mixed))} print{'s' if len(mixed) == 1 else ''} unscored accounts inside the lowest "
                          f"score bucket rather than on a row of their own, so there they stay in that bucket's score range.")
+    if "private_label_share" in mix and (mix["private_label_share"].fillna(0.0).astype(float) > 0).any():
+        pl_rows = mix[mix["private_label_share"].fillna(0.0).astype(float) > 0].sort_values("trust")
+        items = ", ".join(f"{r['trust']} {float(r['private_label_share']):.1%}" for _, r in pl_rows.iterrows())
+        h.append(f" Product mix comes from each prospectus's Program Partner table where one exists ({escape(items)} "
+                 f"private-label receivables, 0.0% elsewhere); each trust's CFPB benchmark blends the private-label and "
+                 f"general-purpose industry levels in that share.")
     h.append("</p>")
-    cols = ["trust", "as_of", "basis", "score_type", "clamped_edges", "unscored", "deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
+    cols = ["trust", "as_of", "basis", "score_type", "clamped_edges", "unscored", "private_label_share",
+            "deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime"]
     cols = [c for c in cols if c in mix]
-    h.append(table(mix.sort_values(["trust", "as_of"]), cols=cols, fmt={"unscored": "{:.2%}", **{t: "{:.1%}" for t in ("deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime")}}))
+    h.append(table(mix.sort_values(["trust", "as_of"]), cols=cols, fmt={"unscored": "{:.2%}", "private_label_share": "{:.1%}",
+                                                                        **{t: "{:.1%}" for t in ("deep_subprime", "subprime", "near_prime", "prime", "prime_plus", "superprime")}}))
     if "error" in mix and mix["error"].notna().any():
         h.append("<p class='muted'>Not mapped: " + escape("; ".join(f"{r['trust']} ({r['error']})" for _, r in mix[mix['error'].notna()].iterrows())) + "</p>")
 
@@ -499,6 +624,7 @@ def build(results: Path, out: Path) -> Path:
                         f"paragraph widens the rule, and the headline counts both.</p>"
                         if held.any() else "No trust keeps one rank under every shape.</p>"))
         h.append(_straddle_note(results))
+        h.append(_product_section(results))
         sy = _sign_by_year(pred)
         if not sy.empty:
             always = [t for t in sy.index if (sy.loc[t].dropna() == "+").all()]

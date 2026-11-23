@@ -122,7 +122,11 @@ period is an error); one slotted state object per loan for the deal's life.
   sensitivity. SDART 2026-1, June+July 2026: 3 of 80,613.
 - `months_observed` counts files present; `first_period` / `last_period` the first and last; `bal_first` /
   `bal_last` the end balance then; `max_dpd` and `first_30/60/90_period` over the life (null when delinquency
-  was never reported); `chargeoff_amount` at the exit period; `recovered_amount` summed over the life;
+  was never reported); `chargeoff_amount` the first non-null `chargedoffPrincipalAmount` at or after the
+  zero-balance exit (never summed across retained months, because keep-all issuers repeat it); `recovered_amount`
+  summed over the life, with Capital One's negative sponsor sign negated in `parse.py` and in
+  `run_autos.load_loans` for legacy parquets (REVIEW.md abs-B-6; neither dollar field is used in any published
+  auto rate, which are all count-based shares of loans);
   `ltv = orig_amount / vehicle_value`, null when the value is missing or <= 0; static fields from the first
   observation (scores never change, scout 5a).
 - **Gaps** (present, absent, present again) are counted; the first absence still fixes the exit (rule (b)).

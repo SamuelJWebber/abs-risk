@@ -18,6 +18,8 @@ Normalisations, each cited to design/scout-autos.md:
 - payment-to-income: a fraction. Divided by 100 when the issuer is Capital One or when the file's median exceeds
   1.0 (section 6 item 1: percent only at Capital One; use the median, never the max, because CarMax, Ford, Toyota
   and AmeriCredit have fraction-scale outliers above 1). The rule that fired is recorded in `info["pti_rule"]`.
+- recoveries: positive dollars. Capital One reports `recoveredAmount` as a negative number (its sponsor sign
+  convention; REVIEW.md abs-B-6), so it is negated (`recovery_sign = -1.0`) when `lender` is Capital One.
 - dates: MM/YYYY (origination, zero-balance effective) to the first of the month; MM-DD-YYYY (reporting period) to
   a date (section 6 item 5: lexicographic comparison of MM/YYYY is wrong).
 - repeated elements: the first value wins and duplicates are counted (section 6 item 7: `subvented` twice in 53%
@@ -199,12 +201,15 @@ def detect_pti_scale(path: str | Path, lender: str | None, sample: int = PTI_SAM
             "pti_sample_n": len(vals)}
 
 
-def normalise(rec: dict[str, str], deal: str, pti_divisor: float) -> dict:
+def normalise(rec: dict[str, str], deal: str, pti_divisor: float, recovery_sign: float = 1.0) -> dict:
     """One raw record -> one loan-month dict (LOAN_MONTH_COLUMNS + ORIGINATION_KEYS)."""
     score_type = rec.get("obligorCreditScoreType", "")
     pti = _num(rec.get("paymentToIncomePercentage"))
     if pti is not None and pti_divisor != 1.0:
         pti = pti / pti_divisor
+    recovered = _num(rec.get("recoveredAmount"))
+    if recovered is not None and recovery_sign != 1.0:
+        recovered = recovered * recovery_sign
     modified = _bool(rec.get("reportingPeriodModificationIndicator")) or bool(rec.get("modificationTypeCode"))
     extended = (_int(rec.get("paymentExtendedNumber")) or 0) > 0
     if modified and extended:
@@ -229,7 +234,7 @@ def normalise(rec: dict[str, str], deal: str, pti_divisor: float) -> dict:
         "interest_paid": _num(rec.get("actualInterestCollectedAmount")),
         "principal_paid": _num(rec.get("actualPrincipalCollectedAmount")),
         "chargeoff_amount": _num(rec.get("chargedoffPrincipalAmount")),
-        "recovered_amount": _num(rec.get("recoveredAmount")),
+        "recovered_amount": recovered,
         "repossessed": _bool(rec.get("repossessedIndicator")),
         "servicing_flag": flag,
         # origination attributes for analysis-plan 1a
@@ -255,18 +260,20 @@ def iter_loan_months(path: str | Path, deal: str, lender: str | None = None,
                      info: dict | None = None) -> Iterator[dict]:
     """Stream one EX-102 file as normalised loan-month dicts.
 
-    `info`, if given, is filled in place: pti_rule, pti_divisor, pti_sample_median_raw, n_records, period,
-    n_periods_other (records whose period differs from the file's first), dup_counts (element -> records with a
-    repeat), n_apr_gt_1, n_score_missing, n_commercial. It is complete only after the iterator is exhausted.
+    `info`, if given, is filled in place: pti_rule, pti_divisor, pti_sample_median_raw, recovery_sign, n_records,
+    period, n_periods_other (records whose period differs from the file's first), dup_counts (element -> records
+    with a repeat), n_apr_gt_1, n_score_missing, n_commercial. It is complete only after the iterator is exhausted.
     """
     scale = detect_pti_scale(path, lender)
+    recovery_sign = -1.0 if (lender or "").lower() in CAPONE_LENDERS else 1.0
     if info is None:
         info = {}
     info.update(scale)
-    info.update({"n_records": 0, "period": None, "n_periods_other": 0, "dup_counts": Counter(),
-                 "n_apr_gt_1": 0, "n_score_missing": 0, "n_commercial": 0, "n_pti_gt_1_after": 0})
+    info.update({"recovery_sign": recovery_sign, "n_records": 0, "period": None, "n_periods_other": 0,
+                 "dup_counts": Counter(), "n_apr_gt_1": 0, "n_score_missing": 0, "n_commercial": 0,
+                 "n_pti_gt_1_after": 0})
     for rec in iter_records(path):
-        row = normalise(rec, deal, scale["pti_divisor"])
+        row = normalise(rec, deal, scale["pti_divisor"], recovery_sign=recovery_sign)
         if "__dups" in rec:
             info["dup_counts"].update(rec["__dups"].keys())  # type: ignore[union-attr]
         info["n_records"] += 1

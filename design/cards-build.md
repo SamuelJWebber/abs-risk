@@ -227,8 +227,10 @@ under the crosswalk (receivables basis, July-2026 prospectus set): superprime 0.
 - `cards_monthly` is exactly analysis-plan 3a. `co_basis` takes a fourth value, `invested_amount`, for Citi
   (the collateral certificate invested amount; "beginning" would be an inference). `source_file` joins two
   file names with `;` for Chase.
-- `cards_composition` is analysis-plan 3b plus a trailing `bucket_label` column (verbatim row label) so a
-  reader can match a row to the prospectus and the crosswalk joins on it.
+- `cards_composition` is analysis-plan 3b plus trailing `bucket_label` (verbatim row label so a reader can match
+  a row to the prospectus and the crosswalk joins on it) and `private_label_share` (share of receivables in
+  private-label cards from the prospectus Program Partner table when present, e.g. Synchrony 24.3%, else 0.0;
+  REVIEW.md R2-2).
 - `data/cards_monthly.csv` is not written yet: the six July-2026 rows parse (see the test suite) but the
   history needs the runner; writing a six-row file would misstate coverage.
 

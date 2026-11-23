@@ -173,3 +173,9 @@ def test_nice_ticks():
     assert nice_ticks(2019.0, 2026.75) == [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
     assert nice_ticks(480, 840) == [500, 550, 600, 650, 700, 750, 800]
     assert nice_ticks(3, 3) == [3]
+
+
+def test_autos_page_states_rates_are_loan_counts_not_dollars():
+    """REVIEW.md abs-B-6: say once that the autos page rates are count-based shares of loans, not dollars."""
+    t = _text((DOCS / "autos.html").read_text(encoding="utf-8"))
+    assert "count-based share of loans, not principal dollars or net of recoveries" in t
