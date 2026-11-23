@@ -11,14 +11,18 @@ import numpy as np
 import pandas as pd
 
 from ..estimate import rd
-from ..estimate.lender_gap import (MIN_AT_RISK, MIN_EVENTS, MIN_LOANS, bucket_ratios, pair_ratios,  # noqa: F401
-                                   scale_900_lenders, usable_cells)
-from ..estimate.survival import POOL_OFFSET
+from ..estimate.lender_gap import (MIN_AT_RISK, MIN_EVENTS, MIN_LOANS, blank_late_entry_cells, bucket_ratios,  # noqa: F401
+                                   first_age_table, pair_ratios, scale_900_lenders, usable_cells)
+from ..estimate.survival import MAX_FIRST_AGE, MIN_RISK_SET, POOL_OFFSET
 from .svg import forest_chart, line_chart, page, table
 
 ORDINAL = {1: "second", 2: "third", 3: "fourth", 4: "fifth", 5: "sixth", 6: "seventh", 7: "eighth"}
 
-SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole books. A loan enters when the trust "
+SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole books, and sponsors curate which loans "
+         "go onto each public shelf (CarMax's public CAOT pools are selected from its core portfolio with FICO 650 or "
+         "above while lower-credit loans go to CarMax Select; Exeter's pools since 2025-2 exclude obligors with credit "
+         "bureau score 640 or above and proprietary score 240 or above, which go to Exeter Select). "
+         "A loan enters when the trust "
          "is formed or replenished and leaves when it pays off, is repurchased, or charges off; some sponsors drop "
          "paid-off loans from the file the month after payoff and others keep them, which the exit rule handles. "
          f"Age is months since origination, and a loan counts only from its {ORDINAL.get(POOL_OFFSET, 'first')} month in "
@@ -30,7 +34,9 @@ SCOPE = ("These are loans inside public auto ABS trusts, not the lenders' whole 
          "share of loans, not principal dollars or net of recoveries (the loan-level charge-off and recovery dollar "
          "fields in the committed tables are unused here). "
          "Scores are the score type the sponsor reports (FICO at most captives, a bureau score at Santander, VantageScore "
-         "at Exeter for 98.9% of its pool) and are never refreshed after origination, so a 700 at Exeter and a 700 at "
+         "at Exeter for 98.9% of its pool; in Exeter's prospectus the same pool averages 582 on VantageScore and 562 on "
+         "FICO, and at CarMax a joint loan's score is the average of the two co-borrowers' FICO scores, truncated to an "
+         "integer) and are never refreshed after origination, so a 700 at Exeter and a 700 at "
          "Honda are close but not the same number.")
 
 KIND = ("<b>What kind of claim each section makes.</b> Sections 2, 3 and 5 are descriptive: who defaults, at which "
@@ -128,9 +134,10 @@ def _cif_chart(cif: pd.DataFrame, lender: str, buckets: list[str], measure: str)
     return line_chart(series, y_label="cumulative charge-off", x_label="months since origination", title=f"{lender}")
 
 
-def _lender_at_score_chart(at24: pd.DataFrame) -> str:
-    """Cumulative charge-off at 24 months against score bucket, one line per lender, usable cells only."""
-    a = usable_cells(at24)
+def _lender_at_score_chart(at24: pd.DataFrame, cif: pd.DataFrame | None = None) -> str:
+    """Cumulative charge-off at 24 months against score bucket, one line per lender, usable cells only (excluding
+    cells whose first observed age is past MAX_FIRST_AGE when `cif` is provided; REVIEW.md abs-A-4)."""
+    a = usable_cells(at24, cif=cif)
     series = []
     for lender, g in a.groupby("lender"):
         g = g.sort_values("lo")
@@ -269,6 +276,23 @@ def _pairs_sentence(pairs: pd.DataFrame | None) -> str:
             f"fourth month in a trust (section 2).")
 
 
+def _shelf_selection_sentence() -> str:
+    """What the prospectuses say about shelf selection and score construction at the two ends of the headline pair
+    (REVIEW.md abs-A-5 and abs-B-3)."""
+    return ("<b>Both ends of the headline pair are curated shelves, filtered in opposite directions, and their reported "
+            "scores are not the same scale.</b> CarMax's public CAOT pools are selected from CarMax Business Services' "
+            "core portfolio with a FICO score at origination of 650 or above, while contracts outside the core portfolio, "
+            "a substantial portion of which are lower-credit obligors, are securitised in the separate CarMax Select "
+            "trusts (not in this dataset); for a joint loan CarMax averages each co-obligor's FICO score (about 30% of "
+            "its co-obligor records carry a half-point score, which the parser truncates to an integer). Exeter's public "
+            "EART pools since 2025-2 exclude obligors with a Credit Bureau Score of 640 or above and a proprietary score "
+            "of 240 or above (those go to Exeter Select), so the 660-and-above loans remaining in Exeter 2025-5 are the "
+            "ones Exeter's own model rated poorly; and Exeter's reported Credit Bureau Score is VantageScore for 98.9% of "
+            "its pool (in Exeter's prospectus for the same pool, the weighted average is 582 on VantageScore against 562 "
+            "on FICO, with 14% below 540 on VantageScore versus 32% on FICO). So the 660-759 comparison is between the "
+            "core shelf of a prime lender and the lower-rated remainder of a subprime shelf.")
+
+
 def _buyback_sentence(late: pd.DataFrame | None, at12: pd.DataFrame | None, at12_trust: pd.DataFrame | None) -> str:
     """What the buy-backs are and what counting them changes, from b1_late_repurchase.csv and the cells on both
     definitions (REVIEW.md abs-A-1)."""
@@ -306,7 +330,7 @@ def _buyback_sentence(late: pd.DataFrame | None, at12: pd.DataFrame | None, at12
 
 
 def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | None,
-                   gap_trust: pd.DataFrame | None = None) -> list[str]:
+                   gap_trust: pd.DataFrame | None = None, extra_cif: pd.DataFrame | None = None) -> list[str]:
     """The same-score lender comparison, every ratio with its interval, from b1_gap.csv (REVIEW.md R2-1)."""
     out = []
     g = gap.copy()
@@ -343,9 +367,21 @@ def _gap_sentences(gap: pd.DataFrame, hr: pd.DataFrame, summary: pd.DataFrame | 
     nxd = nx.iloc[0].to_dict() if not nx.empty else None
     verb = gap_verb(m, nxd, g_s)
     lo_b, hi_b = int(rated["lo"].min()), int(rated["lo"].max()) + 19
+    fa_lenders = ""
+    cif = extra_cif
+    if cif is not None and not cif.empty:
+        fa = first_age_table(cif, ["lender", "score_b"], min_risk_set=MIN_RISK_SET)
+        med_fa = fa.groupby("lender", observed=True)["first_age"].median().dropna()
+        late_fa = med_fa[med_fa > MAX_FIRST_AGE].sort_values(ascending=False)
+        if not late_fa.empty:
+            parts = [f"{k} (first at risk at age {int(v)})" for k, v in late_fa.items()]
+            fa_lenders = (f" Cells whose first observed age with at least {MIN_RISK_SET} loans at risk is past "
+                          f"{MAX_FIRST_AGE} months ({escape(_join(parts))}) cover only the tail of the first year and "
+                          f"are blanked in the table in section 2 rather than printed as full 12- or 24-month rates.")
     thin = sorted({t for v in rated["thin"].fillna("") for t in str(v).split(",") if t})
     thin_s = (f" In some of these buckets {escape(_join(thin))} sit{'s' if len(thin) == 1 else ''} lower still, on fewer than "
-              f"{MIN_EVENTS} charge-offs each by twelve months, which is too few to divide by." if thin else "")
+              f"{MIN_EVENTS} charge-offs each by twelve months (and for seasoned deals, only the later months of that first "
+              f"year observed after the pool window), which is too few to divide by." if thin else "") + fa_lenders
     dropped = buckets[buckets["ratio"].isna()]
     drop_s = (f" The {_join([f'{int(x)}' for x in dropped['lo']])} bucket{'s have' if len(dropped) > 1 else ' has'} three "
               f"lenders but no second one with {MIN_EVENTS} charge-offs, so no ratio." if len(dropped) else "")
@@ -418,11 +454,12 @@ def _headlines(gap: pd.DataFrame | None, hr: pd.DataFrame, rdres: pd.DataFrame, 
                bw: pd.DataFrame | None = None, summary: pd.DataFrame | None = None,
                li: pd.DataFrame | None = None, fit: dict | None = None, extra: dict | None = None) -> list[str]:
     """Sentences computed from the result tables, so the page never claims more than the numbers. `extra` holds the
-    tables behind the default definition: pairs, late, at12, at12_trust, gap_trust."""
+    tables behind the default definition: pairs, late, at12, at12_trust, gap_trust, cif."""
     x = extra or {}
     out = [t for t in (_pairs_sentence(x.get("pairs")),
+                       _shelf_selection_sentence(),
                        _buyback_sentence(x.get("late"), x.get("at12"), x.get("at12_trust"))) if t]
-    out += _gap_sentences(gap, hr, summary, x.get("gap_trust")) if gap is not None and not gap.empty else []
+    out += _gap_sentences(gap, hr, summary, x.get("gap_trust"), x.get("cif")) if gap is not None and not gap.empty else []
     L = hr[(hr["factor"] == "lender") & (hr["event"] == "chargeoff")]
     if not L.empty:
         w = L.pivot_table(index="level", columns="spec", values="odds_ratio")
@@ -694,7 +731,7 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
     def opt(name):
         return pd.read_csv(results / name) if (results / name).exists() else None
     extra = {"pairs": opt("b1_fixed_pairs.csv"), "late": opt("b1_late_repurchase.csv"), "at12": at12,
-             "at12_trust": opt("b1_at_12_trust_loss.csv"), "gap_trust": opt("b1_gap_trust_loss.csv")}
+             "at12_trust": opt("b1_at_12_trust_loss.csv"), "gap_trust": opt("b1_gap_trust_loss.csv"), "cif": cif}
 
     h = ["<h1>Auto loans: same score, different lender</h1>"]
     last = pd.Period(str(summary["last_period"].max())[:7])
@@ -715,26 +752,31 @@ def build(results: Path, out: Path, deals_csv: Path | None = None) -> Path:
 
     h.append("<h2>2. Cumulative default by score bucket, by lender</h2>")
     h.append("<p>Age is months since origination, with delayed entry: a loan counts in the risk set only at ages it was "
-             "actually observed in the trust. A default is a charge-off or a buy-back of a loan that had been 90 days late. "
+             f"actually observed in the trust, and no hazard is estimated at an age with fewer than {MIN_RISK_SET} loans at risk. "
+             "A default is a charge-off or a buy-back of a loan that had been 90 days late. "
              "Aalen-Johansen cumulative incidence treats prepayment and every other buy-back as competing "
              "exits; the Kaplan-Meier version treats them as censoring and is always higher. Buckets are 20 points wide, labelled "
-             "by the lower edge; cells with fewer than 500 loans are not drawn. Bands are 95 percent percentile bootstrap over loans.</p>")
+             "by the lower edge; cells with fewer than 500 loans are not drawn, and cells whose first observed age (with at least "
+             f"{MIN_RISK_SET} loans at risk) is past {MAX_FIRST_AGE} months have their cumulative rates blanked because the early "
+             "ages were never observed. Bands are 95 percent percentile bootstrap over loans.</p>")
     h.append(_pool_window_note(hr, summary))
     h.extend(_definition_section(extra))
-    h.append(_lender_at_score_chart(at24))
+    h.append(_lender_at_score_chart(at24, cif=cif))
     buckets = sorted({str(b) for b in cif["score_b"].unique() if str(b) != "none"}, key=lambda s: int(s))
     h.append("<div class='grid2'>")
     for lender in sorted(cif["lender"].unique()):
         h.append(_cif_chart(cif, lender, buckets, "aj_chargeoff"))
     h.append("</div>")
     h.append("<h3>At 24 months, with bootstrap bands</h3>")
+    at12_b = blank_late_entry_cells(at12, cif)
+    at24_b = blank_late_entry_cells(at24, cif)
     keep = usable_cells(at24)[["lender", "score_b"]]
-    piv = at12.merge(at24, on=["lender", "score_b"], suffixes=("_12", "_24")).merge(keep, on=["lender", "score_b"])
+    piv = at12_b.merge(at24_b, on=["lender", "score_b"], suffixes=("_12", "_24")).merge(keep, on=["lender", "score_b"])
     piv["score_b"] = piv["score_b"].astype(int)
     piv = piv.sort_values(["lender", "score_b"])
-    cols = ["lender", "score_b", "n_loans_12", "at_risk_24", "aj_chargeoff_12", "aj_chargeoff_24", "aj_lo95_24", "aj_hi95_24", "km_chargeoff_24"]
+    cols = ["lender", "score_b", "first_age_12", "n_loans_12", "at_risk_24", "aj_chargeoff_12", "aj_chargeoff_24", "aj_lo95_24", "aj_hi95_24", "km_chargeoff_24"]
     cols = [c for c in cols if c in piv]
-    h.append(table(piv, cols=cols, fmt={"aj_chargeoff_12": "{:.2%}", "aj_chargeoff_24": "{:.2%}", "aj_lo95_24": "{:.2%}", "aj_hi95_24": "{:.2%}",
+    h.append(table(piv, cols=cols, fmt={"first_age_12": "{:.0f}", "aj_chargeoff_12": "{:.2%}", "aj_chargeoff_24": "{:.2%}", "aj_lo95_24": "{:.2%}", "aj_hi95_24": "{:.2%}",
                                       "km_chargeoff_24": "{:.2%}", "n_loans_12": "{:,.0f}", "at_risk_24": "{:,.0f}"}, max_rows=400))
     fresh_p, fresh12_p = results / "b1_at_24_fresh.csv", results / "b1_at_12_fresh.csv"
     if fresh_p.exists() or fresh12_p.exists():
