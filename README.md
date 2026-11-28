@@ -20,3 +20,5 @@ design/methods.md what each estimate can carry. Card data refreshes twice a week
     python -m uv run absrisk analyze autos # Track B results from the committed loans tables (~30 min)
     python -m uv run absrisk analyze cards # Track A results (~20 s); then `absrisk report cards|conclusions`
     python -m uv run absrisk report autos  # docs/autos.html
+
+To reproduce the card and auto loss-decomposition results against fixed input bytes, use the [November 2026 replay and source manifest](checks/replays/2026-11-28/README.md).

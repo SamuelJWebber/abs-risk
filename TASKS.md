@@ -3,6 +3,10 @@
 One bounded task per session. Each has a pass condition written before work starts.
 Status: `todo` | `doing` | `done YYYY-MM-DD` | `blocked (why)`.
 
+## Score-bucket auto decomposition replay
+
+- **Done 2026-11-28.** The source and output digests, offline replay and coverage are in `checks/replays/2026-11-28/`. The B6 test rebuilds all four decomposition tables, and both affected reports were regenerated.
+
 ## 0. Access and scouting
 
 | # | Task | Pass condition | Status |

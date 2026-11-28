@@ -1,6 +1,6 @@
 # abs-risk handoff
 
-Rewritten **2026-11-22** (autos review fixes abs-A-4/A-5/A-7/B-3/B-5 + Synchrony product calibration R2-2 + abs-B-6).
+Rewritten **2026-11-28** (autos review fixes abs-A-4/A-5/A-7/B-3/B-5 + Synchrony product calibration R2-2 + abs-B-6).
 Read `CLAUDE.md` first, then this. **Rewrite this file at the end of every session, never append.** Under 150 lines.
 Evidence words are exact: **fixture-proven** = a test on committed fixtures or synthetic data; **seen on the data** =
 recomputed here from the committed tables; **seen live** = observed on a real Actions run or the live Pages;
@@ -39,6 +39,10 @@ plus Round 2's **R2-2** is now fixed (`abs-A-3` fixed in part; `abs-A-8` closed 
      (`copar-2025-1.parquet`: -$695,460.96 -> +$695,460.96 on load) and take first non-null `chargedoffPrincipalAmount`
      at/after zero-balance exit. *Fixture-proven* and *seen on the data*: `tests/test_autos_parse.py`,
      `tests/test_autos_build.py`, `tests/test_run_autos.py`, `tests/test_autos_review_fixes.py`.
+
+## Offline replay of the published loss decomposition
+
+The November 28 replay pins the 567 parsed trust-months and ten auto-loan tables (759,808 loans). All card result tables reproduced. The current 50-loan risk-set floor changes 24 of 67 score-by-lender implied loss rates versus the older committed auto estimates. Regenerated both by-score B6 tables and the two affected pages. CarMax's median roll ratio is 0.94, Honda's is 0.61 and Toyota's is 0.70. The hash manifest, source-coverage limits and commands are in [the replay](checks/replays/2026-11-28/README.md).
 
 ## Decisions taken without asking (reversible)
 
